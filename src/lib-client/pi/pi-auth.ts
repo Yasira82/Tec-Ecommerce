@@ -356,27 +356,6 @@ export const loginWithPi = async (): Promise<TecAuthResponse> => {
 };
 
 // ── FCM Token Registration ────────────────────────────────
-// من:
-const _registerFCMToken = async (accessToken: string): Promise<void> => {
-  try {
-    const { getFCMToken } = await import('@/lib/firebase');
-    const fcmToken = await getFCMToken();
-    if (!fcmToken) return;
-
-    await fetch('/api/notifications/device-tokens', {
-      method:      'POST',
-      credentials: 'include',
-      headers:     { 'Content-Type': 'application/json' },
-      body:        JSON.stringify({ token: fcmToken, platform: 'web' }),
-    });
-  } catch (err: unknown) {
-    if (process.env.NODE_ENV !== 'production') {
-      console.warn('[Pi Auth] FCM token registration failed:', (err as Error).message);
-    }
-  }
-};
-
-// إلى:
 const _registerFCMToken = async (_accessToken: string): Promise<void> => {
   // FCM optional — add @/lib/firebase if needed
 };
