@@ -4,7 +4,7 @@ const path = require('path');
 const nextConfig = {
   eslint:  { ignoreDuringBuilds: false },
   output:  'standalone',
-  outputFileTracingRoot: path.join(__dirname, '../'),
+  // ✅ حذف outputFileTracingRoot — مش محتاجه في standalone repo
 
   images: {
     formats:         ['image/avif', 'image/webp'],
@@ -18,7 +18,7 @@ const nextConfig = {
 
   compress: true,
 
-  webpack: (config, { isServer }) => {
+  webpack: (config) => {
     config.resolve.alias = {
       ...config.resolve.alias,
       '@': path.resolve(__dirname, 'src'),
