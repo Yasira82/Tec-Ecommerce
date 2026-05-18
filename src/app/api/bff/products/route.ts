@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = req.nextUrl;
 
-    const params = new URLSearchParams();
+    const params   = new URLSearchParams();
     const category = searchParams.get('category');
     const limit    = searchParams.get('limit') ?? '12';
     const page     = parseInt(searchParams.get('page') ?? '1');
@@ -34,7 +34,21 @@ export async function GET(req: NextRequest) {
 
     const data = await res.json().catch(() => ({}));
     if (!res.ok) return NextResponse.json(data, { status: res.status });
-    return NextResponse.json(data);
+
+    // ✅ normalize products
+    const raw      = (data?.data?.products ?? data?.products ?? []) as Record<string, unknown>[];
+    const products = raw.map(p => {
+      const meta = (p['metadata'] ?? {}) as Record<string, unknown>;
+      return {
+        ...p,
+        images:        (meta['images'] as string[]) ?? (p['image_url'] ? [p['image_url']] : []),
+        rating:        (meta['rating']       as number) ?? 0,
+        reviews_count: (meta['reviewCount']  as number) ?? 0,
+        merchant_name: p['seller_id'] ?? '',
+      };
+    });
+
+    return NextResponse.json({ success: true, data: { products } });
   } catch {
     return NextResponse.json({ error: 'Failed to fetch products' }, { status: 500 });
   }
