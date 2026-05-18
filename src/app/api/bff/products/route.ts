@@ -9,10 +9,19 @@ const getToken = (req: NextRequest) =>
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = req.nextUrl;
-    const query = searchParams.toString();
+
+    const params = new URLSearchParams();
+    const category = searchParams.get('category');
+    const limit    = searchParams.get('limit') ?? '12';
+    const page     = parseInt(searchParams.get('page') ?? '1');
+    const offset   = (page - 1) * parseInt(limit);
+
+    if (category && category !== 'all') params.set('category', category);
+    params.set('limit',  limit);
+    params.set('offset', String(offset));
 
     const res = await fetch(
-      `${GATEWAY}/api/commerce/products/public${query ? `?${query}` : ''}`,
+      `${GATEWAY}/api/commerce/products?${params}`,
       {
         headers: {
           Authorization:    `Bearer ${getToken(req)}`,
