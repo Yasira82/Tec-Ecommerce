@@ -139,15 +139,16 @@ export default function ShopPage() {
   }, [search, category, sort, fetchProducts]);
 
   const handleBuyProduct = useCallback((product: Product) => {
-    if (!isAuthenticated) { router.push('/'); return; }
-    buyRedirect({
-      amount:    product.price,
-      memo:      `Buy ${product.title} — TEC Ecommerce`,
-      productId: product.id,
-      returnUrl: `${ECOMMERCE_URL}/shop`,
-      source:    'ecommerce',
-    });
-  }, [isAuthenticated, router]);
+  const token = document.cookie.split('; ').find(r => r.startsWith('tec_access_token='))?.split('=')?.[1];
+  if (!token) { router.push('/'); return; }
+  buyRedirect({
+    amount:    product.price,
+    memo:      `Buy ${product.title} — TEC Ecommerce`,
+    productId: product.id,
+    returnUrl: `${ECOMMERCE_URL}/shop`,
+    source:    'ecommerce',
+  });
+}, [router]);
 
   const loadMore = useCallback(() => {
     const nextPage = page + 1;
