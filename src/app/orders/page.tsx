@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter }                         from 'next/navigation';
 import { usePiAuth }                         from '@yasser172/tec-auth';
-import { TEC_COLORS }                        from '@yasser172/tec-ui';
+import { TEC_COLORS, formatPi, formatDate }  from '@yasser172/tec-ui';
 import { Order }                             from '../../types';
 
 // ── Utils (inline until @yasser172/tec-ui v1.1.0) ─────────
