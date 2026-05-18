@@ -3,9 +3,21 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter }                         from 'next/navigation';
 import { usePiAuth }                         from '@yasser172/tec-auth';
-import { TEC_COLORS, formatPi, formatDate }  from '@yasser172/tec-ui';
+import { TEC_COLORS }                        from '@yasser172/tec-ui';
 import { Order }                             from '../../types';
 
+// ── Utils (inline until @yasser172/tec-ui v1.1.0) ─────────
+const formatPi = (amount: number | string, decimals = 2): string => {
+  const num = typeof amount === 'string' ? parseFloat(amount) : amount;
+  return isNaN(num) ? '0π' : `${num.toFixed(decimals)}π`;
+};
+
+const formatDate = (date: string | Date): string => {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+};
+
+// ─────────────────────────────────────────────────────────
 const STATUS_CONFIG = {
   pending:   { color: '#f59e0b', label: 'Pending',   icon: '⏳' },
   confirmed: { color: '#3b82f6', label: 'Confirmed', icon: '✅' },
@@ -38,7 +50,7 @@ export default function OrdersPage() {
 
   if (isLoading || loading) return (
     <div style={{ minHeight: '100vh', background: '#020205', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ width: 32, height: 32, borderRadius: '50%', border: `2px solid rgba(212,175,55,0.15)`, borderTopColor: TEC_COLORS.gold, animation: 'spin 0.8s linear infinite' }} />
+      <div style={{ width: 32, height: 32, borderRadius: '50%', border: '2px solid rgba(212,175,55,0.15)', borderTopColor: TEC_COLORS.gold, animation: 'spin 0.8s linear infinite' }} />
       <style>{`@keyframes spin { to{transform:rotate(360deg)} }`}</style>
     </div>
   );
@@ -63,13 +75,12 @@ export default function OrdersPage() {
             </button>
           </div>
         ) : orders.map(order => {
-          const cfg = STATUS_CONFIG[order.status] ?? STATUS_CONFIG.pending;
+          const cfg    = STATUS_CONFIG[order.status] ?? STATUS_CONFIG.pending;
           const isOpen = expanded === order.id;
           return (
             <div key={order.id} onClick={() => setExpanded(isOpen ? null : order.id)}
               style={{ background: '#0d0d14', border: '1px solid #ffffff08', borderRadius: 16, padding: '14px 16px', cursor: 'pointer' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                {/* Image */}
                 <div style={{ width: 52, height: 52, borderRadius: 12, background: '#ffffff06', flexShrink: 0, overflow: 'hidden' }}>
                   {order.product?.images?.[0] ? (
                     <img src={order.product.images[0]} alt={order.product.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -77,7 +88,6 @@ export default function OrdersPage() {
                     <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>🛍️</div>
                   )}
                 </div>
-
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {order.product?.title}
@@ -86,7 +96,6 @@ export default function OrdersPage() {
                     {formatDate(order.created_at)}
                   </div>
                 </div>
-
                 <div style={{ textAlign: 'right', flexShrink: 0 }}>
                   <div style={{ fontSize: 14, fontWeight: 800, color: TEC_COLORS.gold }}>
                     {formatPi(order.amount)}
@@ -101,8 +110,8 @@ export default function OrdersPage() {
                 <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #ffffff08' }}>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                     {[
-                      { label: 'Order ID', value: order.id.slice(0, 12) + '…' },
-                      { label: 'Payment', value: order.payment_id.slice(0, 12) + '…' },
+                      { label: 'Order ID', value: order.id.slice(0, 12) + '…'         },
+                      { label: 'Payment',  value: order.payment_id.slice(0, 12) + '…' },
                     ].map(item => (
                       <div key={item.label} style={{ background: '#ffffff05', borderRadius: 10, padding: '8px 10px' }}>
                         <div style={{ fontSize: 9, color: '#4a4a5a', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 3 }}>{item.label}</div>
@@ -118,4 +127,4 @@ export default function OrdersPage() {
       </div>
     </div>
   );
-                    }
+}
