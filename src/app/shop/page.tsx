@@ -4,9 +4,27 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useRouter }                                   from 'next/navigation';
 import { usePiAuth, getCsrfToken }                    from '@yasser172/tec-auth';
 import { TEC_COLORS }                                  from '@yasser172/tec-ui';
-import { handleBuy, getPaymentReturnParams, clearPaymentParams } from '@yasser172/tec-ui/payment';
+import
 import { Product, ProductFilters, SortOption }         from '../../types';
+// ✅
+const HUB_URL_PAY = process.env.NEXT_PUBLIC_HUB_URL ?? 'https://hub.tecosystem.app';
 
+const handleBuy = (params: { amount: number; memo: string; productId: string; returnUrl: string; source: string }) => {
+  window.location.href = `${HUB_URL_PAY}/hub?pay=1`
+    + `&amount=${params.amount}`
+    + `&memo=${encodeURIComponent(params.memo)}`
+    + `&product_id=${encodeURIComponent(params.productId)}`
+    + `&return_url=${encodeURIComponent(params.returnUrl)}`
+    + `&source=${params.source}`;
+};
+
+const getPaymentReturnParams = () => {
+  if (typeof window === 'undefined') return { status: null, txid: null, paymentId: null, productId: null };
+  const params = new URLSearchParams(window.location.search);
+  return { status: params.get('payment_status'), txid: params.get('txid'), paymentId: params.get('payment_id'), productId: params.get('product_id') };
+};
+
+const clearPaymentParams = () => window.history.replaceState({}, '', window.location.pathname);
 const ECOMMERCE_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://ecommerce.tecosystem.app';
 const CATEGORIES = [
   { slug: 'all',        name: 'All',        emoji: '🛍️' },
