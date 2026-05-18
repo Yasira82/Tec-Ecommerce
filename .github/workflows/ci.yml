@@ -21,6 +21,8 @@ jobs:
           node-version: '20'
       - name: Install
         run: npm install --legacy-peer-deps
+      - name: Update TEC packages
+        run: npm install @yasser172/tec-ui@latest @yasser172/tec-auth@latest --legacy-peer-deps
       - name: Lint
         run: npm run lint
         continue-on-error: true
@@ -35,6 +37,8 @@ jobs:
           node-version: '20'
       - name: Install
         run: npm install --legacy-peer-deps
+      - name: Update TEC packages
+        run: npm install @yasser172/tec-ui@latest @yasser172/tec-auth@latest --legacy-peer-deps
       - name: Typecheck
         run: npm run typecheck
 
@@ -48,6 +52,8 @@ jobs:
           node-version: '20'
       - name: Install
         run: npm install --legacy-peer-deps
+      - name: Update TEC packages
+        run: npm install @yasser172/tec-ui@latest @yasser172/tec-auth@latest --legacy-peer-deps
       - name: Test
         run: npm test
 
@@ -62,6 +68,8 @@ jobs:
           node-version: '20'
       - name: Install
         run: npm install --legacy-peer-deps
+      - name: Update TEC packages
+        run: npm install @yasser172/tec-ui@latest @yasser172/tec-auth@latest --legacy-peer-deps
       - name: Build
         run: npm run build
         env:
