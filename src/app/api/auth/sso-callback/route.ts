@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.redirect(new URL('/', req.url));
     }
 
-    const secret  = process.env.SSO_SECRET;
+    const secret = process.env.SSO_SECRET;
     if (!secret) {
       return NextResponse.redirect(new URL('/', req.url));
     }
@@ -33,16 +33,21 @@ export async function GET(req: NextRequest) {
     const redirectTo = redirect.startsWith('/') ? redirect : '/shop';
     const response   = NextResponse.redirect(new URL(redirectTo, req.url));
 
+    const cookieDomain =
+      process.env.COOKIE_DOMAIN ??
+      process.env.NEXT_PUBLIC_SSO_DOMAIN ??
+      undefined;
+
     const cookieOpts = {
       secure:   true,
       sameSite: 'none' as const,
       path:     '/',
-      domain:   process.env.COOKIE_DOMAIN ?? undefined,
+      domain:   cookieDomain,
     };
 
-    response.cookies.set('tec_access_token', accessToken,  { ...cookieOpts, httpOnly: false, maxAge: 60 * 60 * 24     });
-    response.cookies.set('tec_user',         userJson,      { ...cookieOpts, httpOnly: false, maxAge: 60 * 60 * 24     });
-    response.cookies.set('tec_csrf',         csrf,          { ...cookieOpts, httpOnly: false, maxAge: 60 * 60 * 24     });
+    response.cookies.set('tec_access_token', accessToken, { ...cookieOpts, httpOnly: false, maxAge: 60 * 60 * 24 });
+    response.cookies.set('tec_user',         userJson,    { ...cookieOpts, httpOnly: false, maxAge: 60 * 60 * 24 });
+    response.cookies.set('tec_csrf',         csrf,        { ...cookieOpts, httpOnly: false, maxAge: 60 * 60 * 24 });
 
     return response;
   } catch {
