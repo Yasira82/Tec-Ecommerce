@@ -3,19 +3,34 @@ import { NextRequest, NextResponse } from 'next/server';
 const GATEWAY = process.env.NEXT_PUBLIC_API_GATEWAY_URL
   ?? 'https://api-gateway-production-6a68.up.railway.app';
 
-const getToken   = (req: NextRequest) => req.cookies.get('tec_access_token')?.value ?? '';
-const getCsrf    = (req: NextRequest) => req.cookies.get('tec_csrf')?.value ?? '';
+const getToken = (req: NextRequest) =>
+  req.cookies.get('tec_access_token')?.value ?? '';
+
+const getUserId = (req: NextRequest): string => {
+  try {
+    const raw  = req.cookies.get('tec_user')?.value ?? '';
+    const user = JSON.parse(decodeURIComponent(raw));
+    return user?.id ?? user?.sub ?? '';
+  } catch { return ''; }
+};
 
 export async function GET(req: NextRequest) {
   try {
-    const res = await fetch(`${GATEWAY}/api/commerce/orders/buyer`, {
-      headers: {
-        Authorization:    `Bearer ${getToken(req)}`,
-        'x-request-id':  crypto.randomUUID(),
-        'x-internal-key': process.env.INTERNAL_SECRET ?? '',
+    const userId = getUserId(req);
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const res = await fetch(
+      `${GATEWAY}/api/commerce/orders?userId=${userId}&limit=20&sort=desc`,
+      {
+        headers: {
+          Authorization:    `Bearer ${getToken(req)}`,
+          'x-request-id':  crypto.randomUUID(),
+          'x-internal-key': process.env.INTERNAL_SECRET ?? '',
+        },
+        cache: 'no-store',
       },
-      cache: 'no-store',
-    });
+    );
+
     const data = await res.json().catch(() => ({}));
     if (!res.ok) return NextResponse.json(data, { status: res.status });
     return NextResponse.json(data);
@@ -26,22 +41,37 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const csrf = req.headers.get('x-csrf-token') ?? '';
-    if (!csrf || csrf !== getCsrf(req)) {
-      return NextResponse.json({ error: 'CSRF validation failed' }, { status: 403 });
+    const userId = getUserId(req);
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const body       = await req.json();
+    const productId  = body.product_id  as string;
+    const paymentId  = body.payment_id  as string;
+    const memo       = body.memo        as string | undefined;
+
+    if (!productId || !paymentId) {
+      return NextResponse.json({ error: 'product_id and payment_id required' }, { status: 400 });
     }
 
-    const body = await req.json();
-    const res = await fetch(`${GATEWAY}/api/commerce/orders`, {
-      method: 'POST',
-      headers: {
-        'Content-Type':   'application/json',
-        Authorization:    `Bearer ${getToken(req)}`,
-        'x-request-id':  crypto.randomUUID(),
-        'x-internal-key': process.env.INTERNAL_SECRET ?? '',
+    // ✅ Transform to commerce service format
+    const res = await fetch(
+      `${GATEWAY}/api/commerce/orders`,
+      {
+        method:  'POST',
+        headers: {
+          Authorization:    `Bearer ${getToken(req)}`,
+          'Content-Type':   'application/json',
+          'x-request-id':  crypto.randomUUID(),
+          'x-internal-key': process.env.INTERNAL_SECRET ?? '',
+        },
+        body: JSON.stringify({
+          items:      [{ productId, qty: 1 }],
+          userId,
+          payment_id: paymentId,
+          memo:       memo ?? `Order for product ${productId}`,
+        }),
       },
-      body: JSON.stringify(body),
-    });
+    );
 
     const data = await res.json().catch(() => ({}));
     if (!res.ok) return NextResponse.json(data, { status: res.status });
