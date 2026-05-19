@@ -30,11 +30,12 @@ export default function ProductDetailPage() {
 
   // ✅ Bootstrap guard
   useEffect(() => {
-    if (authLoading) return;
-    if (!isAuthenticated) {
-      window.location.href = `${HUB_URL}/auth/bootstrap?return_url=${encodeURIComponent(`${ECOMMERCE_URL}/product/${id}`)}`;
-    }
-  }, [isAuthenticated, authLoading, id]);
+  if (typeof document === 'undefined') return;
+  const hasToken = document.cookie.includes('tec_access_token=');
+  if (!hasToken) {
+    window.location.href = `${HUB_URL}/auth/bootstrap?return_url=${encodeURIComponent(`${ECOMMERCE_URL}/product/${id}`)}`;
+  }
+}, [id]);
 
   // ── Payment return ────────────────────────────────────
   useEffect(() => {
