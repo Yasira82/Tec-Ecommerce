@@ -60,11 +60,12 @@ export default function ShopPage() {
 
   // ✅ Bootstrap guard
   useEffect(() => {
-    if (authLoading) return;
-    if (!isAuthenticated) {
-      window.location.href = `${HUB_URL}/auth/bootstrap?return_url=${encodeURIComponent(ECOMMERCE_URL + '/shop')}`;
-    }
-  }, [isAuthenticated, authLoading]);
+  if (typeof document === 'undefined') return;
+  const hasToken = document.cookie.includes('tec_access_token=');
+  if (!hasToken) {
+    window.location.href = `${HUB_URL}/auth/bootstrap?return_url=${encodeURIComponent(ECOMMERCE_URL + '/shop')}`;
+  }
+}, []);
 
   // ── Fetch products ────────────────────────────────────
   const fetchProducts = useCallback(async () => {
