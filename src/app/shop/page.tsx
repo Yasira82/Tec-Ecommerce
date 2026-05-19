@@ -69,7 +69,6 @@ export default function ShopPage() {
 
   // ── Fetch products ────────────────────────────────────
   const fetchProducts = useCallback(async () => {
-    if (!isAuthenticated) return;
     setLoading(true);
     try {
       const params = new URLSearchParams();
@@ -93,7 +92,7 @@ export default function ShopPage() {
     } finally {
       setLoading(false);
     }
-  }, [filters, search, isAuthenticated]);
+  }, [filters, search]);
 
   useEffect(() => { fetchProducts(); }, [fetchProducts]);
 
