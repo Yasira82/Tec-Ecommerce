@@ -43,29 +43,45 @@ export const createPaymentRecord = async (
   productId: string,
   memo:      string,
 ): Promise<string | null> => {
-  const user   = getStoredUser();
-  const userId = user?.id;
-  if (!userId) return null;
-
   try {
+    const token = getAccessToken();
+    if (!token) return null;
+
     const res = await fetch('/api/bff/payment/create', {
       method:      'POST',
       credentials: 'include',
       headers: {
-        'Content-Type': 'application/json',
-        'x-csrf-token': getCsrfToken(),
-        ...(getAccessToken() ? { Authorization: `Bearer ${getAccessToken()}` } : {}),
+        'Content-Type':  'application/json',
+        'x-csrf-token':  getCsrfToken(),
+        Authorization:   `Bearer ${token}`,
       },
       body: JSON.stringify({
-        userId, amount,
+        amount,
         currency:       'PI',
         payment_method: 'pi',
-        metadata:       { source: 'ecommerce', product_id: productId, memo },
+        metadata: {
+          source:     'ecommerce',
+          product_id: productId,
+          memo,
+        },
       }),
     });
+
     const data = await res.json().catch(() => ({}));
-    return data?.data?.payment?.id ?? data?.data?.id ?? null;
-  } catch { return null; }
+
+    if (!res.ok) {
+      console.error('[createPaymentRecord] failed:', res.status, data);
+      return null;
+    }
+
+    return data?.data?.payment?.id
+        ?? data?.data?.id
+        ?? data?.id
+        ?? null;
+  } catch (err) {
+    console.error('[createPaymentRecord] error:', err);
+    return null;
+  }
 };
 
 // ── U2A — main payment flow ───────────────────────────────
