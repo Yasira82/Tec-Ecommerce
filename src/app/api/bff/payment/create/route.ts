@@ -7,13 +7,31 @@ export async function POST(req: NextRequest) {
   const token = req.cookies.get('tec_access_token')?.value;
   if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const body = await req.json();
-  const res  = await fetch(`${GW}/api/payment/create`, {
+  const body = await req.json().catch(() => ({}));
+
+  // ✅ لا userId — backend بياخده من JWT في Authorization header
+  const { amount, currency, payment_method, metadata } = body;
+
+  const res = await fetch(`${GW}/api/payment/create`, {
     method:  'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-    body:    JSON.stringify({ ...body, source: 'ecommerce' }),
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization:  `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      amount,
+      currency:       currency       ?? 'PI',
+      payment_method: payment_method ?? 'pi',
+      metadata:       { ...metadata, source: 'ecommerce' },
+    }),
   });
 
   const data = await res.json().catch(() => ({}));
+
+  if (!res.ok) {
+    console.error('[bff/payment/create] gateway error:', res.status, data);
+    return NextResponse.json(data, { status: res.status });
+  }
+
   return NextResponse.json(data, { status: res.status });
 }
