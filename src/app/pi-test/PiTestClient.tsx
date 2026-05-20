@@ -160,26 +160,30 @@ export function PiTestClient() {
 
   // ── Pending Payments ──────────────────────────────────────
   const handleCancelPending = useCallback(async () => {
-    log('info', 'Checking for pending payments...');
-    try {
-      if (!window.Pi) throw new Error('Open in Pi Browser');
-      await window.Pi.authenticate(['username', 'payments'], async (payment: unknown) => {
-        const p   = payment as Record<string, unknown> | null;
-        const pid = p?.identifier as string | undefined;
-        if (!pid) { log('info', 'No pending payment ✅'); return; }
-        log('warn', `Pending: ${pid} | amount: ${p?.amount}`);
-        try {
-          const res  = await fetch('/api/bff/payment/complete', {
-            method: 'POST', credentials: 'include',
-            headers: { 'Content-Type': 'application/json', 'x-csrf-token': getCsrf() },
-            body: JSON.stringify({ pi_payment_id: pid, incomplete: true }),
-          });
-          const data = await res.json().catch(() => ({}));
-          log(res.ok ? 'success' : 'error', `Resolve: ${JSON.stringify(data)} (${res.status})`);
-        } catch (e) { log('error', `Network: ${String(e)}`); }
-      });
-    } catch (err) { log('error', `Failed: ${String(err)}`); }
-  }, [log]);
+  log('info', 'Checking for pending payments...');
+  try {
+    if (!window.Pi) throw new Error('Open in Pi Browser');
+    await window.Pi.authenticate(['username', 'payments'], async (payment: unknown) => {
+      const p   = payment as Record<string, unknown> | null;
+      const pid = p?.identifier as string | undefined;
+      if (!pid) { log('info', 'No pending payment ✅'); return; }
+      log('warn', `Pending: ${pid} | amount: ${p?.amount}`);
+      try {
+        const res  = await fetch('/api/bff/payment/resolve-incomplete', {
+          method:      'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-csrf-token': getCsrf(),
+          },
+          body: JSON.stringify({ pi_payment_id: pid }),
+        });
+        const data = await res.json().catch(() => ({}));
+        log(res.ok ? 'success' : 'error', `Resolve: ${JSON.stringify(data)} (${res.status})`);
+      } catch (e) { log('error', `Network: ${String(e)}`); }
+    });
+  } catch (err) { log('error', `Failed: ${String(err)}`); }
+}, [log]);
 
   // ── Payment Test ──────────────────────────────────────────
   const handlePayment = useCallback(async () => {
