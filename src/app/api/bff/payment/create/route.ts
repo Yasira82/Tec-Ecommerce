@@ -8,15 +8,14 @@ export async function POST(req: NextRequest) {
   if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const body = await req.json().catch(() => ({}));
-
-  // ✅ لا userId — backend بياخده من JWT في Authorization header
   const { amount, currency, payment_method, metadata } = body;
 
   const res = await fetch(`${GW}/api/payment/create`, {
     method:  'POST',
     headers: {
-      'Content-Type': 'application/json',
-      Authorization:  `Bearer ${token}`,
+      'Content-Type':    'application/json',
+      Authorization:     `Bearer ${token}`,
+      'Idempotency-Key': crypto.randomUUID(), // ✅ مطلوب
     },
     body: JSON.stringify({
       amount,
