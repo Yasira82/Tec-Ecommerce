@@ -7,6 +7,16 @@ export async function POST(req: NextRequest) {
   const token = req.cookies.get('tec_access_token')?.value;
   if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+  // ✅ userId من cookie server-side — مش من body
+  const userRaw = req.cookies.get('tec_user')?.value;
+  const user    = userRaw ? JSON.parse(decodeURIComponent(userRaw)) : null;
+  const userId  = user?.id ?? user?.piId ?? null;
+
+  if (!userId) {
+    console.error('[bff/payment/create] missing userId from tec_user cookie');
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const body = await req.json().catch(() => ({}));
   const { amount, currency, payment_method, metadata } = body;
 
@@ -15,10 +25,11 @@ export async function POST(req: NextRequest) {
     headers: {
       'Content-Type':    'application/json',
       Authorization:     `Bearer ${token}`,
-      'Idempotency-Key': crypto.randomUUID(), // ✅ مطلوب
+      'Idempotency-Key': crypto.randomUUID(),
     },
     body: JSON.stringify({
-      amount,
+      userId,                          // ✅ مضاف
+      amount:         Number(amount),  // ✅ تأكد إنه number
       currency:       currency       ?? 'PI',
       payment_method: payment_method ?? 'pi',
       metadata:       { ...metadata, source: 'ecommerce' },
@@ -28,7 +39,8 @@ export async function POST(req: NextRequest) {
   const data = await res.json().catch(() => ({}));
 
   if (!res.ok) {
-    console.error('[bff/payment/create] gateway error:', res.status, data);
+    // ✅ full details مش [Object]
+    console.error('[bff/payment/create] gateway error:', res.status, JSON.stringify(data));
     return NextResponse.json(data, { status: res.status });
   }
 
