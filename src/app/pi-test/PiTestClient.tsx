@@ -162,20 +162,23 @@ export function PiTestClient() {
   const handleCancelPending = useCallback(async () => {
   log('info', 'Checking for pending payments...');
   try {
-    if (!window.Pi) throw new Error('Open in Pi Browser');
+    if (!isPiBrowser() || !window.Pi) throw new Error('Not inside Pi Browser');
     await window.Pi.authenticate(['username', 'payments'], async (payment: unknown) => {
       const p   = payment as Record<string, unknown> | null;
       const pid = p?.identifier as string | undefined;
       if (!pid) { log('info', 'No pending payment ✅'); return; }
       log('warn', `Pending: ${pid} | amount: ${p?.amount}`);
+      const token     = getAccessToken();
+      const csrfToken = document.cookie.split('; ').find(r => r.startsWith('tec_csrf='))?.split('=')?.[1];
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token)     headers['Authorization'] = `Bearer ${token}`;
+      if (csrfToken) headers['x-csrf-token']  = csrfToken;
       try {
+        // ✅ pi_payment_id في الـ body مش query param
         const res  = await fetch('/api/bff/payment/resolve-incomplete', {
           method:      'POST',
           credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-csrf-token': getCsrf(),
-          },
+          headers,
           body: JSON.stringify({ pi_payment_id: pid }),
         });
         const data = await res.json().catch(() => ({}));
