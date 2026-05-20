@@ -1,46 +1,24 @@
-import type { Metadata } from 'next';
+import type { Metadata }  from 'next';
+import Script             from 'next/script';
+import PiSdkLoader        from '@/components/PiSdkLoader';
 
 export const metadata: Metadata = {
-  title:       'TEC Domain',
-  description: 'TEC Ecosystem — Pi Network Super App',
+  title:       'TEC Ecommerce',
+  description: 'TEC Ecosystem Ecommerce',
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const sandbox = process.env.NEXT_PUBLIC_PI_SANDBOX === 'true';
+
   return (
     <html lang="en">
       <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-        <script
-          src="https://sdk.minepi.com/pi-sdk.js"
-          async
-        />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              window.addEventListener('load', function() {
-                if (typeof window.Pi !== 'undefined') {
-                  try {
-                    window.Pi.init({
-                      version: '2.0',
-                      sandbox: ${process.env.NEXT_PUBLIC_PI_SANDBOX === 'true'},
-                    });
-                    window.__TEC_PI_READY = true;
-                    window.dispatchEvent(new Event('tec-pi-ready'));
-                  } catch(e) {
-                    window.__TEC_PI_ERROR = true;
-                    window.dispatchEvent(new Event('tec-pi-error'));
-                  }
-                }
-              });
-            `,
-          }}
-        />
+        <Script src="https://sdk.minepi.com/pi-sdk.js" strategy="beforeInteractive" />
       </head>
-      <body>{children}</body>
+      <body>
+        <PiSdkLoader sandbox={sandbox} />
+        {children}
+      </body>
     </html>
   );
 }
