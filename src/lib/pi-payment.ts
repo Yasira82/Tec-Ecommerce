@@ -100,20 +100,20 @@ export const createU2APayment = async (
 
   // authenticate
   await window.Pi.authenticate(
-    ['username', 'payments'],
-    async (incomplete: unknown) => {
-      const p = incomplete as { identifier?: string } | null;
-      if (!p?.identifier) return;
-      try {
-        await fetch('/api/bff/payment/complete', {
-          method:      'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json', 'x-csrf-token': getCsrfToken() },
-          body: JSON.stringify({ payment_id: internalId, pi_payment_id: p.identifier, incomplete: true }),
-        });
-      } catch {}
-    },
-  );
+  ['username', 'payments'],
+  async (incomplete: unknown) => {
+    const p = incomplete as { identifier?: string } | null;
+    if (!p?.identifier) return;
+    try {
+      await fetch('/api/bff/payment/resolve-incomplete', {
+        method:      'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', 'x-csrf-token': getCsrfToken() },
+        body: JSON.stringify({ pi_payment_id: p.identifier }),
+      });
+    } catch {}
+  },
+);
 
   const token = getAccessToken();
 
