@@ -1,6 +1,7 @@
-import type { Metadata }  from 'next';
-import Script             from 'next/script';
-import PiSdkLoader        from '@/components/PiSdkLoader';
+import type { Metadata } from 'next';
+import Script            from 'next/script';
+import PiSdkLoader       from '@/components/PiSdkLoader';
+import './globals.css';  // ✅
 
 export const metadata: Metadata = {
   title:       'TEC Ecommerce',
@@ -9,16 +10,10 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const sandbox = process.env.NEXT_PUBLIC_PI_SANDBOX === 'true';
-
   return (
     <html lang="en">
       <head>
         <Script src="https://sdk.minepi.com/pi-sdk.js" strategy="beforeInteractive" />
-        {/* ✅ Reset default browser margins */}
-        <style>{`
-          *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-          html, body { background: #07070f; overflow-x: hidden; }
-        `}</style>
       </head>
       <body>
         <PiSdkLoader sandbox={sandbox} />
