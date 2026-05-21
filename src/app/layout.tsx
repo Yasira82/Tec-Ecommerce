@@ -14,6 +14,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <head>
         <Script src="https://sdk.minepi.com/pi-sdk.js" strategy="beforeInteractive" />
+        {/* ✅ Reset default browser margins */}
+        <style>{`
+          *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+          html, body { background: #07070f; overflow-x: hidden; }
+        `}</style>
       </head>
       <body>
         <PiSdkLoader sandbox={sandbox} />
