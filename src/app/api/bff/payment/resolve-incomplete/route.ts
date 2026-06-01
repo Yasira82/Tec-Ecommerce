@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const GW = process.env.NEXT_PUBLIC_API_GATEWAY_URL
-        ?? 'https://api-gateway-production-6a68.up.railway.app';
+const GW = process.env.API_GATEWAY_URL
+        ?? process.env.NEXT_PUBLIC_API_GATEWAY_URL!;
 
 const tryRefresh = async (refreshToken: string): Promise<string | null> => {
   try {
@@ -20,8 +20,12 @@ const resolve = (token: string, pi_payment_id: string) =>
     `${GW}/api/payment/resolve-incomplete?pi_payment_id=${encodeURIComponent(pi_payment_id)}`,
     {
       method:  'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body:    JSON.stringify({ pi_payment_id }),
+      headers: {
+        'Content-Type':   'application/json',
+        Authorization:    `Bearer ${token}`,
+        'x-internal-key': process.env.INTERNAL_SECRET ?? '',
+      },
+      body: JSON.stringify({ pi_payment_id }),
     },
   );
 
@@ -35,7 +39,6 @@ export async function POST(req: NextRequest) {
 
   let res = await resolve(token, pi_payment_id);
 
-  // ✅ token expired → refresh وحاول تاني
   if (res.status === 401) {
     const refreshToken = req.cookies.get('tec_refresh_token')?.value;
     if (refreshToken) {
@@ -50,7 +53,6 @@ export async function POST(req: NextRequest) {
   const data     = await res.json().catch(() => ({}));
   const response = NextResponse.json(data, { status: res.status });
 
-  // ✅ سيب الـ token الجديد في cookie
   if (token !== req.cookies.get('tec_access_token')?.value) {
     response.cookies.set('tec_access_token', token, {
       httpOnly: false,
