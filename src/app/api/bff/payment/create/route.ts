@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const GW = process.env.NEXT_PUBLIC_API_GATEWAY_URL
-        ?? 'https://api-gateway-production-6a68.up.railway.app';
+const GW = process.env.API_GATEWAY_URL
+        ?? process.env.NEXT_PUBLIC_API_GATEWAY_URL!;
 
 export async function POST(req: NextRequest) {
   const token = req.cookies.get('tec_access_token')?.value;
   if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  // ✅ userId من cookie server-side — مش من body
   const userRaw = req.cookies.get('tec_user')?.value;
   const user    = userRaw ? JSON.parse(decodeURIComponent(userRaw)) : null;
   const userId  = user?.id ?? user?.piId ?? null;
@@ -25,11 +24,12 @@ export async function POST(req: NextRequest) {
     headers: {
       'Content-Type':    'application/json',
       Authorization:     `Bearer ${token}`,
+      'x-internal-key':  process.env.INTERNAL_SECRET ?? '',
       'Idempotency-Key': crypto.randomUUID(),
     },
     body: JSON.stringify({
-      userId,                          // ✅ مضاف
-      amount:         Number(amount),  // ✅ تأكد إنه number
+      userId,
+      amount:         Number(amount),
       currency:       currency       ?? 'PI',
       payment_method: payment_method ?? 'pi',
       metadata:       { ...metadata, source: 'ecommerce' },
@@ -39,7 +39,6 @@ export async function POST(req: NextRequest) {
   const data = await res.json().catch(() => ({}));
 
   if (!res.ok) {
-    // ✅ full details مش [Object]
     console.error('[bff/payment/create] gateway error:', res.status, JSON.stringify(data));
     return NextResponse.json(data, { status: res.status });
   }
