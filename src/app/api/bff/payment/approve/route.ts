@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const GW = process.env.NEXT_PUBLIC_API_GATEWAY_URL
-        ?? 'https://api-gateway-production-6a68.up.railway.app';
+const GW = process.env.API_GATEWAY_URL
+        ?? process.env.NEXT_PUBLIC_API_GATEWAY_URL!;
 
 export async function POST(req: NextRequest) {
   const token = req.cookies.get('tec_access_token')?.value;
@@ -13,14 +13,12 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json().catch(() => ({}));
 
-  console.log('[bff/payment/approve] request body:', JSON.stringify(body));
-  console.log('[bff/payment/approve] userId:', userId);
-
   const res = await fetch(`${GW}/api/payment/approve`, {
     method:  'POST',
     headers: {
       'Content-Type':    'application/json',
       Authorization:     `Bearer ${token}`,
+      'x-internal-key':  process.env.INTERNAL_SECRET ?? '',
       'Idempotency-Key': crypto.randomUUID(),
     },
     body: JSON.stringify({ ...body, ...(userId ? { userId } : {}) }),
@@ -33,6 +31,5 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(data, { status: res.status });
   }
 
-  console.log('[bff/payment/approve] success:', JSON.stringify(data));
   return NextResponse.json(data, { status: res.status });
 }
