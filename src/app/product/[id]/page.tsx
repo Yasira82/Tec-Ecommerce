@@ -30,6 +30,26 @@ const getStoredUser = () => {
   } catch { return null; }
 };
 
+/** ADR-007: Pi ownership drift after Hub navigation */
+const isHubNavigation = (): boolean => {
+  if (typeof document === 'undefined') return false;
+  return document.referrer.toLowerCase().includes('hub.tecosystem.app');
+};
+
+/** Mode 1: redirect to Hub PaymentModal (C-76) */
+const redirectToHubPayment = (product: Product) => {
+  const label = product.title ?? product.name ?? 'Product';
+  const params = new URLSearchParams({
+    pay:        '1',
+    amount:     product.price.toString(),
+    memo:       `${label} — TEC Ecommerce`,
+    product_id: product.id,
+    return_url: `${APP_URL}/product/${product.id}`,
+    source:     'ecommerce',
+  });
+  window.location.href = `${HUB_URL}/hub?${params.toString()}`;
+};
+
 export default function ProductPage() {
   const { id }                                 = useParams<{ id: string }>();
   const router                                 = useRouter();
@@ -84,7 +104,21 @@ export default function ProductPage() {
   }, [id]);
 
   const handleBuy = useCallback(async () => {
-    if (!product || !window.Pi || !piReady || inFlight.current) return;
+    if (!product || inFlight.current) return;
+
+    // ✅ ADR-007: Hub navigation → FORCE Mode 1
+    if (isHubNavigation()) {
+      redirectToHubPayment(product);
+      return;
+    }
+
+    // ✅ Pi SDK not ready → Mode 1 fallback (was: silent fail)
+    if (!window.Pi || !piReady) {
+      redirectToHubPayment(product);
+      return;
+    }
+
+    // ── Mode 2: Direct payment ──
     inFlight.current = true;
     setPayStatus('creating');
     setPayMessage('');
@@ -181,7 +215,6 @@ export default function ProductPage() {
           {product.category && <span className="category-tag">{product.category}</span>}
           <h1 className="product-title">{label}</h1>
 
-          {/* Rating */}
           {product.rating ? (
             <div className="rating-row">
               <span className="stars">{'★'.repeat(Math.round(product.rating))}{'☆'.repeat(5 - Math.round(product.rating))}</span>
@@ -189,23 +222,19 @@ export default function ProductPage() {
             </div>
           ) : null}
 
-          {/* Price */}
           <div className="price-block">
             <span className="price-main">{product.price}</span>
             <span className="price-unit">π</span>
           </div>
 
-          {/* Description */}
           <p className="product-desc">{product.description}</p>
 
-          {/* Stock */}
           {product.stock !== undefined && (
             <div className={`stock-badge ${product.stock > 0 ? 'stock-in' : 'stock-out'}`}>
               {product.stock > 0 ? `✓ In Stock (${product.stock})` : '✕ Out of Stock'}
             </div>
           )}
 
-          {/* Seller */}
           {product.merchant_name && (
             <div className="seller-row">
               <span className="seller-label">Sold by</span>
@@ -213,16 +242,15 @@ export default function ProductPage() {
             </div>
           )}
 
-          {/* Buy Button */}
+          {/* Buy Button — always active, handleBuy manages fallback */}
           <button
-            className={`cta-btn ${(!piReady || product.stock === 0) ? 'cta-btn--off' : ''}`}
+            className={`cta-btn ${product.stock === 0 ? 'cta-btn--off' : ''}`}
             onClick={handleBuy}
-            disabled={!piReady || product.stock === 0}
+            disabled={product.stock === 0}
           >
-            {!piReady ? 'Connecting Pi...' : product.stock === 0 ? 'Out of Stock' : `Buy for ${product.price}π`}
+            {product.stock === 0 ? 'Out of Stock' : `Buy for ${product.price}π`}
           </button>
 
-          {/* Pi note */}
           <div className="pi-note">
             <span style={{ color:'#d4af37' }}>π</span>
             &nbsp;Instant payment via Pi Network · Secured by blockchain
@@ -231,7 +259,6 @@ export default function ProductPage() {
 
       </main>
 
-      {/* ── Payment Modal ── */}
       {payStatus !== 'idle' && product && (
         <PaymentModal
           status={payStatus}
