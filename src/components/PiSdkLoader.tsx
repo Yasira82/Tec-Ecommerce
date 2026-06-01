@@ -12,7 +12,11 @@ export default function PiSdkLoader({ sandbox }: { sandbox: boolean }) {
         window.Pi.init({ version: '2.0', sandbox, ...(appId ? { appId } : {}) });
       } catch (e) {
         const msg = e instanceof Error ? e.message.toLowerCase() : '';
-        if (!msg.includes('already')) return false;
+        if (msg.includes('already') || msg.includes('initialized')) {
+          (window as any).__TEC_PI_FOREIGN_SESSION = true;
+        } else {
+          return false;
+        }
       }
       window.__TEC_PI_READY = true;
       window.dispatchEvent(new Event('tec-pi-ready'));
