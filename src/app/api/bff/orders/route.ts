@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const GATEWAY = process.env.NEXT_PUBLIC_API_GATEWAY_URL
-  ?? 'https://api-gateway-production-6a68.up.railway.app';
+const GATEWAY = process.env.API_GATEWAY_URL
+             ?? process.env.NEXT_PUBLIC_API_GATEWAY_URL!;
 
 const getToken = (req: NextRequest) =>
   req.cookies.get('tec_access_token')?.value ?? '';
@@ -53,7 +53,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'product_id and payment_id required' }, { status: 400 });
     }
 
-    // ✅ Transform to commerce service format
     const res = await fetch(
       `${GATEWAY}/api/commerce/orders`,
       {
