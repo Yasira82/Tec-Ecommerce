@@ -9,8 +9,8 @@ import { PaymentModal }           from '@/components/shop/PaymentModal';
 import { EcommerceDrawer }        from '@/components/shop/EcommerceDrawer';
 import { createPaymentRecord, createU2APayment } from '@/lib/pi-payment';
 
-const HUB_URL   = process.env.NEXT_PUBLIC_HUB_URL  ?? 'https://hub.tecosystem.app';
-const APP_URL   = process.env.NEXT_PUBLIC_APP_URL  ?? 'https://ecommerce.tecosystem.app';
+const HUB_URL = process.env.NEXT_PUBLIC_HUB_URL ?? 'https://hub.tecosystem.app';
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://ecommerce.tecosystem.app';
 
 interface Product {
   id: string; title: string; name?: string;
@@ -29,6 +29,26 @@ const getStoredUser = () => {
   } catch { return null; }
 };
 
+/** ADR-007: Pi ownership drift after Hub navigation */
+const isHubNavigation = (): boolean => {
+  if (typeof document === 'undefined') return false;
+  return document.referrer.toLowerCase().includes('hub.tecosystem.app');
+};
+
+/** Mode 1: redirect to Hub PaymentModal (C-76) */
+const redirectToHubPayment = (product: Product) => {
+  const label = product.title ?? product.name ?? 'Product';
+  const params = new URLSearchParams({
+    pay:        '1',
+    amount:     product.price.toString(),
+    memo:       `${label} — TEC Ecommerce`,
+    product_id: product.id,
+    return_url: `${APP_URL}/`,
+    source:     'ecommerce',
+  });
+  window.location.href = `${HUB_URL}/hub?${params.toString()}`;
+};
+
 export default function HomePage() {
   const { isAuthenticated, isLoading } = usePiAuth();
   const router = useRouter();
@@ -42,7 +62,6 @@ export default function HomePage() {
   const [activeProd,  setActiveProd]  = useState<Product | null>(null);
   const [drawerOpen,  setDrawerOpen]  = useState(false);
   const [username,    setUsername]    = useState<string | null>(null);
-  const [piReady2,    setPiReady2]    = useState(false);
   const inFlight = useRef(false);
 
   // Pi SDK ready
@@ -78,7 +97,21 @@ export default function HomePage() {
   }, [isAuthenticated, activeTab]);
 
   const handleBuy = useCallback(async (product: Product) => {
-    if (!window.Pi || !piReady || inFlight.current) return;
+    if (inFlight.current) return;
+
+    // ✅ ADR-007: Hub navigation → FORCE Mode 1
+    if (isHubNavigation()) {
+      redirectToHubPayment(product);
+      return;
+    }
+
+    // ✅ Pi SDK not ready → Mode 1 fallback (was: silent fail)
+    if (!window.Pi || !piReady) {
+      redirectToHubPayment(product);
+      return;
+    }
+
+    // ── Mode 2: Direct payment ──
     inFlight.current = true;
     setActiveProd(product);
     setPayStatus('creating');
@@ -163,7 +196,7 @@ export default function HomePage() {
             <span className="section-count">{featured.length} items</span>
           </div>
           <div className="featured-grid">
-            {featured.map((p, i) => <ProductCard key={p.id} product={p} piReady={piReady} onBuy={handleBuy} featured delay={i * 80} />)}
+            {featured.map((p, i) => <ProductCard key={p.id} product={p} onBuy={handleBuy} featured delay={i * 80} />)}
           </div>
         </section>
       )}
@@ -201,7 +234,7 @@ export default function HomePage() {
         ) : (
           <div className="products-grid">
             {(rest.length > 0 ? rest : products).map((p, i) => (
-              <ProductCard key={p.id} product={p} piReady={piReady} onBuy={handleBuy} delay={i * 60} />
+              <ProductCard key={p.id} product={p} onBuy={handleBuy} delay={i * 60} />
             ))}
           </div>
         )}
@@ -215,8 +248,8 @@ export default function HomePage() {
 }
 
 // ── Product Card ──────────────────────────────────────────────
-function ProductCard({ product, piReady, onBuy, featured = false, delay = 0 }: {
-  product: Product; piReady: boolean; onBuy: (p: Product) => void; featured?: boolean; delay?: number;
+function ProductCard({ product, onBuy, featured = false, delay = 0 }: {
+  product: Product; onBuy: (p: Product) => void; featured?: boolean; delay?: number;
 }) {
   const imgSrc = product.images?.[0] ?? product.image_url;
   const label  = product.title ?? product.name ?? 'Product';
@@ -241,9 +274,8 @@ function ProductCard({ product, piReady, onBuy, featured = false, delay = 0 }: {
             <span style={{ fontFamily:'system-ui', fontSize:10, color:'#4a4a5a' }}>({product.reviews_count ?? 0})</span>
           </div>
         ) : null}
-        <button className={`buy-btn ${!piReady ? 'buy-btn--off' : ''}`}
-          onClick={() => piReady && onBuy(product)} disabled={!piReady}>
-          {piReady ? 'Buy Now' : 'Connecting...'}
+        <button className="buy-btn" onClick={() => onBuy(product)}>
+          Buy Now
         </button>
       </div>
     </article>
@@ -296,8 +328,7 @@ const CSS = `
   .card-desc  { font-family: system-ui; font-size: 11px; color: #4a4a5a; line-height: 1.5; margin-bottom: 12px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
   .buy-btn      { width: 100%; padding: 10px; border-radius: 12px; border: none; background: linear-gradient(135deg,#d4af37,#b8882a); color: #07070f; font-size: 12px; font-weight: 800; font-family: system-ui; cursor: pointer; transition: opacity 0.15s; }
-  .buy-btn:hover:not(.buy-btn--off) { opacity: 0.88; }
-  .buy-btn--off { background: #1a1a28; color: #3a3a4a; cursor: not-allowed; }
+  .buy-btn:hover { opacity: 0.88; }
 
   .spinner { width: 32px; height: 32px; border-radius: 50%; border: 3px solid rgba(212,175,55,0.15); border-top-color: #d4af37; animation: spin 0.8s linear infinite; }
 `;
