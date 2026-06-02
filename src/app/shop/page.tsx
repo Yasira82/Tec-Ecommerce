@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter }              from 'next/navigation';
-import { usePiAuth, ssoRedirect } from '@yasser172/tec-auth';
+import { ssoRedirect }            from '@yasser172/tec-auth';
 import { ShopHeader }             from '@/components/shop/ShopHeader';
 import { ShopHero }               from '@/components/shop/ShopHero';
 import { PaymentModal }           from '@/components/shop/PaymentModal';
@@ -21,10 +21,14 @@ interface Product {
 type PayStatus = 'idle' | 'creating' | 'paying' | 'success' | 'cancelled' | 'error';
 
 const getCsrfToken = () => typeof document === 'undefined' ? '' : document.cookie.split('; ').find(r => r.startsWith('tec_csrf='))?.split('=')?.[1] ?? '';
+
 const getStoredUser = () => {
+  if (typeof document === 'undefined') return null;
   try {
-    const raw = document.cookie.split('; ').find(r => r.startsWith('tec_user='))?.split('=')?.[1] ?? '';
-    return raw ? JSON.parse(decodeURIComponent(raw)) : null;
+    const match = document.cookie.split('; ').find(r => r.startsWith('tec_user='));
+    if (!match) return null;
+    const value = match.substring(match.indexOf('=') + 1);
+    return JSON.parse(decodeURIComponent(value));
   } catch { return null; }
 };
 
@@ -44,11 +48,11 @@ const redirectToHubPayment = (product: Product) => {
 };
 
 export default function ShopPage() {
-  const { isAuthenticated, isLoading } = usePiAuth();
   const router   = useRouter();
-  const ssoDone  = useRef(false);
   const inFlight = useRef(false);
 
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading]             = useState(true);
   const [products,   setProducts]   = useState<Product[]>([]);
   const [fetching,   setFetching]   = useState(true);
   const [piReady,    setPiReady]    = useState(false);
@@ -59,14 +63,27 @@ export default function ShopPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [username,   setUsername]   = useState<string | null>(null);
 
-  // ✅ SSO auto-redirect — ONE time only (no login button)
+  // ══════════════════════════════════════════════════════════
+  // AUTH — cookie direct + sessionStorage prevents loop
+  // Root cause: usePiAuth calls /auth/refresh → 401 → loop
+  // Fix: read tec_user cookie directly, SSO once per tab
+  // ══════════════════════════════════════════════════════════
   useEffect(() => {
-    if (isLoading) return;
-    if (isAuthenticated) return;
-    if (ssoDone.current) return;
-    ssoDone.current = true;
-    ssoRedirect(HUB_URL, `${APP_URL}/shop`);
-  }, [isAuthenticated, isLoading]);
+    const user = getStoredUser();
+    if (user) {
+      setIsAuthenticated(true);
+      setUsername(user.piUsername ?? null);
+      setIsLoading(false);
+      sessionStorage.removeItem('sso_done');
+      return;
+    }
+    if (!sessionStorage.getItem('sso_done')) {
+      sessionStorage.setItem('sso_done', '1');
+      ssoRedirect(HUB_URL, `${APP_URL}/shop`);
+      return;
+    }
+    setIsLoading(false);
+  }, []);
 
   // Pi SDK
   useEffect(() => {
@@ -76,14 +93,6 @@ export default function ShopPage() {
     window.addEventListener('tec-pi-ready', h, { once: true });
     return () => window.removeEventListener('tec-pi-ready', h);
   }, []);
-
-  // User info
-  useEffect(() => {
-    if (isAuthenticated) {
-      const user = getStoredUser();
-      if (user?.piUsername) setUsername(user.piUsername);
-    }
-  }, [isAuthenticated]);
 
   // Load products
   useEffect(() => {
@@ -101,6 +110,7 @@ export default function ShopPage() {
       .finally(() => setFetching(false));
   }, [isAuthenticated, activeTab]);
 
+  // Payment
   const handleBuy = useCallback(async (product: Product) => {
     if (inFlight.current) return;
     if (isHubNavigation()) { redirectToHubPayment(product); return; }
@@ -133,11 +143,12 @@ export default function ShopPage() {
   const closeModal = () => { setPayStatus('idle'); setActiveProd(null); setPayMessage(''); inFlight.current = false; };
   const retryPay   = () => { const p = activeProd; closeModal(); setTimeout(() => p && handleBuy(p), 100); };
 
-  // Loading / not authenticated
+  // Loading / not authenticated → show spinner (SSO will redirect)
   if (isLoading || !isAuthenticated) return (
-    <div style={{ minHeight:'100vh', background:'#07070f', display:'flex', alignItems:'center', justifyContent:'center' }}>
+    <div style={{ minHeight:'100vh', background:'#07070f', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:16 }}>
       <style>{CSS}</style>
       <div className="spinner" />
+      <p style={{ fontSize:12, color:'#4a4a5a' }}>Connecting to TEC...</p>
     </div>
   );
 
@@ -151,7 +162,6 @@ export default function ShopPage() {
       <ShopHeader piReady={piReady} onMenuOpen={() => setDrawerOpen(true)} />
       <ShopHero username={username} />
 
-      {/* Categories */}
       {categories.length > 1 && (
         <div style={{ maxWidth:800, margin:'0 auto', padding:'12px 16px 8px', overflowX:'auto' }}>
           <div style={{ display:'flex', gap:8, width:'max-content' }}>
@@ -164,7 +174,6 @@ export default function ShopPage() {
         </div>
       )}
 
-      {/* Products */}
       <section style={{ maxWidth:800, margin:'0 auto', padding:'12px 16px 80px' }}>
         <div style={{ display:'flex', justifyContent:'space-between', marginBottom:12 }}>
           <span style={{ fontSize:14, fontWeight:800, color:'#e8d5a3', fontFamily:'Georgia,serif' }}>
