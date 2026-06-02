@@ -7,24 +7,23 @@ interface Product {
 }
 
 interface Props {
-  product: Product;
-  onBuy:   (p: Product) => void;
-  delay?:  number;
+  product:  Product;
+  piReady:  boolean;
+  onBuy:    (p: Product) => void;
+  delay?:   number;
 }
 
-export function ProductCard({ product, onBuy, delay = 0 }: Props) {
+export function ProductCard({ product, piReady, onBuy, delay = 0 }: Props) {
   const imgSrc = product.images?.[0] ?? product.image_url;
   const label  = product.title ?? product.name ?? 'Product';
 
   return (
-    <article
-      style={{
-        borderRadius: 16, overflow: 'hidden',
-        background: '#0d0d18', border: '1px solid rgba(212,175,55,0.1)',
-        animation: `fadeUp 0.4s ease ${delay}ms both`,
-        transition: 'transform 0.2s, border-color 0.2s, box-shadow 0.2s',
-      }}
-    >
+    <article style={{
+      borderRadius: 16, overflow: 'hidden',
+      background: '#0d0d18', border: '1px solid rgba(212,175,55,0.1)',
+      animation: `fadeUp 0.4s ease ${delay}ms both`,
+      transition: 'transform 0.2s, border-color 0.2s, box-shadow 0.2s',
+    }}>
       <div style={{ position: 'relative' }}>
         {imgSrc
           ? <img src={imgSrc} alt={label} style={{ width:'100%', height:140, objectFit:'cover', display:'block' }} />
@@ -41,14 +40,16 @@ export function ProductCard({ product, onBuy, delay = 0 }: Props) {
         </p>
         <button
           onClick={() => onBuy(product)}
+          disabled={!piReady}
           style={{
             width:'100%', padding:10, borderRadius:12, border:'none',
-            background:'linear-gradient(135deg,#d4af37,#b8882a)',
-            color:'#07070f', fontSize:12, fontWeight:800,
-            fontFamily:'system-ui', cursor:'pointer',
+            background: piReady ? 'linear-gradient(135deg,#d4af37,#b8882a)' : '#1a1a28',
+            color: piReady ? '#07070f' : '#3a3a4a',
+            fontSize:12, fontWeight:800, fontFamily:'system-ui',
+            cursor: piReady ? 'pointer' : 'not-allowed',
           }}
         >
-          Buy Now
+          {piReady ? 'Buy Now' : 'Connecting...'}
         </button>
       </div>
     </article>
