@@ -44,7 +44,22 @@ const redirectToHubPayment = (product: Product) => {
 };
 
 export default function ShopPage() {
-  const { isAuthenticated, isLoading } = usePiAuth();
+  const { isAuthenticated: piAuth, isLoading: piLoading } = usePiAuth();
+
+  // ✅ Read cookie directly — usePiAuth may not detect SSO cookies
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const user = getStoredUser();
+    if (user) {
+      setIsAuthenticated(true);
+      setIsLoading(false);
+    } else if (!piLoading) {
+      setIsAuthenticated(piAuth);
+      setIsLoading(false);
+    }
+  }, [piAuth, piLoading]);
   const router = useRouter();
 
   const [products,   setProducts]   = useState<Product[]>([]);
