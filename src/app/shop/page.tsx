@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter }              from 'next/navigation';
-import { usePiAuth }              from '@yasser172/tec-auth';
 import { ShopHeader }             from '@/components/shop/ShopHeader';
 import { ShopHero }               from '@/components/shop/ShopHero';
 import { PaymentModal }           from '@/components/shop/PaymentModal';
@@ -44,23 +43,10 @@ const redirectToHubPayment = (product: Product) => {
 };
 
 export default function ShopPage() {
-  const { isAuthenticated: piAuth, isLoading: piLoading } = usePiAuth();
-
-  // ✅ Read cookie directly — usePiAuth may not detect SSO cookies
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const user = getStoredUser();
-    if (user) {
-      setIsAuthenticated(true);
-      setIsLoading(false);
-    } else if (!piLoading) {
-      setIsAuthenticated(piAuth);
-      setIsLoading(false);
-    }
-  }, [piAuth, piLoading]);
   const router = useRouter();
+
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading]             = useState(true);
 
   const [products,   setProducts]   = useState<Product[]>([]);
   const [fetching,   setFetching]   = useState(true);
@@ -72,7 +58,28 @@ export default function ShopPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [username,   setUsername]   = useState<string | null>(null);
   const inFlight = useRef(false);
+  const ssoDone  = useRef(false);
 
+  // ✅ Auth: read cookie directly (not usePiAuth — avoids SSO loop)
+  useEffect(() => {
+    const user = getStoredUser();
+    if (user) {
+      setIsAuthenticated(true);
+      setUsername(user.piUsername ?? null);
+    }
+    setIsLoading(false);
+  }, []);
+
+  // ✅ SSO redirect — ONE time only
+  useEffect(() => {
+    if (isLoading) return;
+    if (isAuthenticated) return;
+    if (ssoDone.current) return;
+    ssoDone.current = true;
+    window.location.href = `${HUB_URL}/api/auth/sso?target=${encodeURIComponent(APP_URL + '/shop')}`;
+  }, [isAuthenticated, isLoading]);
+
+  // Pi SDK
   useEffect(() => {
     if (typeof window === 'undefined') return;
     if ((window as any).__TEC_PI_READY) { setPiReady(true); return; }
@@ -81,20 +88,7 @@ export default function ShopPage() {
     return () => window.removeEventListener('tec-pi-ready', h);
   }, []);
 
-  // SSO redirect if not authenticated
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      window.location.href = `${HUB_URL}/api/auth/sso?target=${encodeURIComponent(APP_URL + '/shop')}`;
-    }
-  }, [isAuthenticated, isLoading]);
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      const user = getStoredUser();
-      if (user?.piUsername) setUsername(user.piUsername);
-    }
-  }, [isAuthenticated]);
-
+  // Load products
   useEffect(() => {
     if (!isAuthenticated) return;
     setFetching(true);
@@ -143,7 +137,7 @@ export default function ShopPage() {
   const retryPay   = () => { const p = activeProd; closeModal(); setTimeout(() => p && handleBuy(p), 100); };
 
   // Loading / not authenticated
-  if (!isAuthenticated) return (
+  if (isLoading || !isAuthenticated) return (
     <div style={{ minHeight:'100vh', background:'#07070f', display:'flex', alignItems:'center', justifyContent:'center' }}>
       <style>{CSS}</style>
       <div className="spinner" />
