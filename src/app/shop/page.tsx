@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter }              from 'next/navigation';
+import { usePiAuth, ssoRedirect } from '@yasser172/tec-auth';
 import { ShopHeader }             from '@/components/shop/ShopHeader';
 import { ShopHero }               from '@/components/shop/ShopHero';
 import { PaymentModal }           from '@/components/shop/PaymentModal';
@@ -43,10 +44,10 @@ const redirectToHubPayment = (product: Product) => {
 };
 
 export default function ShopPage() {
-  const router = useRouter();
-
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoading, setIsLoading]             = useState(true);
+  const { isAuthenticated, isLoading } = usePiAuth();
+  const router   = useRouter();
+  const ssoDone  = useRef(false);
+  const inFlight = useRef(false);
 
   const [products,   setProducts]   = useState<Product[]>([]);
   const [fetching,   setFetching]   = useState(true);
@@ -57,36 +58,14 @@ export default function ShopPage() {
   const [activeProd, setActiveProd] = useState<Product | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [username,   setUsername]   = useState<string | null>(null);
-  const inFlight = useRef(false);
-  const ssoDone  = useRef(false);
 
-  // ✅ Auth: read cookie directly
+  // ✅ SSO auto-redirect — ONE time only (no login button)
   useEffect(() => {
-    console.log('[SHOP] raw cookies:', document.cookie);
-    console.log('[SHOP] has tec_user:', document.cookie.includes('tec_user='));
-    
-    const user = getStoredUser();
-    console.log('[SHOP] parsed user:', user);
-    
-    if (user) {
-      setIsAuthenticated(true);
-      setUsername(user.piUsername ?? null);
-      console.log('[SHOP] ✅ AUTHENTICATED');
-    } else {
-      console.log('[SHOP] ❌ NOT AUTHENTICATED');
-    }
-    setIsLoading(false);
-  }, []);
-
-  // ✅ SSO redirect — ONE time only
-  useEffect(() => {
-    console.log('[SHOP] SSO check:', { isLoading, isAuthenticated, ssoDone: ssoDone.current });
     if (isLoading) return;
     if (isAuthenticated) return;
     if (ssoDone.current) return;
     ssoDone.current = true;
-    console.log('[SHOP] → SSO REDIRECT');
-    window.location.href = `${HUB_URL}/api/auth/sso?target=${encodeURIComponent(APP_URL + '/shop')}`;
+    ssoRedirect(HUB_URL, `${APP_URL}/shop`);
   }, [isAuthenticated, isLoading]);
 
   // Pi SDK
@@ -97,6 +76,14 @@ export default function ShopPage() {
     window.addEventListener('tec-pi-ready', h, { once: true });
     return () => window.removeEventListener('tec-pi-ready', h);
   }, []);
+
+  // User info
+  useEffect(() => {
+    if (isAuthenticated) {
+      const user = getStoredUser();
+      if (user?.piUsername) setUsername(user.piUsername);
+    }
+  }, [isAuthenticated]);
 
   // Load products
   useEffect(() => {
