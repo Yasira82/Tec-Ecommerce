@@ -1,25 +1,25 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { createPaymentRecord, createU2APayment }    from '@/lib/pi-payment';
-import { ShopHeader }      from '@/components/shop/ShopHeader';
-import { ShopHero }        from '@/components/shop/ShopHero';
-import { ProductGrid }     from '@/components/shop/ProductGrid';
-import { PaymentModal }    from '@/components/shop/PaymentModal';
-import { EcommerceDrawer } from '@/components/shop/EcommerceDrawer';
+import { useRouter }              from 'next/navigation';
+import { usePiAuth }              from '@yasser172/tec-auth';
+import { ShopHeader }             from '@/components/shop/ShopHeader';
+import { ShopHero }               from '@/components/shop/ShopHero';
+import { PaymentModal }           from '@/components/shop/PaymentModal';
+import { EcommerceDrawer }        from '@/components/shop/EcommerceDrawer';
+import { createPaymentRecord, createU2APayment } from '@/lib/pi-payment';
+
+const HUB_URL = process.env.NEXT_PUBLIC_HUB_URL ?? 'https://hub.tecosystem.app';
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://ecommerce.tecosystem.app';
 
 interface Product {
   id: string; title: string; name?: string;
   description: string; price: number;
-  images?: string[]; image_url?: string; currency?: string;
+  images?: string[]; image_url?: string;
+  category?: string; rating?: number; reviews_count?: number;
 }
 type PayStatus = 'idle' | 'creating' | 'paying' | 'success' | 'cancelled' | 'error';
 
-const HUB_URL = process.env.NEXT_PUBLIC_HUB_URL ?? 'https://hub.tecosystem.app';
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://ecommerce.tecosystem.app';
-const SSO_URL = `${HUB_URL}/api/auth/sso?target=${encodeURIComponent(APP_URL + '/shop')}`;
-
-const getToken     = () => typeof document === 'undefined' ? null : document.cookie.split('; ').find(r => r.startsWith('tec_access_token='))?.split('=')?.[1] ?? null;
 const getCsrfToken = () => typeof document === 'undefined' ? '' : document.cookie.split('; ').find(r => r.startsWith('tec_csrf='))?.split('=')?.[1] ?? '';
 const getStoredUser = () => {
   try {
@@ -28,24 +28,35 @@ const getStoredUser = () => {
   } catch { return null; }
 };
 
+const isHubNavigation = (): boolean => {
+  if (typeof document === 'undefined') return false;
+  return document.referrer.toLowerCase().includes('hub.tecosystem.app');
+};
+
+const redirectToHubPayment = (product: Product) => {
+  const label = product.title ?? product.name ?? 'Product';
+  const params = new URLSearchParams({
+    pay: '1', amount: product.price.toString(),
+    memo: `${label} — TEC Ecommerce`, product_id: product.id,
+    return_url: `${APP_URL}/shop`, source: 'ecommerce',
+  });
+  window.location.href = `${HUB_URL}/hub?${params.toString()}`;
+};
+
 export default function ShopPage() {
-  const [authed,     setAuthed]     = useState<boolean | null>(null);
+  const { isAuthenticated, isLoading } = usePiAuth();
+  const router = useRouter();
+
   const [products,   setProducts]   = useState<Product[]>([]);
-  const [loading,    setLoading]    = useState(true);
+  const [fetching,   setFetching]   = useState(true);
   const [piReady,    setPiReady]    = useState(false);
+  const [activeTab,  setActiveTab]  = useState('all');
   const [payStatus,  setPayStatus]  = useState<PayStatus>('idle');
   const [payMessage, setPayMessage] = useState('');
   const [activeProd, setActiveProd] = useState<Product | null>(null);
-  const [drawerOpen, setDrawerOpen] = useState(false);         // ✅ Drawer
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [username,   setUsername]   = useState<string | null>(null);
   const inFlight = useRef(false);
-
-  useEffect(() => {
-    if (!getToken()) { window.location.href = SSO_URL; return; }
-    setAuthed(true);
-    const user = getStoredUser();
-    if (user?.piUsername) setUsername(user.piUsername);
-  }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -55,49 +66,53 @@ export default function ShopPage() {
     return () => window.removeEventListener('tec-pi-ready', h);
   }, []);
 
+  // SSO redirect if not authenticated
   useEffect(() => {
-    if (!authed) return;
-    fetch('/api/bff/products', { credentials: 'include' })
-      .then(r => { if (r.status === 401) { window.location.href = SSO_URL; throw new Error(); } return r.json(); })
+    if (!isLoading && !isAuthenticated) {
+      window.location.href = `${HUB_URL}/api/auth/sso?target=${encodeURIComponent(APP_URL + '/shop')}`;
+    }
+  }, [isAuthenticated, isLoading]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      const user = getStoredUser();
+      if (user?.piUsername) setUsername(user.piUsername);
+    }
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    setFetching(true);
+    const params = new URLSearchParams({ limit: '50' });
+    if (activeTab !== 'all') params.set('category', activeTab);
+    fetch(`/api/bff/products?${params}`, { credentials: 'include' })
+      .then(r => r.json())
       .then(d => {
         const list = d?.data?.products ?? d?.products ?? [];
         setProducts(Array.isArray(list) ? list : []);
       })
       .catch(() => setProducts([]))
-      .finally(() => setLoading(false));
-  }, [authed]);
+      .finally(() => setFetching(false));
+  }, [isAuthenticated, activeTab]);
 
   const handleBuy = useCallback(async (product: Product) => {
-    if (!window.Pi || !piReady || inFlight.current) return;
+    if (inFlight.current) return;
+    if (isHubNavigation()) { redirectToHubPayment(product); return; }
+    if (!window.Pi || !piReady) { redirectToHubPayment(product); return; }
+
     inFlight.current = true;
     setActiveProd(product);
     setPayStatus('creating');
     setPayMessage('');
-
     try {
       const label      = product.title ?? product.name ?? 'Product';
       const memo       = `${label} — TEC Ecommerce`;
       const internalId = await createPaymentRecord(product.price, product.id, memo);
-      if (!internalId) {
-        setPayStatus('error');
-        setPayMessage('Failed to initialize payment.');
-        inFlight.current = false;
-        return;
-      }
-
+      if (!internalId) { setPayStatus('error'); setPayMessage('Failed to initialize.'); inFlight.current = false; return; }
       setPayStatus('paying');
-      const result = await createU2APayment(
-        product.price, memo,
-        { source: 'ecommerce', product_id: product.id },
-        internalId,
-      );
-
+      const result = await createU2APayment(product.price, memo, { source: 'ecommerce', product_id: product.id }, internalId);
       if (result.success) {
-        fetch('/api/bff/orders', {
-          method: 'POST', credentials: 'include',
-          headers: { 'Content-Type': 'application/json', 'x-csrf-token': getCsrfToken() },
-          body: JSON.stringify({ product_id: product.id, payment_id: internalId }),
-        }).catch(() => {});
+        fetch('/api/bff/orders', { method:'POST', credentials:'include', headers:{'Content-Type':'application/json','x-csrf-token':getCsrfToken()}, body: JSON.stringify({ product_id: product.id, payment_id: internalId }) }).catch(() => {});
         setPayStatus('success');
       } else {
         setPayStatus(result.status === 'cancelled' ? 'cancelled' : 'error');
@@ -106,67 +121,151 @@ export default function ShopPage() {
     } catch (err) {
       setPayStatus('error');
       setPayMessage(err instanceof Error ? err.message : 'Payment failed');
-    } finally {
-      inFlight.current = false;
-    }
+    } finally { inFlight.current = false; }
   }, [piReady]);
 
-  const closeModal = () => {
-    setPayStatus('idle');
-    setActiveProd(null);
-    setPayMessage('');
-    inFlight.current = false;
-  };
+  const closeModal = () => { setPayStatus('idle'); setActiveProd(null); setPayMessage(''); inFlight.current = false; };
+  const retryPay   = () => { const p = activeProd; closeModal(); setTimeout(() => p && handleBuy(p), 100); };
 
-  const retryPay = () => {
-    const p = activeProd;
-    closeModal();
-    setTimeout(() => p && handleBuy(p), 100);
-  };
-
-  if (authed === null || (authed && loading)) return (
-    <div style={{ minHeight:'100vh', background:'#07070f', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:14 }}>
-      <div style={{ width:36, height:36, borderRadius:'50%', border:'3px solid rgba(212,175,55,0.15)', borderTopColor:'#d4af37', animation:'spin 0.8s linear infinite' }} />
-      <p style={{ fontFamily:'system-ui,sans-serif', fontSize:12, color:'#3a3a4a' }}>
-        {authed === null ? 'Authenticating...' : 'Loading products...'}
-      </p>
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+  // Loading / not authenticated
+  if (!isAuthenticated) return (
+    <div style={{ minHeight:'100vh', background:'#07070f', display:'flex', alignItems:'center', justifyContent:'center' }}>
+      <style>{CSS}</style>
+      <div className="spinner" />
     </div>
   );
 
+  const categories = ['all', ...Array.from(new Set(products.map(p => p.category).filter(Boolean) as string[]))];
+
   return (
-    <div style={{ minHeight:'100vh', background:'#07070f', color:'#fff', fontFamily:'Georgia,serif' }}>
-      <style>{`@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}} @keyframes spin{to{transform:rotate(360deg)}}`}</style>
+    <div style={{ minHeight:'100vh', background:'#07070f', color:'#fff' }}>
+      <style>{CSS}</style>
 
-      {/* ✅ Drawer */}
-      <EcommerceDrawer
-        isOpen={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        username={username ?? undefined}
-        hubUrl={HUB_URL}
-      />
-
-      {/* Header */}
+      <EcommerceDrawer isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} username={username ?? undefined} hubUrl={HUB_URL} />
       <ShopHeader piReady={piReady} onMenuOpen={() => setDrawerOpen(true)} />
+      <ShopHero username={username} />
 
-      {/* Hero */}
-      <ShopHero />
+      {/* Categories */}
+      {categories.length > 1 && (
+        <div style={{ maxWidth:800, margin:'0 auto', padding:'12px 16px 8px', overflowX:'auto' }}>
+          <div style={{ display:'flex', gap:8, width:'max-content' }}>
+            {categories.map(c => (
+              <button key={c} onClick={() => setActiveTab(c)} className={`cat-chip ${activeTab === c ? 'cat-chip--on' : ''}`}>
+                {c === 'all' ? '✦ All' : c}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Products */}
-      <main style={{ maxWidth:800, margin:'0 auto', padding:'8px 16px 48px' }}>
-        <ProductGrid products={products} piReady={piReady} onBuy={handleBuy} />
-      </main>
+      <section style={{ maxWidth:800, margin:'0 auto', padding:'12px 16px 80px' }}>
+        <div style={{ display:'flex', justifyContent:'space-between', marginBottom:12 }}>
+          <span style={{ fontSize:14, fontWeight:800, color:'#e8d5a3', fontFamily:'Georgia,serif' }}>
+            {activeTab === 'all' ? '🛒 All Products' : activeTab}
+          </span>
+          <span style={{ fontSize:11, color:'#3a3a4a' }}>{products.length} items</span>
+        </div>
 
-      {/* Payment Modal */}
+        {fetching ? (
+          <div className="center-box"><div className="spinner" /></div>
+        ) : products.length === 0 ? (
+          <div className="center-box">
+            <div style={{ fontSize:48, opacity:0.15, marginBottom:12 }}>📦</div>
+            <p style={{ fontSize:13, color:'#3a3a4a' }}>No products available</p>
+          </div>
+        ) : (
+          <div className="prod-grid">
+            {products.map((p, i) => {
+              const imgSrc = p.images?.[0] ?? p.image_url;
+              const label  = p.title ?? p.name ?? 'Product';
+              return (
+                <article key={p.id} className="pcard" style={{ animationDelay:`${i * 40}ms` }}
+                  onClick={() => router.push(`/product/${p.id}`)}>
+                  <div className="pcard-img-wrap">
+                    {imgSrc
+                      ? <img src={imgSrc} alt={label} className="pcard-img" />
+                      : <div className="pcard-ph">🛍</div>
+                    }
+                    <div className="pcard-price">{p.price}π</div>
+                  </div>
+                  <div className="pcard-body">
+                    <h3 className="pcard-title">{label}</h3>
+                    <p className="pcard-desc">{p.description}</p>
+                    <button className="pcard-buy" onClick={e => { e.stopPropagation(); handleBuy(p); }}>
+                      Buy Now
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
       {payStatus !== 'idle' && activeProd && (
-        <PaymentModal
-          status={payStatus}
-          product={activeProd}
-          message={payMessage}
-          onClose={closeModal}
-          onRetry={retryPay}
-        />
+        <PaymentModal status={payStatus} product={activeProd} message={payMessage} onClose={closeModal} onRetry={retryPay} />
       )}
     </div>
   );
-      }
+}
+
+const CSS = `
+  @keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:none} }
+  @keyframes spin   { to{transform:rotate(360deg)} }
+
+  .cat-chip {
+    padding:7px 16px; border-radius:20px;
+    border:1px solid rgba(255,255,255,0.06); background:rgba(255,255,255,0.03);
+    color:#6b6b7a; font-size:11px; font-weight:600;
+    cursor:pointer; white-space:nowrap; transition:all 0.2s;
+  }
+  .cat-chip--on {
+    background:rgba(212,175,55,0.1); border-color:rgba(212,175,55,0.3); color:#d4af37;
+  }
+
+  .prod-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px; }
+
+  .pcard {
+    border-radius:16px; overflow:hidden;
+    background:#0b0b16; border:1px solid rgba(255,255,255,0.04);
+    cursor:pointer; animation:fadeUp 0.3s ease both;
+    transition:transform 0.2s, border-color 0.2s;
+  }
+  .pcard:active { transform:scale(0.98); }
+
+  .pcard-img-wrap { height:110px; position:relative; overflow:hidden; background:#0d0d18; }
+  .pcard-img { width:100%; height:100%; object-fit:cover; }
+  .pcard-ph { height:100%; display:flex; align-items:center; justify-content:center; font-size:32px; opacity:0.15; }
+  .pcard-price {
+    position:absolute; bottom:6px; right:6px;
+    background:rgba(7,7,15,0.9); backdrop-filter:blur(8px);
+    border:1px solid rgba(212,175,55,0.3); color:#d4af37;
+    font-size:11px; font-weight:900; font-family:Georgia,serif;
+    padding:2px 8px; border-radius:12px;
+  }
+  .pcard-body { padding:10px; }
+  .pcard-title {
+    font-size:12px; font-weight:700; color:#e8d5a3;
+    margin-bottom:3px; font-family:Georgia,serif;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .pcard-desc {
+    font-size:10px; color:#4a4a5a; line-height:1.4; margin-bottom:8px;
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+  }
+  .pcard-buy {
+    width:100%; padding:8px; border-radius:12px; border:none;
+    background:linear-gradient(135deg,#1a1230,#0f1a2a);
+    border:1px solid rgba(212,175,55,0.15);
+    color:#d4af37; font-size:11px; font-weight:700;
+    cursor:pointer; transition:all 0.2s;
+  }
+  .pcard-buy:active {
+    background:linear-gradient(135deg,#d4af37,#b8882a);
+    color:#07070f;
+  }
+
+  .center-box { display:flex; flex-direction:column; align-items:center; padding:60px 0; }
+  .spinner { width:32px; height:32px; border-radius:50%; border:3px solid rgba(212,175,55,0.1); border-top-color:#d4af37; animation:spin 0.8s linear infinite; }
+`;
