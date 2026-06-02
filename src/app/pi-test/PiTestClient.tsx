@@ -159,28 +159,69 @@ export function PiTestClient() {
   const handleCancelPending = useCallback(async () => {
     log('info', 'Checking for pending payments...');
     try {
-      if (!window.Pi) throw new Error('Open in Pi Browser'); // ✅ بدون isPiBrowser
+      if (!window.Pi) throw new Error('Open in Pi Browser');
+
+      let foundPending = false;
+
       await window.Pi.authenticate(['username', 'payments'], async (payment: unknown) => {
         const p   = payment as Record<string, unknown> | null;
         const pid = p?.identifier as string | undefined;
-        if (!pid) { log('info', 'No pending payment ✅'); return; }
-        log('warn', `Pending: ${pid} | amount: ${p?.amount}`);
-        const token = getToken(); // ✅ inline function
-        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-        if (token)       headers['Authorization'] = `Bearer ${token}`;
-        if (getCsrf())   headers['x-csrf-token']  = getCsrf();
+        if (!pid) return;
+
+        foundPending = true;
+        log('warn', `⚠️ Pending: ${pid} | amount: ${p?.amount}`);
+
+        const token = getToken();
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+        };
+        if (token)     headers['Authorization'] = `Bearer ${token}`;
+        if (getCsrf()) headers['x-csrf-token']  = getCsrf();
+
+        // Step 1: Try resolve-incomplete via BFF
         try {
-          const res  = await fetch('/api/bff/payment/resolve-incomplete', {
-            method:      'POST',
-            credentials: 'include',
-            headers,
+          log('info', `[1/3] Resolving via BFF...`);
+          const res = await fetch('/api/bff/payment/resolve-incomplete', {
+            method: 'POST', credentials: 'include', headers,
             body: JSON.stringify({ pi_payment_id: pid }),
           });
           const data = await res.json().catch(() => ({}));
-          log(res.ok ? 'success' : 'error', `Resolve: ${JSON.stringify(data)} (${res.status})`);
-        } catch (e) { log('error', `Network: ${String(e)}`); }
+          if (res.ok) {
+            log('success', `✅ Resolved via BFF: ${JSON.stringify(data)}`);
+            return;
+          }
+          log('warn', `BFF resolve failed: ${res.status}`);
+        } catch (e) { log('warn', `BFF error: ${String(e)}`); }
+
+        // Step 2: Try cancel via payment complete with empty txid
+        try {
+          log('info', `[2/3] Completing with cancel...`);
+          const res = await fetch('/api/bff/payment/complete', {
+            method: 'POST', credentials: 'include', headers,
+            body: JSON.stringify({ paymentId: pid, txid: '', cancelled: true }),
+          });
+          if (res.ok) {
+            log('success', `✅ Cancelled via complete`);
+            return;
+          }
+          log('warn', `Complete-cancel failed: ${res.status}`);
+        } catch (e) { log('warn', `Complete error: ${String(e)}`); }
+
+        // Step 3: Try SDK resolve
+        try {
+          log('info', `[3/3] SDK resolveIncomplete...`);
+          const { default: sdk } = await import('@/lib/sdk');
+          await sdk.payment.resolveIncomplete(pid);
+          log('success', `✅ Resolved via SDK`);
+        } catch (e) { log('error', `SDK resolve failed: ${String(e)}`); }
       });
-    } catch (err) { log('error', `Failed: ${String(err)}`); }
+
+      if (!foundPending) {
+        log('success', 'No pending payments ✅');
+      }
+    } catch (err) {
+      log('error', `Failed: ${err instanceof Error ? err.message : String(err)}`);
+    }
   }, [log]);
 
   // ── Payment Test ──────────────────────────────────────────
