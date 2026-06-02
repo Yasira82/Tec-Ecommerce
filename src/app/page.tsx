@@ -10,12 +10,12 @@ export default function LandingPage() {
   const { isAuthenticated, isLoading } = usePiAuth();
 
   useEffect(() => {
-    if (!isLoading && isAuthenticated) {
-      window.location.href = '/app';
+    if (isLoading) return;
+    if (isAuthenticated) {
+      window.location.href = '/shop';
+      return;
     }
-    if (!isLoading && !isAuthenticated) {
-      ssoRedirect(HUB_URL, `${APP_URL}/app`);
-    }
+    ssoRedirect(HUB_URL, `${APP_URL}/shop`);
   }, [isAuthenticated, isLoading]);
 
   return (
