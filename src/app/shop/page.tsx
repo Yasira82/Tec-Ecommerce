@@ -2,12 +2,12 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter }              from 'next/navigation';
-import { ssoRedirect }            from '@yasser172/tec-auth';
 import { ShopHeader }             from '@/components/shop/ShopHeader';
 import { ShopHero }               from '@/components/shop/ShopHero';
 import { PaymentModal }           from '@/components/shop/PaymentModal';
 import { EcommerceDrawer }        from '@/components/shop/EcommerceDrawer';
 import { createPaymentRecord, createU2APayment } from '@/lib/pi-payment';
+import { loginWithPi, getStoredUser as getUser, getAccessToken } from '@/lib-client/pi/pi-auth';
 
 const HUB_URL = process.env.NEXT_PUBLIC_HUB_URL ?? 'https://hub.tecosystem.app';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://ecommerce.tecosystem.app';
@@ -21,16 +21,6 @@ interface Product {
 type PayStatus = 'idle' | 'creating' | 'paying' | 'success' | 'cancelled' | 'error';
 
 const getCsrfToken = () => typeof document === 'undefined' ? '' : document.cookie.split('; ').find(r => r.startsWith('tec_csrf='))?.split('=')?.[1] ?? '';
-
-const getStoredUser = () => {
-  if (typeof document === 'undefined') return null;
-  try {
-    const match = document.cookie.split('; ').find(r => r.startsWith('tec_user='));
-    if (!match) return null;
-    const value = match.substring(match.indexOf('=') + 1);
-    return JSON.parse(decodeURIComponent(value));
-  } catch { return null; }
-};
 
 const isHubNavigation = (): boolean => {
   if (typeof document === 'undefined') return false;
@@ -50,6 +40,7 @@ const redirectToHubPayment = (product: Product) => {
 export default function ShopPage() {
   const router   = useRouter();
   const inFlight = useRef(false);
+  const loginDone = useRef(false);
 
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading]             = useState(true);
@@ -64,25 +55,61 @@ export default function ShopPage() {
   const [username,   setUsername]   = useState<string | null>(null);
 
   // ══════════════════════════════════════════════════════════
-  // AUTH — cookie direct + sessionStorage prevents loop
-  // Root cause: usePiAuth calls /auth/refresh → 401 → loop
-  // Fix: read tec_user cookie directly, SSO once per tab
+  // AUTH — check cookies first, then auto Pi.authenticate
+  // Same pattern as Commerce: loginWithPi() sets all cookies
+  // including refresh token → usePiAuth will work after
   // ══════════════════════════════════════════════════════════
   useEffect(() => {
-    const user = getStoredUser();
-    if (user) {
+    const user  = getUser();
+    const token = getAccessToken();
+
+    // ✅ Already logged in (cookies from Hub or previous session)
+    if (user && token) {
       setIsAuthenticated(true);
       setUsername(user.piUsername ?? null);
       setIsLoading(false);
-      sessionStorage.removeItem('sso_done');
       return;
     }
-    if (!sessionStorage.getItem('sso_done')) {
-      sessionStorage.setItem('sso_done', '1');
-      ssoRedirect(HUB_URL, `${APP_URL}/shop`);
-      return;
+
+    // ✅ Not logged in → auto loginWithPi (Pi Browser only)
+    if (loginDone.current) { setIsLoading(false); return; }
+    loginDone.current = true;
+
+    if (typeof window !== 'undefined' && window.Pi) {
+      loginWithPi()
+        .then((res) => {
+          if (res?.success) {
+            setIsAuthenticated(true);
+            setUsername(res.user?.piUsername ?? null);
+          }
+        })
+        .catch(() => {})
+        .finally(() => {
+          setIsLoading(false);
+          window.location.href = '/shop';
+        });
+    } else {
+      // Pi SDK not ready yet → wait for it
+      const h = () => {
+        loginWithPi()
+          .then((res) => {
+            if (res?.success) {
+              setIsAuthenticated(true);
+              setUsername(res.user?.piUsername ?? null);
+            }
+          })
+          .catch(() => {})
+          .finally(() => {
+            setIsLoading(false);
+            window.location.href = '/shop';
+          });
+      };
+      window.addEventListener('tec-pi-ready', h, { once: true });
+      // Timeout fallback
+      setTimeout(() => {
+        if (!isAuthenticated) setIsLoading(false);
+      }, 10000);
     }
-    setIsLoading(false);
   }, []);
 
   // Pi SDK
@@ -143,26 +170,26 @@ export default function ShopPage() {
   const closeModal = () => { setPayStatus('idle'); setActiveProd(null); setPayMessage(''); inFlight.current = false; };
   const retryPay   = () => { const p = activeProd; closeModal(); setTimeout(() => p && handleBuy(p), 100); };
 
-  // Loading / not authenticated → show spinner (SSO will redirect)
+  // Loading
   if (isLoading) return (
-    <div style={{ minHeight:'100vh', background:'#07070f', display:'flex', alignItems:'center', justifyContent:'center' }}>
+    <div style={{ minHeight:'100vh', background:'#07070f', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:16 }}>
       <style>{CSS}</style>
       <div className="spinner" />
+      <p style={{ fontSize:12, color:'#4a4a5a' }}>Authenticating with Pi...</p>
     </div>
   );
 
+  // Not authenticated after attempt
   if (!isAuthenticated) return (
     <div style={{ minHeight:'100vh', background:'#07070f', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:16, padding:24 }}>
       <style>{CSS}</style>
       <div style={{ fontSize:48 }}>🛍</div>
       <div style={{ fontSize:20, fontWeight:900, color:'#e8d5a3' }}>TEC Store</div>
-      <button onClick={() => { sessionStorage.removeItem('sso_done'); ssoRedirect(HUB_URL, `${APP_URL}/shop`); }}
+      <p style={{ fontSize:12, color:'#4a4a5a', textAlign:'center' }}>Open in Pi Browser to shop</p>
+      <button onClick={() => { loginDone.current = false; window.location.reload(); }}
         style={{ padding:'14px 36px', background:'linear-gradient(135deg,#d4af37,#b8882a)', border:'none', borderRadius:16, color:'#07070f', fontSize:15, fontWeight:800, cursor:'pointer' }}>
-        Enter Store
+        Retry Login
       </button>
-      <pre onClick={() => alert(document.cookie)} style={{ fontSize:9, color:'#2a2a3a', cursor:'pointer', textAlign:'center', maxWidth:300, wordBreak:'break-all' }}>
-        tap to debug cookies
-      </pre>
     </div>
   );
 
