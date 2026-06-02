@@ -157,7 +157,12 @@ export default function ShopPage() {
       <div style={{ fontSize:48 }}>🛍</div>
       <div style={{ fontSize:22, fontWeight:900, color:'#e8d5a3', fontFamily:'Georgia,serif' }}>TEC Store</div>
       <p style={{ fontSize:12, color:'#4a4a5a', textAlign:'center' }}>Open in Pi Browser to shop with Pi</p>
-      <button onClick={() => { loginAttempted.current = false; login().catch(() => {}); }}
+      <button onClick={() => {
+  loginAttempted.current = false;
+  import('@/lib-client/pi/pi-auth').then(({ loginWithPi }) => {
+    loginWithPi().then(() => window.location.href = '/shop').catch(() => {});
+  });
+}}
         style={{ padding:'14px 36px', background:'linear-gradient(135deg,#d4af37,#b8882a)', border:'none', borderRadius:16, color:'#07070f', fontSize:15, fontWeight:800, cursor:'pointer' }}>
         🔷 Login with Pi
       </button>
