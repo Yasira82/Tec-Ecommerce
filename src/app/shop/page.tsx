@@ -54,12 +54,20 @@ export default function ShopPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [username,   setUsername]   = useState<string | null>(null);
 
-  // ✅ Auto-login — once only, no reload
+  // ✅ Auto-login — once only
   useEffect(() => {
     if (isLoading) return;
     if (isAuthenticated) return;
     if (loginAttempted.current) return;
     loginAttempted.current = true;
+
+    // Hub → Ecommerce: SSO redirect (loginWithPi won't work)
+    if (isHubNavigation()) {
+      window.location.href = `${HUB_URL}/api/auth/sso?target=${encodeURIComponent(APP_URL + '/shop')}`;
+      return;
+    }
+
+    // Direct entry: Pi authenticate
     login().catch(() => {});
   }, [isAuthenticated, isLoading, login]);
 
