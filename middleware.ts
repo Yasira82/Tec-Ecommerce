@@ -9,7 +9,7 @@ export default createAuthMiddleware({
 
 export const config = {
   matcher: [
-    '/app/:path*',
+    '/app/:path*',        // ← ده موجود بالفعل ✅
     '/dashboard/:path*',
     '/profile/:path*',
     '/settings/:path*',
