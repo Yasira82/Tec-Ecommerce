@@ -2,8 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter }              from 'next/navigation';
-import { usePiAuth }              from '@/lib-client/hooks/usePiAuth';
-import { getStoredUser }          from '@/lib-client/pi/pi-auth';
+import { usePiAuth }              from '@yasser172/tec-auth';
 import { ShopHeader }             from '@/components/shop/ShopHeader';
 import { ShopHero }               from '@/components/shop/ShopHero';
 import { PaymentModal }           from '@/components/shop/PaymentModal';
@@ -39,7 +38,7 @@ const redirectToHubPayment = (product: Product) => {
 };
 
 export default function ShopPage() {
-  const { isAuthenticated, isLoading, login } = usePiAuth();
+  const { isAuthenticated, isLoading } = usePiAuth();
   const router         = useRouter();
   const loginAttempted = useRef(false);
   const inFlight       = useRef(false);
@@ -54,29 +53,34 @@ export default function ShopPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [username,   setUsername]   = useState<string | null>(null);
 
-  // ✅ Auto-login — once only
+  // ✅ Auto-login
   useEffect(() => {
     if (isLoading) return;
     if (isAuthenticated) return;
     if (loginAttempted.current) return;
     loginAttempted.current = true;
 
-    // Hub → Ecommerce: SSO redirect (loginWithPi won't work)
     if (isHubNavigation()) {
       window.location.href = `${HUB_URL}/api/auth/sso?target=${encodeURIComponent(APP_URL + '/shop')}`;
       return;
     }
 
-    // Direct entry: Pi authenticate
-    login().catch(() => {});
-  }, [isAuthenticated, isLoading, login]);
+    import('@/lib-client/pi/pi-auth').then(({ loginWithPi }) => {
+      loginWithPi().then(() => window.location.href = '/shop').catch(() => {});
+    });
+  }, [isAuthenticated, isLoading]);
 
   // Username
   useEffect(() => {
-    if (isAuthenticated) {
-      const user = getStoredUser();
-      if (user?.piUsername) setUsername(user.piUsername);
-    }
+    if (!isAuthenticated) return;
+    try {
+      const match = document.cookie.split('; ').find(r => r.startsWith('tec_user='));
+      if (match) {
+        const val = match.substring(match.indexOf('=') + 1);
+        const user = JSON.parse(decodeURIComponent(val));
+        if (user?.piUsername) setUsername(user.piUsername);
+      }
+    } catch {}
   }, [isAuthenticated]);
 
   // Pi SDK
