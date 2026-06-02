@@ -144,11 +144,25 @@ export default function ShopPage() {
   const retryPay   = () => { const p = activeProd; closeModal(); setTimeout(() => p && handleBuy(p), 100); };
 
   // Loading / not authenticated → show spinner (SSO will redirect)
-  if (isLoading || !isAuthenticated) return (
-    <div style={{ minHeight:'100vh', background:'#07070f', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:16 }}>
+  if (isLoading) return (
+    <div style={{ minHeight:'100vh', background:'#07070f', display:'flex', alignItems:'center', justifyContent:'center' }}>
       <style>{CSS}</style>
       <div className="spinner" />
-      <p style={{ fontSize:12, color:'#4a4a5a' }}>Connecting to TEC...</p>
+    </div>
+  );
+
+  if (!isAuthenticated) return (
+    <div style={{ minHeight:'100vh', background:'#07070f', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:16, padding:24 }}>
+      <style>{CSS}</style>
+      <div style={{ fontSize:48 }}>🛍</div>
+      <div style={{ fontSize:20, fontWeight:900, color:'#e8d5a3' }}>TEC Store</div>
+      <button onClick={() => { sessionStorage.removeItem('sso_done'); ssoRedirect(HUB_URL, `${APP_URL}/shop`); }}
+        style={{ padding:'14px 36px', background:'linear-gradient(135deg,#d4af37,#b8882a)', border:'none', borderRadius:16, color:'#07070f', fontSize:15, fontWeight:800, cursor:'pointer' }}>
+        Enter Store
+      </button>
+      <pre onClick={() => alert(document.cookie)} style={{ fontSize:9, color:'#2a2a3a', cursor:'pointer', textAlign:'center', maxWidth:300, wordBreak:'break-all' }}>
+        tap to debug cookies
+      </pre>
     </div>
   );
 
