@@ -60,22 +60,32 @@ export default function ShopPage() {
   const inFlight = useRef(false);
   const ssoDone  = useRef(false);
 
-  // ✅ Auth: read cookie directly (not usePiAuth — avoids SSO loop)
+  // ✅ Auth: read cookie directly
   useEffect(() => {
+    console.log('[SHOP] raw cookies:', document.cookie);
+    console.log('[SHOP] has tec_user:', document.cookie.includes('tec_user='));
+    
     const user = getStoredUser();
+    console.log('[SHOP] parsed user:', user);
+    
     if (user) {
       setIsAuthenticated(true);
       setUsername(user.piUsername ?? null);
+      console.log('[SHOP] ✅ AUTHENTICATED');
+    } else {
+      console.log('[SHOP] ❌ NOT AUTHENTICATED');
     }
     setIsLoading(false);
   }, []);
 
   // ✅ SSO redirect — ONE time only
   useEffect(() => {
+    console.log('[SHOP] SSO check:', { isLoading, isAuthenticated, ssoDone: ssoDone.current });
     if (isLoading) return;
     if (isAuthenticated) return;
     if (ssoDone.current) return;
     ssoDone.current = true;
+    console.log('[SHOP] → SSO REDIRECT');
     window.location.href = `${HUB_URL}/api/auth/sso?target=${encodeURIComponent(APP_URL + '/shop')}`;
   }, [isAuthenticated, isLoading]);
 
