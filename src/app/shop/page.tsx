@@ -2,12 +2,13 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter }              from 'next/navigation';
+import { usePiAuth }              from '@/lib-client/hooks/usePiAuth';
+import { getStoredUser }          from '@/lib-client/pi/pi-auth';
 import { ShopHeader }             from '@/components/shop/ShopHeader';
 import { ShopHero }               from '@/components/shop/ShopHero';
 import { PaymentModal }           from '@/components/shop/PaymentModal';
 import { EcommerceDrawer }        from '@/components/shop/EcommerceDrawer';
 import { createPaymentRecord, createU2APayment } from '@/lib/pi-payment';
-import { loginWithPi, getStoredUser as getUser, getAccessToken } from '@/lib-client/pi/pi-auth';
 
 const HUB_URL = process.env.NEXT_PUBLIC_HUB_URL ?? 'https://hub.tecosystem.app';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://ecommerce.tecosystem.app';
@@ -38,12 +39,11 @@ const redirectToHubPayment = (product: Product) => {
 };
 
 export default function ShopPage() {
-  const router   = useRouter();
-  const inFlight = useRef(false);
-  const loginDone = useRef(false);
+  const { isAuthenticated, isLoading, login } = usePiAuth();
+  const router         = useRouter();
+  const loginAttempted = useRef(false);
+  const inFlight       = useRef(false);
 
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoading, setIsLoading]             = useState(true);
   const [products,   setProducts]   = useState<Product[]>([]);
   const [fetching,   setFetching]   = useState(true);
   const [piReady,    setPiReady]    = useState(false);
@@ -54,63 +54,22 @@ export default function ShopPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [username,   setUsername]   = useState<string | null>(null);
 
-  // ══════════════════════════════════════════════════════════
-  // AUTH — check cookies first, then auto Pi.authenticate
-  // Same pattern as Commerce: loginWithPi() sets all cookies
-  // including refresh token → usePiAuth will work after
-  // ══════════════════════════════════════════════════════════
+  // ✅ Auto-login — once only, no reload
   useEffect(() => {
-    const user  = getUser();
-    const token = getAccessToken();
+    if (isLoading) return;
+    if (isAuthenticated) return;
+    if (loginAttempted.current) return;
+    loginAttempted.current = true;
+    login().catch(() => {});
+  }, [isAuthenticated, isLoading, login]);
 
-    // ✅ Already logged in (cookies from Hub or previous session)
-    if (user && token) {
-      setIsAuthenticated(true);
-      setUsername(user.piUsername ?? null);
-      setIsLoading(false);
-      return;
+  // Username
+  useEffect(() => {
+    if (isAuthenticated) {
+      const user = getStoredUser();
+      if (user?.piUsername) setUsername(user.piUsername);
     }
-
-    // ✅ Not logged in → auto loginWithPi (Pi Browser only)
-    if (loginDone.current) { setIsLoading(false); return; }
-    loginDone.current = true;
-
-    if (typeof window !== 'undefined' && window.Pi) {
-      loginWithPi()
-        .then((res) => {
-          if (res?.success) {
-            setIsAuthenticated(true);
-            setUsername(res.user?.piUsername ?? null);
-          }
-        })
-        .catch(() => {})
-        .finally(() => {
-          setIsLoading(false);
-          window.location.href = '/shop';
-        });
-    } else {
-      // Pi SDK not ready yet → wait for it
-      const h = () => {
-        loginWithPi()
-          .then((res) => {
-            if (res?.success) {
-              setIsAuthenticated(true);
-              setUsername(res.user?.piUsername ?? null);
-            }
-          })
-          .catch(() => {})
-          .finally(() => {
-            setIsLoading(false);
-            window.location.href = '/shop';
-          });
-      };
-      window.addEventListener('tec-pi-ready', h, { once: true });
-      // Timeout fallback
-      setTimeout(() => {
-        if (!isAuthenticated) setIsLoading(false);
-      }, 10000);
-    }
-  }, []);
+  }, [isAuthenticated]);
 
   // Pi SDK
   useEffect(() => {
@@ -175,20 +134,20 @@ export default function ShopPage() {
     <div style={{ minHeight:'100vh', background:'#07070f', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:16 }}>
       <style>{CSS}</style>
       <div className="spinner" />
-      <p style={{ fontSize:12, color:'#4a4a5a' }}>Authenticating with Pi...</p>
+      <p style={{ fontSize:12, color:'#4a4a5a' }}>Authenticating...</p>
     </div>
   );
 
-  // Not authenticated after attempt
+  // Not authenticated
   if (!isAuthenticated) return (
-    <div style={{ minHeight:'100vh', background:'#07070f', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:16, padding:24 }}>
+    <div style={{ minHeight:'100vh', background:'#07070f', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:20, padding:24 }}>
       <style>{CSS}</style>
       <div style={{ fontSize:48 }}>🛍</div>
-      <div style={{ fontSize:20, fontWeight:900, color:'#e8d5a3' }}>TEC Store</div>
-      <p style={{ fontSize:12, color:'#4a4a5a', textAlign:'center' }}>Open in Pi Browser to shop</p>
-      <button onClick={() => { loginDone.current = false; window.location.reload(); }}
+      <div style={{ fontSize:22, fontWeight:900, color:'#e8d5a3', fontFamily:'Georgia,serif' }}>TEC Store</div>
+      <p style={{ fontSize:12, color:'#4a4a5a', textAlign:'center' }}>Open in Pi Browser to shop with Pi</p>
+      <button onClick={() => { loginAttempted.current = false; login().catch(() => {}); }}
         style={{ padding:'14px 36px', background:'linear-gradient(135deg,#d4af37,#b8882a)', border:'none', borderRadius:16, color:'#07070f', fontSize:15, fontWeight:800, cursor:'pointer' }}>
-        Retry Login
+        🔷 Login with Pi
       </button>
     </div>
   );
