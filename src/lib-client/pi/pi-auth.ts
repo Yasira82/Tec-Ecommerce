@@ -11,9 +11,11 @@ declare global {
       createPayment: (paymentData: PiPaymentData, callbacks: PiPaymentCallbacks) => void;
       init: (config: { version: string; sandbox: boolean; appId?: string }) => void;
     };
-    __PI_SANDBOX?:   boolean;
-    __TEC_PI_READY?: boolean;
-    __TEC_PI_ERROR?: boolean;
+    __PI_SANDBOX?:              boolean;
+    __TEC_PI_READY?:            boolean;
+    __TEC_PI_ERROR?:            boolean;
+    __TEC_PI_FOREIGN_SESSION?:  boolean;
+    __TEC_PI_AUTHENTICATED?:    boolean;
   }
 }
 
@@ -203,14 +205,13 @@ const handleIncompletePayment = (payment: unknown): void => {
 const resolveIncompleteAfterLogin = async (piPaymentId: string): Promise<void> => {
   const csrfToken = getCsrfToken();
 
-  // ── Step 1: Backend ──────────────────────────────────────
+  // ── Step 1: BFF Backend ─────────────────────────────────
   try {
-    const res = await fetch('/api/payment/resolve-incomplete', {
+    const res = await fetch('/api/bff/payment/resolve-incomplete', {
       method:      'POST',
       credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
-        // ✅ CSRF token — بدونه الـ middleware بيرجع 403
         'x-csrf-token': csrfToken,
       },
       body: JSON.stringify({ pi_payment_id: piPaymentId }),
@@ -234,25 +235,8 @@ const resolveIncompleteAfterLogin = async (piPaymentId: string): Promise<void> =
     _captureError('SDK resolve failed', { piPaymentId, error: String(sdkErr) });
   }
 
-  // ── Step 3: Cancel ────────────────────────────────────────
-  try {
-    const res = await fetch('/api/payment/cancel', {
-      method:      'POST',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-csrf-token': csrfToken,
-      },
-      body: JSON.stringify({ pi_payment_id: piPaymentId }),
-    });
-    if (res.ok) {
-      _reportResolved(piPaymentId, 'cancel');
-    } else {
-      _captureError('All recovery attempts failed', { piPaymentId, cancelStatus: res.status });
-    }
-  } catch (err) {
-    _captureError('Cancel network error', { piPaymentId, error: String(err) });
-  }
+  // ── Step 3: All attempts failed ───────────────────────────
+  _captureError('All recovery attempts failed', { piPaymentId });
 };
 
 // ── SDK Wait ──────────────────────────────────────────────
@@ -329,7 +313,6 @@ export const loginWithPi = async (): Promise<TecAuthResponse> => {
 
   const data = await res.json();
 
-  // ✅ الآن فيه cookie + CSRF — نعالج الـ incomplete payment
   if (_pendingPaymentId) {
     void resolveIncompleteAfterLogin(_pendingPaymentId);
     _pendingPaymentId = null;
