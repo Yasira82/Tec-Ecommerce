@@ -2,19 +2,24 @@ import { NextRequest, NextResponse } from 'next/server';
 import { jwtVerify }                  from 'jose';
 
 export async function GET(req: NextRequest) {
+  const token    = req.nextUrl.searchParams.get('token');
+  const redirect = req.nextUrl.searchParams.get('redirect') ?? '/shop';
+
+  console.log('[sso-callback] token:', token ? 'present' : 'MISSING');
+  console.log('[sso-callback] redirect:', redirect);
+
+  if (!token) {
+    console.error('[sso-callback] NO TOKEN');
+    return NextResponse.redirect(new URL('/shop', req.url));
+  }
+
+  const secret = process.env.SSO_SECRET;
+  if (!secret) {
+    console.error('[sso-callback] NO SSO_SECRET');
+    return NextResponse.redirect(new URL('/shop', req.url));
+  }
+
   try {
-    const token    = req.nextUrl.searchParams.get('token');
-    const redirect = req.nextUrl.searchParams.get('redirect') ?? '/shop';
-
-    if (!token) {
-      return NextResponse.redirect(new URL('/', req.url));
-    }
-
-    const secret = process.env.SSO_SECRET;
-    if (!secret) {
-      return NextResponse.redirect(new URL('/', req.url));
-    }
-
     const encoded = new TextEncoder().encode(secret);
     const { payload } = await jwtVerify(token, encoded, {
       algorithms: ['HS256'],
@@ -24,8 +29,11 @@ export async function GET(req: NextRequest) {
     const accessToken = payload['accessToken'] as string;
     const user        = payload['user'] as Record<string, unknown>;
 
+    console.log('[sso-callback] verified OK, user:', user?.piUsername ?? 'unknown');
+
     if (!accessToken || !user) {
-      return NextResponse.redirect(new URL('/', req.url));
+      console.error('[sso-callback] NO accessToken or user in payload');
+      return NextResponse.redirect(new URL('/shop', req.url));
     }
 
     const csrf       = crypto.randomUUID();
@@ -38,6 +46,8 @@ export async function GET(req: NextRequest) {
       process.env.NEXT_PUBLIC_SSO_DOMAIN ??
       undefined;
 
+    console.log('[sso-callback] cookieDomain:', cookieDomain);
+
     const cookieOpts = {
       secure:   true,
       sameSite: 'none' as const,
@@ -49,8 +59,10 @@ export async function GET(req: NextRequest) {
     response.cookies.set('tec_user',         userJson,    { ...cookieOpts, httpOnly: false, maxAge: 60 * 60 * 24 });
     response.cookies.set('tec_csrf',         csrf,        { ...cookieOpts, httpOnly: false, maxAge: 60 * 60 * 24 });
 
+    console.log('[sso-callback] cookies set, redirecting to:', redirectTo);
     return response;
-  } catch {
-    return NextResponse.redirect(new URL('/', req.url));
+  } catch (err) {
+    console.error('[sso-callback] ERROR:', err);
+    return NextResponse.redirect(new URL('/shop', req.url));
   }
 }
