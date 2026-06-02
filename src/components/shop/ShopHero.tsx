@@ -1,13 +1,28 @@
-export function ShopHero() {
+'use client';
+
+export function ShopHero({ username }: { username?: string | null }) {
   return (
-    <section style={{ position:'relative', textAlign:'center', padding:'48px 20px 40px', overflow:'hidden' }}>
-      <div style={{ position:'absolute', top:-60, left:'50%', transform:'translateX(-50%)', width:400, height:200, background:'radial-gradient(ellipse,rgba(212,175,55,0.15) 0%,transparent 70%)', pointerEvents:'none' }} />
-      <h1 style={{ fontSize:'clamp(28px,6vw,42px)', fontWeight:900, letterSpacing:'-0.02em', background:'linear-gradient(135deg,#d4af37 0%,#e8d5a3 50%,#b8882a 100%)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text', marginBottom:10 }}>
-        Digital Marketplace
-      </h1>
-      <p style={{ fontFamily:'system-ui,sans-serif', fontSize:14, color:'#4a4a5a', letterSpacing:'0.08em', textTransform:'uppercase' }}>
-        Pay instantly with Pi Network
-      </p>
+    <section style={{
+      padding: '20px 16px 16px',
+      borderBottom: '1px solid rgba(212,175,55,0.06)',
+    }}>
+      <div style={{ maxWidth: 800, margin: '0 auto' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+          {username && (
+            <span style={{ fontSize: 11, color: '#d4af37', fontWeight: 700 }}>@{username}</span>
+          )}
+          <span style={{
+            fontSize: 9, color: '#d4af37', letterSpacing: 0.5,
+            padding: '2px 8px', borderRadius: 10,
+            background: 'rgba(212,175,55,0.08)', border: '1px solid rgba(212,175,55,0.15)',
+          }}>π Mainnet</span>
+        </div>
+        <h1 style={{
+          fontSize: 22, fontWeight: 900, color: '#e8d5a3',
+          letterSpacing: '-0.02em', marginBottom: 2, fontFamily: 'Georgia,serif',
+        }}>TEC Store</h1>
+        <p style={{ fontSize: 12, color: '#4a4a5a' }}>Shop with Pi — instant payments</p>
+      </div>
     </section>
   );
 }
