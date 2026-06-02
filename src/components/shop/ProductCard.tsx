@@ -1,62 +1,120 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-
 interface Product {
   id: string; title: string; name?: string;
   description: string; price: number;
   images?: string[]; image_url?: string;
+  category?: string; rating?: number; reviews_count?: number;
 }
-interface Props { product: Product; piReady: boolean; onBuy: (p: Product) => void; delay?: number }
 
-export function ProductCard({ product, piReady, onBuy, delay = 0 }: Props) {
-  const router = useRouter();
+export function ProductCard({ product, onBuy, delay = 0 }: {
+  product: Product; onBuy: (p: Product) => void; delay?: number;
+}) {
   const imgSrc = product.images?.[0] ?? product.image_url;
   const label  = product.title ?? product.name ?? 'Product';
 
   return (
-    <article
-      onClick={() => router.push(`/product/${product.id}`)}
-      style={{
-        borderRadius: 20, background: '#0d0d18', border: '1px solid rgba(212,175,55,0.12)',
-        overflow: 'hidden', cursor: 'pointer',
-        transition: 'transform 0.2s, border-color 0.2s, box-shadow 0.2s',
-        animation: `fadeUp 0.4s ease ${delay}ms both`,
-      }}
-      onMouseEnter={e => {
-        (e.currentTarget as HTMLElement).style.transform    = 'translateY(-4px)';
-        (e.currentTarget as HTMLElement).style.borderColor  = 'rgba(212,175,55,0.35)';
-        (e.currentTarget as HTMLElement).style.boxShadow   = '0 12px 40px rgba(212,175,55,0.08)';
-      }}
-      onMouseLeave={e => {
-        (e.currentTarget as HTMLElement).style.transform   = '';
-        (e.currentTarget as HTMLElement).style.borderColor = 'rgba(212,175,55,0.12)';
-        (e.currentTarget as HTMLElement).style.boxShadow  = '';
-      }}
-    >
+    <article onClick={() => onBuy(product)} style={{
+      display: 'flex', gap: 12, padding: 12,
+      background: '#0b0b16', borderRadius: 16,
+      border: '1px solid rgba(255,255,255,0.04)',
+      cursor: 'pointer', transition: 'all 0.2s',
+      animation: `fadeUp 0.3s ease ${delay}ms both`,
+    }}>
       {/* Image */}
-      <div style={{ position: 'relative' }}>
+      <div style={{
+        width: 72, height: 72, borderRadius: 14, overflow: 'hidden',
+        background: '#0d0d18', flexShrink: 0,
+        border: '1px solid rgba(255,255,255,0.04)',
+      }}>
         {imgSrc
-          ? <img src={imgSrc} alt={label} style={{ width: '100%', height: 150, objectFit: 'cover', display: 'block' }} />
-          : <div style={{ width: '100%', height: 150, background: 'linear-gradient(135deg,#0d0d18,#141420)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36, opacity: 0.4 }}>🛍</div>
+          ? <img src={imgSrc} alt={label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          : <div style={{
+              width: '100%', height: '100%', display: 'flex',
+              alignItems: 'center', justifyContent: 'center',
+              fontSize: 28, opacity: 0.2,
+            }}>🛍</div>
         }
-        <div style={{ position: 'absolute', top: 10, right: 10, background: 'rgba(7,7,15,0.85)', border: '1px solid rgba(212,175,55,0.4)', color: '#d4af37', fontSize: 13, fontWeight: 900, padding: '4px 10px', borderRadius: 20, backdropFilter: 'blur(8px)', fontFamily: 'Georgia,serif' }}>
-          {product.price}π
-        </div>
       </div>
 
-      {/* Body */}
-      <div style={{ padding: 14 }}>
-        <h2 style={{ fontSize: 14, fontWeight: 700, marginBottom: 6, color: '#e8d5a3', lineHeight: 1.3 }}>{label}</h2>
-        <p style={{ fontFamily: 'system-ui,sans-serif', fontSize: 11, color: '#4a4a5a', lineHeight: 1.5, marginBottom: 14, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-          {product.description}
-        </p>
-        <button
-          onClick={e => { e.stopPropagation(); piReady && onBuy(product); }}
-          disabled={!piReady}
-          style={{ width: '100%', padding: 10, borderRadius: 12, border: 'none', background: piReady ? 'linear-gradient(135deg,#d4af37,#b8882a)' : '#1e1e2a', color: piReady ? '#07070f' : '#3a3a4a', fontSize: 13, fontWeight: 800, fontFamily: 'system-ui,sans-serif', cursor: piReady ? 'pointer' : 'not-allowed', letterSpacing: '0.03em' }}>
-          {piReady ? 'Buy Now' : 'Connecting...'}
-        </button>
+      {/* Info */}
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 3 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+          <h3 style={{
+            fontSize: 13, fontWeight: 700, color: '#e8d5a3',
+            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+            fontFamily: 'Georgia,serif', margin: 0,
+          }}>{label}</h3>
+          <span style={{
+            fontSize: 14, fontWeight: 900, color: '#d4af37',
+            fontFamily: 'Georgia,serif', flexShrink: 0,
+          }}>{product.price}π</span>
+        </div>
+
+        <p style={{
+          fontSize: 11, color: '#4a4a5a', lineHeight: 1.4, margin: 0,
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>{product.description}</p>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {product.category && (
+            <span style={{
+              fontSize: 8, color: '#6b6b7a', letterSpacing: 1.5,
+              textTransform: 'uppercase', fontWeight: 700,
+            }}>{product.category}</span>
+          )}
+          {product.rating ? (
+            <span style={{ fontSize: 10, color: '#d4af37' }}>
+              {'★'.repeat(Math.round(product.rating))}
+              <span style={{ color: '#2a2a3a' }}>{'☆'.repeat(5 - Math.round(product.rating))}</span>
+            </span>
+          ) : null}
+        </div>
+      </div>
+    </article>
+  );
+}
+
+/** Grid card for featured section */
+export function ProductGridCard({ product, onBuy, delay = 0 }: {
+  product: Product; onBuy: (p: Product) => void; delay?: number;
+}) {
+  const imgSrc = product.images?.[0] ?? product.image_url;
+  const label  = product.title ?? product.name ?? 'Product';
+
+  return (
+    <article onClick={() => onBuy(product)} style={{
+      borderRadius: 18, overflow: 'hidden',
+      background: '#0b0b16', border: '1px solid rgba(255,255,255,0.04)',
+      cursor: 'pointer', transition: 'all 0.2s',
+      animation: `fadeUp 0.35s ease ${delay}ms both`,
+    }}>
+      <div style={{ height: 120, position: 'relative', overflow: 'hidden', background: '#0d0d18' }}>
+        {imgSrc
+          ? <img src={imgSrc} alt={label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          : <div style={{
+              height: '100%', display: 'flex', alignItems: 'center',
+              justifyContent: 'center', fontSize: 36, opacity: 0.15,
+            }}>🛍</div>
+        }
+        <div style={{
+          position: 'absolute', bottom: 8, right: 8,
+          background: 'rgba(7,7,15,0.9)', backdropFilter: 'blur(8px)',
+          border: '1px solid rgba(212,175,55,0.3)', color: '#d4af37',
+          fontSize: 12, fontWeight: 900, fontFamily: 'Georgia,serif',
+          padding: '3px 10px', borderRadius: 16,
+        }}>{product.price}π</div>
+      </div>
+      <div style={{ padding: '10px 12px 12px' }}>
+        <h3 style={{
+          fontSize: 12, fontWeight: 700, color: '#e8d5a3',
+          marginBottom: 2, fontFamily: 'Georgia,serif',
+          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+        }}>{label}</h3>
+        <p style={{
+          fontSize: 10, color: '#4a4a5a', lineHeight: 1.4,
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>{product.description}</p>
       </div>
     </article>
   );
