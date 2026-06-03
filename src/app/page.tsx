@@ -31,6 +31,21 @@ const getStoredUser = () => {
   } catch { return null; }
 };
 
+const isHubNavigation = (): boolean => {
+  if (typeof document === 'undefined') return false;
+  return document.referrer.toLowerCase().includes('hub.tecosystem.app');
+};
+
+const redirectToHubPayment = (product: Product) => {
+  const label = product.title ?? product.name ?? 'Product';
+  const params = new URLSearchParams({
+    pay: '1', amount: product.price.toString(),
+    memo: `${label} — TEC Ecommerce`, product_id: product.id,
+    return_url: `${APP_URL}/shop`, source: 'ecommerce',
+  });
+  window.location.href = `${HUB_URL}/hub?${params.toString()}`;
+};
+
 export default function HomePage() {
   const { isAuthenticated, isLoading } = usePiAuth();
   const router = useRouter();
@@ -45,7 +60,6 @@ export default function HomePage() {
   const [drawerOpen,  setDrawerOpen]  = useState(false);
   const [cartOpen,    setCartOpen]    = useState(false);
   const [username,    setUsername]    = useState<string | null>(null);
-  const [piReady2,    setPiReady2]    = useState(false);
   const inFlight = useRef(false);
   const { items: cartItems, itemCount, addToCart, removeFromCart, updateQty, clearCart } = useCart();
 
@@ -79,7 +93,8 @@ export default function HomePage() {
   }, [isAuthenticated, activeTab]);
 
   const handleBuy = useCallback(async (product: Product) => {
-    if (!window.Pi || !piReady || inFlight.current) return;
+    if (inFlight.current) return;
+    if (isHubNavigation() || !window.Pi || !piReady) { redirectToHubPayment(product); return; }
     inFlight.current = true;
     setActiveProd(product);
     setPayStatus('creating');
