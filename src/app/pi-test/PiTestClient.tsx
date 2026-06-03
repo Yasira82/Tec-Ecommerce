@@ -211,6 +211,7 @@ export function PiTestClient() {
           memo: 'Clear pending — TEC Ecommerce',
           metadata: { source: 'ecommerce', forceClear: true },
         }, {
+          // @ts-expect-error Pi SDK supports onIncompletePaymentFound
           onIncompletePaymentFound: async (payment: { identifier: string }) => {
             log('warn', `Clearing: ${payment.identifier}`);
             const token = getAccessToken();
