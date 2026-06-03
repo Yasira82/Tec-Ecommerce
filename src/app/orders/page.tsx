@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter }           from 'next/navigation';
-import { getAccessToken }      from '@/lib-client/pi/pi-auth';
 import { ShopHeader }          from '@/components/shop/ShopHeader';
 import { EcommerceDrawer }     from '@/components/shop/EcommerceDrawer';
 
@@ -55,9 +54,8 @@ export default function OrdersPage() {
   const [activeTab,  setActiveTab]  = useState<string>('all');
 
   useEffect(() => {
-    const user  = getStoredUser();
-    const token = getAccessToken();
-    if (user && token) {
+    const user = getStoredUser();
+    if (user) {
       setIsAuthenticated(true);
       if (user.piUsername) setUsername(user.piUsername);
     }
