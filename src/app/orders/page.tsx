@@ -54,10 +54,14 @@ export default function OrdersPage() {
   const [activeTab,  setActiveTab]  = useState<string>('all');
 
   useEffect(() => {
-    const user = getStoredUser();
-    if (user) {
-      setIsAuthenticated(true);
-      if (user.piUsername) setUsername(user.piUsername);
+    const match = document.cookie.split('; ').find(r => r.startsWith('tec_user='));
+    if (match) {
+      try {
+        const value = match.substring(match.indexOf('=') + 1);
+        const user = JSON.parse(decodeURIComponent(value));
+        setIsAuthenticated(true);
+        if (user?.piUsername) setUsername(user.piUsername);
+      } catch { /* ignore */ }
     }
     setAuthLoading(false);
   }, []);
