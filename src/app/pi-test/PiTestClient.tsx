@@ -172,7 +172,7 @@ export function PiTestClient() {
     if (getCsrf()) headers['x-csrf-token']  = getCsrf();
 
     try {
-      const res  = await fetch(`/api/payment/resolve-incomplete?pi_payment_id=${encodeURIComponent(pid)}`, {
+      const res = await fetch(`/api/payment/resolve-incomplete?pi_payment_id=${encodeURIComponent(pid)}`, {
         method: 'POST', credentials: 'include', headers,
         body: JSON.stringify({ pi_payment_id: pid }),
       });
@@ -185,7 +185,7 @@ export function PiTestClient() {
     }
   }, [log]);
 
-  // ── Pending Payments ──────────────────────────────────────
+  // ── Check & Resolve ───────────────────────────────────────
   const handleCancelPending = useCallback(async () => {
     log('info', 'Checking for pending payments...');
     try {
@@ -200,49 +200,43 @@ export function PiTestClient() {
     } catch (err) { log('error', `Failed: ${String(err)}`); }
   }, [log, resolvePayment]);
 
-  // ── Force Clear ───────────────────────────────────────────
+  // ── Force Clear (Pi.createPayment with 3rd param) ─────────
   const handleForceClear = useCallback(async () => {
     log('info', 'Force clearing via Pi.createPayment...');
     try {
       if (!window.Pi) throw new Error('Open in Pi Browser');
+
+      const onIncomplete = async (payment: { identifier: string; amount?: number }) => {
+        log('warn', `Clearing from Pi Browser: ${payment.identifier} | amount: ${payment.amount}`);
+        await resolvePayment(payment.identifier);
+        log('success', `✅ Cleared: ${payment.identifier}`);
+      };
+
       await new Promise<void>((resolve, reject) => {
-        window.Pi.createPayment({
-          amount: 0.001,
-          memo: 'Clear pending — TEC Ecommerce',
-          metadata: { source: 'ecommerce', forceClear: true },
-        }, {
-          // @ts-expect-error Pi SDK supports onIncompletePaymentFound
-          onIncompletePaymentFound: async (payment: { identifier: string }) => {
-            log('warn', `Clearing: ${payment.identifier}`);
-            const token = getAccessToken();
-            const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-            if (token) headers['Authorization'] = `Bearer ${token}`;
-            const csrf = document.cookie.split('; ').find(r => r.startsWith('tec_csrf='))?.split('=')?.[1];
-            if (csrf) headers['x-csrf-token'] = csrf;
-            await fetch(`/api/payment/resolve-incomplete?pi_payment_id=${encodeURIComponent(payment.identifier)}`, {
-              method: 'POST', credentials: 'include', headers,
-              body: JSON.stringify({ pi_payment_id: payment.identifier }),
-            });
-            log('success', `✅ Cleared from Pi Browser: ${payment.identifier}`);
+        // @ts-expect-error Pi SDK 3rd param: onIncompletePaymentFound
+        window.Pi.createPayment(
+          {
+            amount: 0.001,
+            memo: 'Clear pending — TEC Ecommerce',
+            metadata: { source: 'ecommerce', forceClear: true },
           },
-          onReadyForServerApproval: () => {
-            log('info', 'No pending found. Cancelling dummy payment...');
-            reject(new Error('no_pending'));
+          {
+            onReadyForServerApproval: () => {
+              log('info', 'No pending found. Dismiss the popup to cancel.');
+              resolve();
+            },
+            onReadyForServerCompletion: () => resolve(),
+            onCancel: () => { log('info', 'Cancelled dummy payment.'); resolve(); },
+            onError: (err: Error) => reject(err),
           },
-          onReadyForServerCompletion: () => reject(new Error('no_pending')),
-          onCancel: () => { log('info', 'Cancelled.'); resolve(); },
-          onError: (err: Error) => { log('error', `Error: ${err.message}`); reject(err); },
-        });
+          onIncomplete,
+        );
       });
+      log('success', 'Force clear done. Try payment again.');
     } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      if (msg === 'no_pending') {
-        log('success', 'No pending payments ✅');
-      } else {
-        log('error', `Force clear: ${msg}`);
-      }
+      log('error', `Force clear: ${e instanceof Error ? e.message : String(e)}`);
     }
-  }, [log]);
+  }, [log, resolvePayment]);
 
   // ── Payment Test ──────────────────────────────────────────
   const handlePayment = useCallback(async () => {
@@ -253,7 +247,12 @@ export function PiTestClient() {
       const internalId = await createPaymentRecord(1, 'test-product', 'TEC Ecommerce test — 1π');
       if (!internalId) { setPayStatus('error'); log('error', 'Failed to create record'); return; }
       log('info', `Record: ${internalId}`);
-      const result = await createU2APayment(1, 'TEC Ecommerce test — 1π', { source: 'ecommerce', test: true }, internalId);
+      const result = await createU2APayment(
+        1,
+        'TEC Ecommerce test — 1π',
+        { source: 'ecommerce', test: true },
+        internalId,
+      );
       if (result.status === 'cancelled') {
         setPayStatus('cancelled');
         log('warn', `Cancelled (id: ${result.paymentId ?? 'n/a'})`);
@@ -352,7 +351,7 @@ export function PiTestClient() {
         <h2 style={{ fontSize: '1rem', marginBottom: 8, color: '#e67e22' }}>⚠️ Pending Payments</h2>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button onClick={handleCancelPending} style={btn('#e67e22')}>Check & Resolve</button>
-          <button onClick={handleForceClear} style={btn('#c0392b')}>🗑 Force Clear</button>
+          <button onClick={handleForceClear}    style={btn('#c0392b')}>🗑 Force Clear</button>
         </div>
       </section>
 
@@ -398,4 +397,4 @@ export function PiTestClient() {
       </section>
     </main>
   );
-          }
+}
