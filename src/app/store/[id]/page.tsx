@@ -4,6 +4,8 @@ import { useEffect, useState, useCallback } from 'react';
 import { useRouter, useParams }              from 'next/navigation';
 import { TEC_COLORS }                        from '@yasser172/tec-ui';
 import { getStoredUser, getAccessToken }     from '@/lib-client/pi/pi-auth';
+import { useCart }                           from '@/lib-client/cart/useCart';
+import { CartDrawer }                        from '@/components/shop/CartDrawer';
 
 interface Product {
   id: string; title: string; price: number;
@@ -31,8 +33,16 @@ const formatPi = (amount: number) => `${Number(amount).toFixed(2)}π`;
 const formatDate = (date: string) =>
   new Date(date).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
-function StoreProductCard({ product, onBuy }: { product: Product; onBuy: (p: Product) => void }) {
+function StoreProductCard({ product, onBuy, onAddToCart }: { product: Product; onBuy: (p: Product) => void; onAddToCart: (p: Product) => void; }) {
   const [imgError, setImgError] = useState(false);
+  const [added, setAdded] = useState(false);
+
+  const handleAdd = () => {
+    onAddToCart(product);
+    setAdded(true);
+    setTimeout(() => setAdded(false), 1600);
+  };
+
   return (
     <div style={{ background:'#0d0d14', border:'1px solid #ffffff08', borderRadius:14, overflow:'hidden', display:'flex', flexDirection:'column' }}>
       <div style={{ width:'100%', aspectRatio:'1', background:'#ffffff05', overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center' }}>
@@ -49,10 +59,16 @@ function StoreProductCard({ product, onBuy }: { product: Product; onBuy: (p: Pro
         </div>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginTop:'auto', paddingTop:6 }}>
           <span style={{ fontSize:14, fontWeight:900, color:TEC_COLORS.gold }}>{formatPi(product.price)}</span>
-          <button onClick={() => onBuy(product)}
-            style={{ padding:'5px 12px', background:`linear-gradient(135deg,${TEC_COLORS.gold},${TEC_COLORS.goldDark})`, border:'none', borderRadius:8, color:'#0a0800', fontSize:11, fontWeight:700, cursor:'pointer' }}>
-            Buy
-          </button>
+          <div style={{ display:'flex', gap:6 }}>
+            <button onClick={handleAdd}
+              style={{ padding:'5px 10px', background: added ? 'rgba(16,185,129,0.12)' : 'rgba(212,175,55,0.08)', border: added ? '1px solid rgba(16,185,129,0.4)' : '1px solid rgba(212,175,55,0.35)', borderRadius:8, color: added ? '#10b981' : TEC_COLORS.gold, fontSize:11, fontWeight:700, cursor:'pointer', transition:'all 0.2s' }}>
+              {added ? '✓' : '+ Cart'}
+            </button>
+            <button onClick={() => onBuy(product)}
+              style={{ padding:'5px 12px', background:`linear-gradient(135deg,${TEC_COLORS.gold},${TEC_COLORS.goldDark})`, border:'none', borderRadius:8, color:'#0a0800', fontSize:11, fontWeight:700, cursor:'pointer' }}>
+              Buy
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -64,15 +80,26 @@ export default function StorePage() {
   const params = useParams();
   const id     = params?.id as string;
 
-  const [isAuth,   setIsAuth]   = useState(false);
-  const [merchant, setMerchant] = useState<Merchant | null>(null);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading,  setLoading]  = useState(true);
+  const [isAuth,    setIsAuth]    = useState(false);
+  const [merchant,  setMerchant]  = useState<Merchant | null>(null);
+  const [products,  setProducts]  = useState<Product[]>([]);
+  const [loading,   setLoading]   = useState(true);
+  const [cartOpen,  setCartOpen]  = useState(false);
+  const [piReady,   setPiReady]   = useState(false);
+  const { items: cartItems, itemCount, addToCart, removeFromCart, updateQty, clearCart } = useCart();
 
   useEffect(() => {
     const user  = getStoredUser();
     const token = getAccessToken();
     setIsAuth(!!(user && token));
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if ((window as any).__TEC_PI_READY) { setPiReady(true); return; }
+    const h = () => setPiReady(true);
+    window.addEventListener('tec-pi-ready', h, { once: true });
+    return () => window.removeEventListener('tec-pi-ready', h);
   }, []);
 
   useEffect(() => {
@@ -106,10 +133,18 @@ export default function StorePage() {
     <div style={{ minHeight:'100vh', background:'#020205', color:'#fff', fontFamily:'-apple-system,BlinkMacSystemFont,system-ui,sans-serif', paddingBottom:32 }}>
       <style>{`::-webkit-scrollbar{display:none}`}</style>
 
+      <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} items={cartItems} onUpdateQty={updateQty} onRemove={removeFromCart} onClear={clearCart} piReady={piReady} />
       <header style={{ padding:'14px 16px', display:'flex', alignItems:'center', gap:12, position:'sticky', top:0, background:'rgba(2,2,5,0.95)', backdropFilter:'blur(20px)', zIndex:100, borderBottom:'1px solid #ffffff06' }}>
         <button onClick={() => router.push('/shop')}
           style={{ background:'#ffffff08', border:'1px solid #ffffff10', borderRadius:10, padding:'6px 12px', color:'#6b6b7a', fontSize:14, cursor:'pointer' }}>←</button>
-        <div style={{ fontSize:14, fontWeight:700, color:'#fff' }}>Merchant Store</div>
+        <div style={{ fontSize:14, fontWeight:700, color:'#fff', flex:1 }}>Merchant Store</div>
+        {itemCount > 0 && (
+          <button onClick={() => setCartOpen(true)}
+            style={{ position:'relative', background:'#ffffff08', border:'1px solid rgba(212,175,55,0.2)', borderRadius:10, padding:'6px 12px', color:TEC_COLORS.gold, fontSize:14, cursor:'pointer', display:'flex', alignItems:'center', gap:6 }}>
+            🛒
+            <span style={{ position:'absolute', top:-6, right:-6, width:18, height:18, borderRadius:'50%', background:'linear-gradient(135deg,#d4af37,#b8882a)', color:'#0a0800', fontSize:10, fontWeight:900, display:'flex', alignItems:'center', justifyContent:'center' }}>{itemCount}</span>
+          </button>
+        )}
       </header>
 
       {merchant ? (
@@ -160,7 +195,7 @@ export default function StorePage() {
         ) : (
           <div style={{ display:'grid', gridTemplateColumns:'repeat(2,1fr)', gap:12 }}>
             {products.map(product => (
-              <StoreProductCard key={product.id} product={product} onBuy={handleBuy} />
+              <StoreProductCard key={product.id} product={product} onBuy={handleBuy} onAddToCart={addToCart} />
             ))}
           </div>
         )}
