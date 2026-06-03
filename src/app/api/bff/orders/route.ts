@@ -45,13 +45,16 @@ export async function POST(req: NextRequest) {
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body       = await req.json();
-    const productId  = body.product_id  as string;
-    const paymentId  = body.payment_id  as string;
-    const memo       = body.memo        as string | undefined;
+    const productId  = body.product_id as string | undefined;
+    const paymentId  = body.payment_id as string;
+    const memo       = body.memo       as string | undefined;
+    const bodyItems  = body.items      as { productId: string; qty: number }[] | undefined;
 
-    if (!productId || !paymentId) {
-      return NextResponse.json({ error: 'product_id and payment_id required' }, { status: 400 });
+    if (!paymentId || (!productId && !bodyItems?.length)) {
+      return NextResponse.json({ error: 'payment_id and either product_id or items[] required' }, { status: 400 });
     }
+
+    const items = bodyItems ?? [{ productId: productId!, qty: 1 }];
 
     const res = await fetch(
       `${GATEWAY}/api/commerce/orders`,
@@ -64,10 +67,10 @@ export async function POST(req: NextRequest) {
           'x-internal-key': process.env.INTERNAL_SECRET ?? '',
         },
         body: JSON.stringify({
-          items:      [{ productId, qty: 1 }],
+          items,
           userId,
           payment_id: paymentId,
-          memo:       memo ?? `Order for product ${productId}`,
+          memo:       memo ?? (productId ? `Order for product ${productId}` : `Cart order — ${items.length} item(s)`),
         }),
       },
     );
