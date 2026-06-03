@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { createU2APayment, createPaymentRecord } from '@/lib/pi-payment';
+import { isPiBrowser, loginWithPi, getStoredUser, getAccessToken } from '@/lib-client/pi/pi-auth';
+import { createU2APayment } from '@/lib-client/pi/pi-payment';
 
 type LogEntry = { ts: string; type: 'info' | 'success' | 'error' | 'warn'; msg: string };
 
@@ -9,20 +10,9 @@ function timestamp() {
   return new Date().toISOString().replace('T', ' ').slice(0, 23);
 }
 
-const getToken = (): string | null =>
-  typeof document === 'undefined' ? null :
-  document.cookie.split('; ').find(r => r.startsWith('tec_access_token='))?.split('=')?.[1] ?? null;
-
 const getCsrf = (): string =>
   typeof document === 'undefined' ? '' :
   document.cookie.split('; ').find(r => r.startsWith('tec_csrf='))?.split('=')?.[1] ?? '';
-
-const getStoredUser = (): { id?: string; piUsername?: string } | null => {
-  try {
-    const raw = document.cookie.split('; ').find(r => r.startsWith('tec_user='))?.split('=')?.[1] ?? '';
-    return raw ? JSON.parse(decodeURIComponent(raw)) : null;
-  } catch { return null; }
-};
 
 const SERVICES = [
   { name: 'Gateway',      url: 'https://api-gateway-production-6a68.up.railway.app/health'          },
@@ -54,11 +44,11 @@ export function PiTestClient() {
     setLogs(prev => [...prev, { ts: timestamp(), type, msg }]);
   }, []);
 
-  // ── Pi SDK ready ──────────────────────────────────────────
+  // ── Pi SDK ────────────────────────────────────────────────
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    if ((window as any).__TEC_PI_READY) { setSdkReady(true); log('success', 'Pi SDK already initialised'); return; }
-    if ((window as any).__TEC_PI_ERROR) { setSdkReady(false); log('error', 'Pi SDK failed to initialise'); return; }
+    if (window.__TEC_PI_READY) { setSdkReady(true); log('success', 'Pi SDK already initialised'); return; }
+    if (window.__TEC_PI_ERROR) { setSdkReady(false); log('error', 'Pi SDK failed to initialise'); return; }
 
     let resolved = false;
     const onReady = () => { resolved = true; setSdkReady(true); log('success', 'Pi SDK initialised'); };
@@ -122,7 +112,7 @@ export function PiTestClient() {
 
   const handleShowUser = useCallback(() => {
     const user  = getStoredUser();
-    const token = getToken();
+    const token = getAccessToken();
     log('info', `👤 User: ${JSON.stringify(user, null, 2)}`);
     log('info', `🔑 Token: ${!!token} | ${token?.slice(0, 20) ?? 'N/A'}...`);
   }, [log]);
@@ -136,22 +126,62 @@ export function PiTestClient() {
     } catch (err) { log('error', `Health failed: ${String(err)}`); }
   }, [log]);
 
+  const handleCheckAuthService = useCallback(async () => {
+    log('info', 'Testing auth service via BFF...');
+    try {
+      const start = Date.now();
+      const res   = await fetch('/api/health', { cache: 'no-store' });
+      const data  = await res.json();
+      const ms    = Date.now() - start;
+      log(res.ok ? 'success' : 'error', `BFF Health: ${JSON.stringify(data)} (${ms}ms)`);
+    } catch (err) { log('error', `BFF Health failed: ${String(err)}`); }
+  }, [log]);
+
+  const handleCheckSSO = useCallback(async () => {
+    log('info', 'Testing SSO endpoint...');
+    try {
+      const res = await fetch('/api/auth/sso?target=https://ecommerce.tecosystem.app', {
+        credentials: 'include', redirect: 'manual',
+      });
+      log(res.status === 302 || res.status === 307 ? 'success' : 'warn',
+        `SSO response: ${res.status} ${res.statusText}`);
+    } catch (err) { log('error', `SSO test failed: ${String(err)}`); }
+  }, [log]);
+
   // ── Auth ──────────────────────────────────────────────────
   const handleAuth = useCallback(async () => {
     log('info', 'Starting Pi authentication…');
     setAuthStatus('loading');
     try {
-      if (!window.Pi) throw new Error('Open in Pi Browser');
-      await window.Pi.authenticate(['username', 'payments'], () => {});
-      const user = getStoredUser();
-      if (user?.piUsername) {
-        setUsername(user.piUsername);
-      }
+      if (!isPiBrowser()) throw new Error('Not inside Pi Browser');
+      const result = await loginWithPi();
+      setUsername(result.user.piUsername);
       setAuthStatus('done');
-      log('success', `Authenticated${user?.piUsername ? ` as @${user.piUsername}` : ''}`);
+      log('success', `Authenticated as @${result.user.piUsername} (uid: ${result.user.piId})`);
     } catch (err) {
       setAuthStatus('error');
       log('error', `Auth error: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }, [log]);
+
+  // ── Resolve helper ────────────────────────────────────────
+  const resolvePayment = useCallback(async (pid: string) => {
+    const token = getAccessToken();
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token)     headers['Authorization'] = `Bearer ${token}`;
+    if (getCsrf()) headers['x-csrf-token']  = getCsrf();
+
+    try {
+      const res  = await fetch(`/api/payment/resolve-incomplete?pi_payment_id=${encodeURIComponent(pid)}`, {
+        method: 'POST', credentials: 'include', headers,
+        body: JSON.stringify({ pi_payment_id: pid }),
+      });
+      const data = await res.json().catch(() => ({}));
+      log(res.ok ? 'success' : 'error', `Resolve: ${JSON.stringify(data)} (${res.status})`);
+      return res.ok;
+    } catch (e) {
+      log('error', `Network: ${String(e)}`);
+      return false;
     }
   }, [log]);
 
@@ -159,92 +189,50 @@ export function PiTestClient() {
   const handleCancelPending = useCallback(async () => {
     log('info', 'Checking for pending payments...');
     try {
+      if (!isPiBrowser() || !window.Pi) throw new Error('Not inside Pi Browser');
+      await window.Pi.authenticate(['username', 'payments'], async (payment: unknown) => {
+        const p   = payment as Record<string, unknown> | null;
+        const pid = p?.identifier as string | undefined;
+        if (!pid) { log('info', 'No pending payment ✅'); return; }
+        log('warn', `Pending: ${pid} | amount: ${p?.amount}`);
+        await resolvePayment(pid);
+      });
+    } catch (err) { log('error', `Failed: ${String(err)}`); }
+  }, [log, resolvePayment]);
+
+  // ── Force Clear ───────────────────────────────────────────
+  const handleForceClear = useCallback(async () => {
+    log('info', 'Force clearing all pending payments...');
+    try {
       if (!window.Pi) throw new Error('Open in Pi Browser');
-
-      let foundPending = false;
-
+      let cleared = 0;
       await window.Pi.authenticate(['username', 'payments'], async (payment: unknown) => {
         const p   = payment as Record<string, unknown> | null;
         const pid = p?.identifier as string | undefined;
         if (!pid) return;
-
-        foundPending = true;
-        log('warn', `⚠️ Pending: ${pid} | amount: ${p?.amount}`);
-
-        const token = getToken();
-        const headers: Record<string, string> = {
-          'Content-Type': 'application/json',
-        };
-        if (token)     headers['Authorization'] = `Bearer ${token}`;
-        if (getCsrf()) headers['x-csrf-token']  = getCsrf();
-
-        // Step 1: Try resolve-incomplete via BFF
-        try {
-          log('info', `[1/3] Resolving via BFF...`);
-          const res = await fetch('/api/bff/payment/resolve-incomplete', {
-            method: 'POST', credentials: 'include', headers,
-            body: JSON.stringify({ pi_payment_id: pid }),
-          });
-          const data = await res.json().catch(() => ({}));
-          if (res.ok) {
-            log('success', `✅ Resolved via BFF: ${JSON.stringify(data)}`);
-            return;
-          }
-          log('warn', `BFF resolve failed: ${res.status}`);
-        } catch (e) { log('warn', `BFF error: ${String(e)}`); }
-
-        // Step 2: Try cancel via payment complete with empty txid
-        try {
-          log('info', `[2/3] Completing with cancel...`);
-          const res = await fetch('/api/bff/payment/complete', {
-            method: 'POST', credentials: 'include', headers,
-            body: JSON.stringify({ paymentId: pid, txid: '', cancelled: true }),
-          });
-          if (res.ok) {
-            log('success', `✅ Cancelled via complete`);
-            return;
-          }
-          log('warn', `Complete-cancel failed: ${res.status}`);
-        } catch (e) { log('warn', `Complete error: ${String(e)}`); }
-
-        // Step 3: Try SDK resolve
-        try {
-          log('info', `[3/3] SDK resolveIncomplete...`);
-          const { default: sdk } = await import('@/lib/sdk');
-          await sdk.payment.resolveIncomplete(pid);
-          log('success', `✅ Resolved via SDK`);
-        } catch (e) { log('error', `SDK resolve failed: ${String(e)}`); }
+        cleared++;
+        log('warn', `Force clearing: ${pid} | amount: ${p?.amount}`);
+        await resolvePayment(pid);
       });
-
-      if (!foundPending) {
+      if (cleared === 0) {
         log('success', 'No pending payments ✅');
+      } else {
+        log('info', `Cleared ${cleared} payment(s). Reload and try again.`);
       }
-    } catch (err) {
-      log('error', `Failed: ${err instanceof Error ? err.message : String(err)}`);
-    }
-  }, [log]);
+    } catch (e) { log('error', `Force clear failed: ${String(e)}`); }
+  }, [log, resolvePayment]);
 
   // ── Payment Test ──────────────────────────────────────────
   const handlePayment = useCallback(async () => {
     if (authStatus !== 'done') { log('warn', 'Authenticate first'); return; }
-    log('info', 'Creating payment record (1π)…');
+    log('info', 'Creating payment (1π)…');
     setPayStatus('loading');
     try {
-      const internalId = await createPaymentRecord(1, 'test-product', 'TEC Ecommerce test — 1π');
-      if (!internalId) {
-        setPayStatus('error');
-        log('error', 'Failed to create payment record');
-        return;
-      }
-      log('info', `Payment record created: ${internalId}`);
-
       const result = await createU2APayment(
         1,
         'TEC Ecommerce test — 1π',
         { source: 'ecommerce', test: true },
-        internalId,
       );
-
       if (result.status === 'cancelled') {
         setPayStatus('cancelled');
         log('warn', `Cancelled (id: ${result.paymentId ?? 'n/a'})`);
@@ -318,9 +306,11 @@ export function PiTestClient() {
       <section style={{ marginBottom: 16, padding: '12px 16px', border: '1px solid #3498db', borderRadius: 8 }}>
         <h2 style={{ fontSize: '1rem', marginBottom: 10, color: '#3498db' }}>🔍 Debug Tools</h2>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <button onClick={handleShowCookies} style={btn('#3498db')}>🍪 Cookies</button>
-          <button onClick={handleShowUser}    style={btn('#8e44ad')}>👤 User</button>
-          <button onClick={handleCheckHealth} style={btn('#27ae60')}>🏥 BFF Health</button>
+          <button onClick={handleShowCookies}      style={btn('#3498db')}>🍪 Cookies</button>
+          <button onClick={handleShowUser}         style={btn('#8e44ad')}>👤 User</button>
+          <button onClick={handleCheckHealth}      style={btn('#27ae60')}>🏥 BFF Health</button>
+          <button onClick={handleCheckAuthService} style={btn('#16a085')}>🔐 Auth Test</button>
+          <button onClick={handleCheckSSO}         style={btn('#d35400')}>🔄 SSO Test</button>
         </div>
       </section>
 
@@ -332,15 +322,17 @@ export function PiTestClient() {
             {authStatus === 'loading' ? 'Authenticating…' : 'Authenticate with Pi'}
           </button>
           {username               && <span style={{ color: '#2a9a4e' }}>✅ @{username}</span>}
-          {authStatus === 'done' && !username && <span style={{ color: '#2a9a4e' }}>✅ Authenticated</span>}
           {authStatus === 'error' && <span style={{ color: '#c0392b' }}>❌ Auth failed</span>}
         </div>
       </section>
 
-      {/* Pending */}
+      {/* Pending Payments */}
       <section style={{ marginBottom: 16, padding: '12px 16px', border: '1px solid #e67e22', borderRadius: 8 }}>
         <h2 style={{ fontSize: '1rem', marginBottom: 8, color: '#e67e22' }}>⚠️ Pending Payments</h2>
-        <button onClick={handleCancelPending} style={btn('#e67e22')}>Check & Resolve</button>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button onClick={handleCancelPending} style={btn('#e67e22')}>Check & Resolve</button>
+          <button onClick={handleForceClear} style={btn('#c0392b')}>🗑 Force Clear</button>
+        </div>
       </section>
 
       {/* Payment Test */}
@@ -385,4 +377,4 @@ export function PiTestClient() {
       </section>
     </main>
   );
-  }
+          }
