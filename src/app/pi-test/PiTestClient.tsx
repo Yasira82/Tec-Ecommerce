@@ -202,25 +202,46 @@ export function PiTestClient() {
 
   // ── Force Clear ───────────────────────────────────────────
   const handleForceClear = useCallback(async () => {
-    log('info', 'Force clearing all pending payments...');
+    log('info', 'Force clearing via Pi.createPayment...');
     try {
       if (!window.Pi) throw new Error('Open in Pi Browser');
-      let cleared = 0;
-      await window.Pi.authenticate(['username', 'payments'], async (payment: unknown) => {
-        const p   = payment as Record<string, unknown> | null;
-        const pid = p?.identifier as string | undefined;
-        if (!pid) return;
-        cleared++;
-        log('warn', `Force clearing: ${pid} | amount: ${p?.amount}`);
-        await resolvePayment(pid);
+      await new Promise<void>((resolve, reject) => {
+        window.Pi.createPayment({
+          amount: 0.001,
+          memo: 'Clear pending — TEC Ecommerce',
+          metadata: { source: 'ecommerce', forceClear: true },
+        }, {
+          onIncompletePaymentFound: async (payment: { identifier: string }) => {
+            log('warn', `Clearing: ${payment.identifier}`);
+            const token = getAccessToken();
+            const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+            const csrf = document.cookie.split('; ').find(r => r.startsWith('tec_csrf='))?.split('=')?.[1];
+            if (csrf) headers['x-csrf-token'] = csrf;
+            await fetch(`/api/payment/resolve-incomplete?pi_payment_id=${encodeURIComponent(payment.identifier)}`, {
+              method: 'POST', credentials: 'include', headers,
+              body: JSON.stringify({ pi_payment_id: payment.identifier }),
+            });
+            log('success', `✅ Cleared from Pi Browser: ${payment.identifier}`);
+          },
+          onReadyForServerApproval: () => {
+            log('info', 'No pending found. Cancelling dummy payment...');
+            reject(new Error('no_pending'));
+          },
+          onReadyForServerCompletion: () => reject(new Error('no_pending')),
+          onCancel: () => { log('info', 'Cancelled.'); resolve(); },
+          onError: (err: Error) => { log('error', `Error: ${err.message}`); reject(err); },
+        });
       });
-      if (cleared === 0) {
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (msg === 'no_pending') {
         log('success', 'No pending payments ✅');
       } else {
-        log('info', `Cleared ${cleared} payment(s). Reload and try again.`);
+        log('error', `Force clear: ${msg}`);
       }
-    } catch (e) { log('error', `Force clear failed: ${String(e)}`); }
-  }, [log, resolvePayment]);
+    }
+  }, [log]);
 
   // ── Payment Test ──────────────────────────────────────────
   const handlePayment = useCallback(async () => {
