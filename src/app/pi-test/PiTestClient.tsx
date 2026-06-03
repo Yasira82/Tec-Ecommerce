@@ -212,9 +212,8 @@ export function PiTestClient() {
         log('success', `✅ Cleared: ${payment.identifier}`);
       };
 
-      await new Promise<void>((resolve, reject) => {
-        // @ts-expect-error Pi SDK 3rd param: onIncompletePaymentFound
-        window.Pi.createPayment(
+  await new Promise<void>((resolve, reject) => {
+        (window.Pi.createPayment as (...args: unknown[]) => void)(
           {
             amount: 0.001,
             memo: 'Clear pending — TEC Ecommerce',
