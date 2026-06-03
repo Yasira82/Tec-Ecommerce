@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter }           from 'next/navigation';
-import { getStoredUser as _getUser, getAccessToken } from '@/lib-client/pi/pi-auth';
+import { getAccessToken }      from '@/lib-client/pi/pi-auth';
 import { ShopHeader }          from '@/components/shop/ShopHeader';
 import { EcommerceDrawer }     from '@/components/shop/EcommerceDrawer';
 
@@ -48,13 +48,12 @@ export default function OrdersPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authLoading, setAuthLoading]         = useState(true);
   const [orders,     setOrders]     = useState<Order[]>([]);
-  const [fetching,   setFetching]   = useState(true);
+  const [fetching,   setFetching]   = useState(false);
   const [piReady,    setPiReady]    = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [username,   setUsername]   = useState<string | null>(null);
   const [activeTab,  setActiveTab]  = useState<string>('all');
 
-  // Auth — cookie direct (no usePiAuth npm)
   useEffect(() => {
     const user  = getStoredUser();
     const token = getAccessToken();
@@ -75,6 +74,7 @@ export default function OrdersPage() {
 
   useEffect(() => {
     if (!isAuthenticated) return;
+    setFetching(true);
     fetch('/api/bff/orders', { credentials: 'include' })
       .then(r => r.json())
       .then(d => {
@@ -88,7 +88,7 @@ export default function OrdersPage() {
   const filtered = activeTab === 'all' ? orders : orders.filter(o => o.status === activeTab);
   const tabs     = ['all', ...Array.from(new Set(orders.map(o => o.status)))];
 
-  if (authLoading || fetching) return (
+  if (authLoading) return (
     <>
       <style>{CSS}</style>
       <div className="center-screen"><div className="spinner" /></div>
@@ -140,7 +140,9 @@ export default function OrdersPage() {
           </div>
         )}
 
-        {filtered.length === 0 && (
+        {fetching ? (
+          <div style={{ display:'flex', justifyContent:'center', padding:'60px 0' }}><div className="spinner" /></div>
+        ) : filtered.length === 0 ? (
           <div style={{ textAlign:'center', padding:'80px 0' }}>
             <div style={{ fontSize:56, marginBottom:16, opacity:0.3 }}>🧾</div>
             <p style={{ fontFamily:'system-ui', fontSize:16, color:'#3a3a4a', marginBottom:8 }}>
@@ -152,73 +154,73 @@ export default function OrdersPage() {
               </button>
             )}
           </div>
-        )}
+        ) : (
+          <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+            {filtered.map((order, i) => {
+              const cfg     = STATUS_CONFIG[order.status] ?? { label: order.status, color:'#888', bg:'rgba(255,255,255,0.04)', icon:'•' };
+              const total   = order.total ?? order.items?.reduce((s, item) => s + (item.price ?? 0) * item.qty, 0) ?? 0;
+              const itemCount = order.items?.reduce((s, item) => s + item.qty, 0) ?? 1;
 
-        <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
-          {filtered.map((order, i) => {
-            const cfg     = STATUS_CONFIG[order.status] ?? { label: order.status, color:'#888', bg:'rgba(255,255,255,0.04)', icon:'•' };
-            const total   = order.total ?? order.items?.reduce((s, item) => s + (item.price ?? 0) * item.qty, 0) ?? 0;
-            const itemCount = order.items?.reduce((s, item) => s + item.qty, 0) ?? 1;
-
-            return (
-              <article key={order.id} className="order-card" style={{ animationDelay:`${i * 60}ms` }}>
-                <div className="order-header">
-                  <div>
-                    <div style={{ fontFamily:'system-ui', fontSize:10, color:'#4a4a5a', marginBottom:4, letterSpacing:1, textTransform:'uppercase' }}>Order</div>
-                    <div style={{ fontFamily:'system-ui', fontSize:13, fontWeight:700, color:'#888' }}>#{order.id.slice(-8).toUpperCase()}</div>
+              return (
+                <article key={order.id} className="order-card" style={{ animationDelay:`${i * 60}ms` }}>
+                  <div className="order-header">
+                    <div>
+                      <div style={{ fontFamily:'system-ui', fontSize:10, color:'#4a4a5a', marginBottom:4, letterSpacing:1, textTransform:'uppercase' }}>Order</div>
+                      <div style={{ fontFamily:'system-ui', fontSize:13, fontWeight:700, color:'#888' }}>#{order.id.slice(-8).toUpperCase()}</div>
+                    </div>
+                    <span className="status-badge" style={{ background: cfg.bg, color: cfg.color, border:`1px solid ${cfg.color}30` }}>
+                      {cfg.icon} {cfg.label}
+                    </span>
                   </div>
-                  <span className="status-badge" style={{ background: cfg.bg, color: cfg.color, border:`1px solid ${cfg.color}30` }}>
-                    {cfg.icon} {cfg.label}
-                  </span>
-                </div>
 
-                {order.items && order.items.length > 0 && (
-                  <div className="order-items">
-                    {order.items.slice(0, 3).map((item, j) => (
-                      <div key={j} className="order-item">
-                        <div className="item-dot" />
-                        <span className="item-title">{item.title ?? `Product ${item.productId.slice(-6)}`}</span>
-                        <span className="item-qty">×{item.qty}</span>
-                        {item.price && <span className="item-price">{item.price * item.qty}π</span>}
-                      </div>
-                    ))}
-                    {order.items.length > 3 && (
-                      <div style={{ fontFamily:'system-ui', fontSize:11, color:'#4a4a5a', paddingLeft:16 }}>+{order.items.length - 3} more items</div>
+                  {order.items && order.items.length > 0 && (
+                    <div className="order-items">
+                      {order.items.slice(0, 3).map((item, j) => (
+                        <div key={j} className="order-item">
+                          <div className="item-dot" />
+                          <span className="item-title">{item.title ?? `Product ${item.productId.slice(-6)}`}</span>
+                          <span className="item-qty">×{item.qty}</span>
+                          {item.price && <span className="item-price">{item.price * item.qty}π</span>}
+                        </div>
+                      ))}
+                      {order.items.length > 3 && (
+                        <div style={{ fontFamily:'system-ui', fontSize:11, color:'#4a4a5a', paddingLeft:16 }}>+{order.items.length - 3} more items</div>
+                      )}
+                    </div>
+                  )}
+
+                  {order.memo && !order.items?.length && (
+                    <p style={{ fontFamily:'system-ui', fontSize:12, color:'#6b6b7a', padding:'8px 0' }}>{order.memo}</p>
+                  )}
+
+                  <div className="order-footer">
+                    <div style={{ fontFamily:'system-ui', fontSize:11, color:'#4a4a5a' }}>
+                      {formatDate(order.created_at)} · {itemCount} item{itemCount > 1 ? 's' : ''}
+                    </div>
+                    {total > 0 && (
+                      <div style={{ fontFamily:'Georgia,serif', fontSize:18, fontWeight:900, color:'#d4af37' }}>{total}π</div>
                     )}
                   </div>
-                )}
 
-                {order.memo && !order.items?.length && (
-                  <p style={{ fontFamily:'system-ui', fontSize:12, color:'#6b6b7a', padding:'8px 0' }}>{order.memo}</p>
-                )}
-
-                <div className="order-footer">
-                  <div style={{ fontFamily:'system-ui', fontSize:11, color:'#4a4a5a' }}>
-                    {formatDate(order.created_at)} · {itemCount} item{itemCount > 1 ? 's' : ''}
+                  <div className="progress-wrap">
+                    {['pending','paid','shipped','completed'].map((step, si) => {
+                      const steps   = ['pending','paid','shipped','completed'];
+                      const current = steps.indexOf(order.status);
+                      const done    = si <= current;
+                      return (
+                        <div key={step} className="progress-step">
+                          <div className={`progress-dot ${done ? 'progress-dot--done' : ''}`} />
+                          <div className={`progress-line ${si < steps.length - 1 ? 'visible' : ''} ${done && si < steps.length - 1 ? 'progress-line--done' : ''}`} />
+                          <div className={`progress-label ${done ? 'progress-label--done' : ''}`}>{STATUS_CONFIG[step]?.icon}</div>
+                        </div>
+                      );
+                    })}
                   </div>
-                  {total > 0 && (
-                    <div style={{ fontFamily:'Georgia,serif', fontSize:18, fontWeight:900, color:'#d4af37' }}>{total}π</div>
-                  )}
-                </div>
-
-                <div className="progress-wrap">
-                  {['pending','paid','shipped','completed'].map((step, si) => {
-                    const steps   = ['pending','paid','shipped','completed'];
-                    const current = steps.indexOf(order.status);
-                    const done    = si <= current;
-                    return (
-                      <div key={step} className="progress-step">
-                        <div className={`progress-dot ${done ? 'progress-dot--done' : ''}`} />
-                        <div className={`progress-line ${si < steps.length - 1 ? 'visible' : ''} ${done && si < steps.length - 1 ? 'progress-line--done' : ''}`} />
-                        <div className={`progress-label ${done ? 'progress-label--done' : ''}`}>{STATUS_CONFIG[step]?.icon}</div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </article>
-            );
-          })}
-        </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
       </main>
     </div>
   );
