@@ -29,35 +29,35 @@ export function ProductCard({ product, piReady, onBuy, onAddToCart, delay = 0 }:
 
   return (
     <article style={{
-      borderRadius: 16, overflow: 'hidden',
+      borderRadius: 14, overflow: 'hidden',
       background: '#0d0d18', border: '1px solid rgba(212,175,55,0.1)',
       animation: `fadeUp 0.4s ease ${delay}ms both`,
       transition: 'transform 0.2s, border-color 0.2s, box-shadow 0.2s',
     }}>
       <div style={{ position: 'relative' }}>
         {imgSrc
-          ? <img src={imgSrc} alt={label} style={{ width:'100%', height:140, objectFit:'cover', display:'block' }} />
-          : <div style={{ width:'100%', height:140, background:'linear-gradient(135deg,#0d0d18,#141428)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:32, opacity:0.3 }}>🛍</div>
+          ? <img src={imgSrc} alt={label} style={{ width:'100%', height:110, objectFit:'cover', display:'block' }} />
+          : <div style={{ width:'100%', height:110, background:'linear-gradient(135deg,#0d0d18,#141428)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:26, opacity:0.3 }}>🛍</div>
         }
-        <div style={{ position:'absolute', top:10, right:10, background:'rgba(7,7,15,0.88)', border:'1px solid rgba(212,175,55,0.4)', color:'#d4af37', fontSize:12, fontWeight:900, padding:'3px 9px', borderRadius:20, fontFamily:'Georgia', backdropFilter:'blur(8px)' }}>
+        <div style={{ position:'absolute', top:8, right:8, background:'rgba(7,7,15,0.88)', border:'1px solid rgba(212,175,55,0.4)', color:'#d4af37', fontSize:11, fontWeight:900, padding:'2px 8px', borderRadius:20, fontFamily:'Georgia', backdropFilter:'blur(8px)' }}>
           {product.price}π
         </div>
       </div>
-      <div style={{ padding: 12 }}>
-        <h3 style={{ fontSize:13, fontWeight:700, color:'#e8d5a3', lineHeight:1.3, marginBottom:5 }}>{label}</h3>
-        <p style={{ fontFamily:'system-ui', fontSize:11, color:'#4a4a5a', lineHeight:1.5, marginBottom:12, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>
+      <div style={{ padding: 10 }}>
+        <h3 style={{ fontSize:12, fontWeight:700, color:'#e8d5a3', lineHeight:1.3, marginBottom:4 }}>{label}</h3>
+        <p style={{ fontFamily:'system-ui', fontSize:10, color:'#4a4a5a', lineHeight:1.5, marginBottom:8, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>
           {product.description}
         </p>
         {onAddToCart ? (
-          <div style={{ display:'flex', gap:6 }}>
+          <div style={{ display:'flex', gap:5 }}>
             <button
               onClick={handleAdd}
               style={{
-                flex:1, padding:10, borderRadius:12,
+                flex:1, padding:'7px 4px', borderRadius:10,
                 border: added ? '1px solid rgba(16,185,129,0.4)' : '1px solid rgba(212,175,55,0.35)',
                 background: added ? 'rgba(16,185,129,0.12)' : 'rgba(212,175,55,0.08)',
                 color: added ? '#10b981' : '#d4af37',
-                fontSize:12, fontWeight:700, fontFamily:'system-ui', cursor:'pointer', transition:'all 0.2s',
+                fontSize:11, fontWeight:700, fontFamily:'system-ui', cursor:'pointer', transition:'all 0.2s',
               }}
             >
               {added ? '✓ Added' : '+ Cart'}
@@ -66,10 +66,10 @@ export function ProductCard({ product, piReady, onBuy, onAddToCart, delay = 0 }:
               onClick={() => piReady && onBuy(product)}
               disabled={!piReady}
               style={{
-                flex:1, padding:10, borderRadius:12, border:'none',
+                flex:1, padding:'7px 4px', borderRadius:10, border:'none',
                 background: piReady ? 'linear-gradient(135deg,#d4af37,#b8882a)' : '#1a1a28',
                 color: piReady ? '#07070f' : '#3a3a4a',
-                fontSize:12, fontWeight:800, fontFamily:'system-ui',
+                fontSize:11, fontWeight:800, fontFamily:'system-ui',
                 cursor: piReady ? 'pointer' : 'not-allowed',
               }}
             >
@@ -81,10 +81,10 @@ export function ProductCard({ product, piReady, onBuy, onAddToCart, delay = 0 }:
             onClick={() => onBuy(product)}
             disabled={!piReady}
             style={{
-              width:'100%', padding:10, borderRadius:12, border:'none',
+              width:'100%', padding:'7px 4px', borderRadius:10, border:'none',
               background: piReady ? 'linear-gradient(135deg,#d4af37,#b8882a)' : '#1a1a28',
               color: piReady ? '#07070f' : '#3a3a4a',
-              fontSize:12, fontWeight:800, fontFamily:'system-ui',
+              fontSize:11, fontWeight:800, fontFamily:'system-ui',
               cursor: piReady ? 'pointer' : 'not-allowed',
             }}
           >

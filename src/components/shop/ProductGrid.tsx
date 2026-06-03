@@ -22,7 +22,7 @@ export function ProductGrid({ products, piReady, onBuy, onAddToCart }: Props) {
   );
 
   return (
-    <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(180px,1fr))', gap:16 }}>
+    <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(140px,1fr))', gap:10 }}>
       {products.map((p, i) => (
         <ProductCard key={p.id} product={p} piReady={piReady} onBuy={onBuy} onAddToCart={onAddToCart} delay={i * 60} />
       ))}
