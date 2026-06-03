@@ -10,7 +10,7 @@ export async function GET() {
     const res = await fetch(`https://api.minepi.com/v2/payments/${pid}/complete`, {
       method: 'POST',
       headers: { Authorization: `Key ${apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ txid: '' }),
+  body: JSON.stringify({ txid: '50b46ec0c58a20160dbc2c64d783d30cc2d497a01949b3d472aaba5663da3486' }),
     });
     results.complete = { status: res.status, data: await res.text().catch(() => '') };
   } catch (e) { results.complete = { error: String(e) }; }
