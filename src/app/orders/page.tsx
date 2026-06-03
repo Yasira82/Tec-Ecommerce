@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter }           from 'next/navigation';
-import { usePiAuth }           from '@yasser172/tec-auth';
+import { getStoredUser as _getUser, getAccessToken } from '@/lib-client/pi/pi-auth';
 import { ShopHeader }          from '@/components/shop/ShopHeader';
 import { EcommerceDrawer }     from '@/components/shop/EcommerceDrawer';
 
@@ -43,15 +43,27 @@ const formatDate = (iso: string) => {
 };
 
 export default function OrdersPage() {
-  const router                              = useRouter();
-  const { isAuthenticated, isLoading: authLoading } = usePiAuth();
+  const router = useRouter();
 
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authLoading, setAuthLoading]         = useState(true);
   const [orders,     setOrders]     = useState<Order[]>([]);
   const [fetching,   setFetching]   = useState(true);
   const [piReady,    setPiReady]    = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [username,   setUsername]   = useState<string | null>(null);
   const [activeTab,  setActiveTab]  = useState<string>('all');
+
+  // Auth — cookie direct (no usePiAuth npm)
+  useEffect(() => {
+    const user  = getStoredUser();
+    const token = getAccessToken();
+    if (user && token) {
+      setIsAuthenticated(true);
+      if (user.piUsername) setUsername(user.piUsername);
+    }
+    setAuthLoading(false);
+  }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -60,16 +72,6 @@ export default function OrdersPage() {
     window.addEventListener('tec-pi-ready', h, { once: true });
     return () => window.removeEventListener('tec-pi-ready', h);
   }, []);
-
-  useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      window.location.href = `${HUB_URL}/api/auth/sso?target=${encodeURIComponent(APP_URL + '/orders')}`;
-    }
-    if (isAuthenticated) {
-      const user = getStoredUser();
-      if (user?.piUsername) setUsername(user.piUsername);
-    }
-  }, [isAuthenticated, authLoading]);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -93,6 +95,19 @@ export default function OrdersPage() {
     </>
   );
 
+  if (!isAuthenticated) return (
+    <>
+      <style>{CSS}</style>
+      <div className="center-screen">
+        <div style={{ textAlign:'center' }}>
+          <div style={{ fontSize:48, marginBottom:16 }}>🧾</div>
+          <p style={{ fontFamily:'system-ui', fontSize:14, color:'#4a4a5a', marginBottom:20 }}>Login to view your orders</p>
+          <button onClick={() => window.location.href = `${HUB_URL}/api/auth/sso?target=${encodeURIComponent(APP_URL + '/orders')}`} className="btn-shop">🔷 Login with Pi</button>
+        </div>
+      </div>
+    </>
+  );
+
   return (
     <div style={{ minHeight:'100vh', background:'#07070f', color:'#fff', fontFamily:'Georgia,serif' }}>
       <style>{CSS}</style>
@@ -102,7 +117,6 @@ export default function OrdersPage() {
 
       <main style={{ maxWidth:800, margin:'0 auto', padding:'24px 20px 48px' }}>
 
-        {/* ── Page Header ── */}
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:24 }}>
           <div>
             <h1 style={{ fontSize:24, fontWeight:900, color:'#e8d5a3', marginBottom:4 }}>My Orders</h1>
@@ -111,7 +125,6 @@ export default function OrdersPage() {
           <button onClick={() => router.push('/')} className="btn-shop">🛍 Shop More</button>
         </div>
 
-        {/* ── Tabs ── */}
         {tabs.length > 1 && (
           <div style={{ display:'flex', gap:8, marginBottom:20, overflowX:'auto', paddingBottom:4 }}>
             {tabs.map(tab => {
@@ -127,7 +140,6 @@ export default function OrdersPage() {
           </div>
         )}
 
-        {/* ── Empty ── */}
         {filtered.length === 0 && (
           <div style={{ textAlign:'center', padding:'80px 0' }}>
             <div style={{ fontSize:56, marginBottom:16, opacity:0.3 }}>🧾</div>
@@ -142,7 +154,6 @@ export default function OrdersPage() {
           </div>
         )}
 
-        {/* ── Orders List ── */}
         <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
           {filtered.map((order, i) => {
             const cfg     = STATUS_CONFIG[order.status] ?? { label: order.status, color:'#888', bg:'rgba(255,255,255,0.04)', icon:'•' };
@@ -151,7 +162,6 @@ export default function OrdersPage() {
 
             return (
               <article key={order.id} className="order-card" style={{ animationDelay:`${i * 60}ms` }}>
-                {/* Card Header */}
                 <div className="order-header">
                   <div>
                     <div style={{ fontFamily:'system-ui', fontSize:10, color:'#4a4a5a', marginBottom:4, letterSpacing:1, textTransform:'uppercase' }}>Order</div>
@@ -162,7 +172,6 @@ export default function OrdersPage() {
                   </span>
                 </div>
 
-                {/* Items */}
                 {order.items && order.items.length > 0 && (
                   <div className="order-items">
                     {order.items.slice(0, 3).map((item, j) => (
@@ -183,7 +192,6 @@ export default function OrdersPage() {
                   <p style={{ fontFamily:'system-ui', fontSize:12, color:'#6b6b7a', padding:'8px 0' }}>{order.memo}</p>
                 )}
 
-                {/* Card Footer */}
                 <div className="order-footer">
                   <div style={{ fontFamily:'system-ui', fontSize:11, color:'#4a4a5a' }}>
                     {formatDate(order.created_at)} · {itemCount} item{itemCount > 1 ? 's' : ''}
@@ -193,7 +201,6 @@ export default function OrdersPage() {
                   )}
                 </div>
 
-                {/* Progress Bar */}
                 <div className="progress-wrap">
                   {['pending','paid','shipped','completed'].map((step, si) => {
                     const steps   = ['pending','paid','shipped','completed'];
@@ -208,12 +215,10 @@ export default function OrdersPage() {
                     );
                   })}
                 </div>
-
               </article>
             );
           })}
         </div>
-
       </main>
     </div>
   );
@@ -247,7 +252,7 @@ const CSS = `
   .order-footer { display:flex; align-items:center; justify-content:space-between; padding-top:4px; border-top:1px solid rgba(255,255,255,0.04); }
 
   .progress-wrap  { display:flex; align-items:center; }
-  .progress-step  { display:flex; align-items:center; flex:1; flex-direction:column; }
+  .progress-step  { display:flex; align-items:center; flex:1; gap:0; }
   .progress-dot   { width:8px; height:8px; border-radius:50%; background:#1e1e2a; border:2px solid #2a2a3a; transition:all 0.3s; }
   .progress-dot--done { background:#d4af37; border-color:#d4af37; }
   .progress-line  { display:none; height:2px; flex:1; background:#1e1e2a; }
@@ -255,6 +260,4 @@ const CSS = `
   .progress-line--done { background:linear-gradient(90deg,#d4af37,#b8882a); }
   .progress-label { font-size:10px; margin-top:4px; opacity:0.4; }
   .progress-label--done { opacity:1; }
-  .progress-step  { flex-direction:row; }
-  .progress-step  { gap:0; }
 `;
