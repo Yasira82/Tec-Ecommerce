@@ -5,10 +5,28 @@ import { useRouter }                  from 'next/navigation';
 import { CartItem }                   from '@/lib-client/cart/useCart';
 import { createPaymentRecord, createU2APayment } from '@/lib/pi-payment';
 
+const HUB_URL = process.env.NEXT_PUBLIC_HUB_URL ?? 'https://hub.tecosystem.app';
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://ecommerce.tecosystem.app';
+
 const getCsrfToken = () =>
   typeof document === 'undefined'
     ? ''
     : document.cookie.split('; ').find(r => r.startsWith('tec_csrf='))?.split('=')?.[1] ?? '';
+
+const isHubNavigation = (): boolean => {
+  if (typeof document === 'undefined') return false;
+  return document.referrer.toLowerCase().includes('hub.tecosystem.app');
+};
+
+const redirectToHubPayment = (total: number, count: number) => {
+  const memo = `TEC Cart — ${count} item${count !== 1 ? 's' : ''}`;
+  const params = new URLSearchParams({
+    pay: '1', amount: total.toString(),
+    memo, product_id: 'cart_checkout',
+    return_url: `${APP_URL}/orders`, source: 'ecommerce',
+  });
+  window.location.href = `${HUB_URL}/hub?${params.toString()}`;
+};
 
 type CheckoutStatus = 'idle' | 'creating' | 'paying' | 'success' | 'error' | 'cancelled';
 
@@ -33,7 +51,14 @@ export function CartDrawer({ isOpen, onClose, items, onUpdateQty, onRemove, onCl
   const itemCount = items.reduce((s, i) => s + i.qty, 0);
 
   const handleCheckout = async () => {
-    if (!piReady || inFlight.current || items.length === 0) return;
+    if (inFlight.current || items.length === 0) return;
+
+    // ADR-007: Hub navigation or Pi SDK not available → redirect to hub payment modal
+    if (isHubNavigation() || !(window as any).Pi || !piReady) {
+      redirectToHubPayment(total, itemCount);
+      return;
+    }
+
     inFlight.current = true;
     setStatus('creating');
     setErrMsg('');
