@@ -2,9 +2,14 @@
 
 import { useRouter, usePathname } from 'next/navigation';
 
-interface Props { piReady: boolean; onMenuOpen: () => void }
+interface Props {
+  piReady:      boolean;
+  onMenuOpen:   () => void;
+  cartCount?:   number;
+  onCartOpen?:  () => void;
+}
 
-export function ShopHeader({ piReady, onMenuOpen }: Props) {
+export function ShopHeader({ piReady, onMenuOpen, cartCount = 0, onCartOpen }: Props) {
   const router   = useRouter();
   const pathname = usePathname();
 
@@ -31,9 +36,19 @@ export function ShopHeader({ piReady, onMenuOpen }: Props) {
           </button>
         </div>
 
-        <nav style={{ display:'flex', gap:2 }}>
+        <nav style={{ display:'flex', gap:2, alignItems:'center' }}>
           <button onClick={() => router.push('/shop')}   style={navStyle('/shop')}>🛍 Shop</button>
           <button onClick={() => router.push('/orders')} style={navStyle('/orders')}>🧾 Orders</button>
+          {onCartOpen && (
+            <button onClick={onCartOpen} style={{ position:'relative', padding:'6px 12px', borderRadius:20, border:'none', cursor:'pointer', fontFamily:'system-ui', fontSize:12, fontWeight:600, background:'rgba(212,175,55,0.08)', color:'#d4af37' }}>
+              🛒
+              {cartCount > 0 && (
+                <span style={{ position:'absolute', top:-4, right:-4, minWidth:17, height:17, borderRadius:9, background:'#d4af37', color:'#07070f', fontSize:9, fontWeight:900, display:'flex', alignItems:'center', justifyContent:'center', padding:'0 3px', fontFamily:'system-ui' }}>
+                  {cartCount > 99 ? '99+' : cartCount}
+                </span>
+              )}
+            </button>
+          )}
         </nav>
 
         <span style={{ fontFamily:'system-ui', fontSize:11, padding:'4px 10px', borderRadius:20, flexShrink:0, background: piReady ? 'rgba(126,231,192,0.1)' : 'rgba(255,255,255,0.06)', color: piReady ? '#7ee7c0' : '#666', border: piReady ? '1px solid rgba(126,231,192,0.2)' : '1px solid rgba(255,255,255,0.08)' }}>

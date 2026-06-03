@@ -6,9 +6,14 @@ interface Product {
   description: string; price: number;
   images?: string[]; image_url?: string;
 }
-interface Props { products: Product[]; piReady: boolean; onBuy: (p: Product) => void }
+interface Props {
+  products:      Product[];
+  piReady:       boolean;
+  onBuy:         (p: Product) => void;
+  onAddToCart?:  (p: Product) => void;
+}
 
-export function ProductGrid({ products, piReady, onBuy }: Props) {
+export function ProductGrid({ products, piReady, onBuy, onAddToCart }: Props) {
   if (products.length === 0) return (
     <div style={{ textAlign:'center', padding:'80px 0' }}>
       <div style={{ fontSize:48, marginBottom:12, opacity:0.4 }}>📦</div>
@@ -17,9 +22,9 @@ export function ProductGrid({ products, piReady, onBuy }: Props) {
   );
 
   return (
-    <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(180px,1fr))', gap:16 }}>
+    <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(140px,1fr))', gap:10 }}>
       {products.map((p, i) => (
-        <ProductCard key={p.id} product={p} piReady={piReady} onBuy={onBuy} delay={i * 60} />
+        <ProductCard key={p.id} product={p} piReady={piReady} onBuy={onBuy} onAddToCart={onAddToCart} delay={i * 60} />
       ))}
     </div>
   );

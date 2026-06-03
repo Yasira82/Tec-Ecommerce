@@ -6,6 +6,8 @@ import { usePiAuth }                                from '@yasser172/tec-auth';
 import { ShopHeader }                               from '@/components/shop/ShopHeader';
 import { PaymentModal }                             from '@/components/shop/PaymentModal';
 import { EcommerceDrawer }                          from '@/components/shop/EcommerceDrawer';
+import { CartDrawer }                               from '@/components/shop/CartDrawer';
+import { useCart }                                  from '@/lib-client/cart/useCart';
 import { createPaymentRecord, createU2APayment }    from '@/lib/pi-payment';
 
 const HUB_URL = process.env.NEXT_PUBLIC_HUB_URL ?? 'https://hub.tecosystem.app';
@@ -62,8 +64,11 @@ export default function ProductPage() {
   const [payStatus,  setPayStatus]  = useState<PayStatus>('idle');
   const [payMessage, setPayMessage] = useState('');
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [cartOpen,   setCartOpen]   = useState(false);
+  const [cartAdded,  setCartAdded]  = useState(false);
   const [username,   setUsername]   = useState<string | null>(null);
   const inFlight = useRef(false);
+  const { items: cartItems, itemCount, addToCart, removeFromCart, updateQty, clearCart } = useCart();
 
   // Pi SDK
   useEffect(() => {
@@ -106,19 +111,9 @@ export default function ProductPage() {
   const handleBuy = useCallback(async () => {
     if (!product || inFlight.current) return;
 
-    // ✅ ADR-007: Hub navigation → FORCE Mode 1
-    if (isHubNavigation()) {
-      redirectToHubPayment(product);
-      return;
-    }
+    if (isHubNavigation()) { redirectToHubPayment(product); return; }
+    if (!window.Pi || !piReady) { redirectToHubPayment(product); return; }
 
-    // ✅ Pi SDK not ready → Mode 1 fallback (was: silent fail)
-    if (!window.Pi || !piReady) {
-      redirectToHubPayment(product);
-      return;
-    }
-
-    // ── Mode 2: Direct payment ──
     inFlight.current = true;
     setPayStatus('creating');
     setPayMessage('');
@@ -145,7 +140,6 @@ export default function ProductPage() {
   const closeModal = () => { setPayStatus('idle'); setPayMessage(''); inFlight.current = false; };
   const retryPay   = () => { closeModal(); setTimeout(handleBuy, 100); };
 
-  // ── Loading ───────────────────────────────────────────────
   if (fetching || authLoading) return (
     <>
       <style>{CSS}</style>
@@ -174,22 +168,21 @@ export default function ProductPage() {
       <style>{CSS}</style>
 
       <EcommerceDrawer isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} username={username ?? undefined} hubUrl={HUB_URL} />
-      <ShopHeader piReady={piReady} onMenuOpen={() => setDrawerOpen(true)} />
+      <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} items={cartItems} onUpdateQty={updateQty} onRemove={removeFromCart} onClear={clearCart} piReady={piReady} />
+      <ShopHeader piReady={piReady} onMenuOpen={() => setDrawerOpen(true)} cartCount={itemCount} onCartOpen={() => setCartOpen(true)} />
 
-      {/* ── Breadcrumb ── */}
       <div className="breadcrumb">
         <button onClick={() => router.push('/')} className="breadcrumb-link">Home</button>
         <span className="breadcrumb-sep">›</span>
         {product.category && <>
           <span className="breadcrumb-link">{product.category}</span>
           <span className="breadcrumb-sep">›</span>
-        </>}
+        </> }
         <span className="breadcrumb-current">{label}</span>
       </div>
 
       <main className="product-wrap">
 
-        {/* ── Images ── */}
         <div className="images-col">
           <div className="main-img-wrap">
             {images.length > 0
@@ -210,7 +203,6 @@ export default function ProductPage() {
           )}
         </div>
 
-        {/* ── Info ── */}
         <div className="info-col">
           {product.category && <span className="category-tag">{product.category}</span>}
           <h1 className="product-title">{label}</h1>
@@ -242,14 +234,32 @@ export default function ProductPage() {
             </div>
           )}
 
-          {/* Buy Button — always active, handleBuy manages fallback */}
-          <button
-            className={`cta-btn ${product.stock === 0 ? 'cta-btn--off' : ''}`}
-            onClick={handleBuy}
-            disabled={product.stock === 0}
-          >
-            {product.stock === 0 ? 'Out of Stock' : `Buy for ${product.price}π`}
-          </button>
+          <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+            <button
+              className={`cta-btn ${product.stock === 0 ? 'cta-btn--off' : ''}`}
+              onClick={handleBuy}
+              disabled={product.stock === 0}
+            >
+              {product.stock === 0 ? 'Out of Stock' : `⚡ Buy for ${product.price}π`}
+            </button>
+            {product.stock !== 0 && (
+              <button
+                onClick={() => {
+                  addToCart({ id: product.id, title: product.title ?? product.name ?? 'Product', price: product.price, images: product.images, image_url: product.image_url });
+                  setCartAdded(true);
+                  setTimeout(() => setCartAdded(false), 1600);
+                }}
+                style={{
+                  width:'100%', padding:14, borderRadius:16, cursor:'pointer', fontFamily:'system-ui', fontSize:14, fontWeight:700, transition:'all 0.2s',
+                  border: cartAdded ? '1px solid rgba(16,185,129,0.4)' : '1px solid rgba(212,175,55,0.35)',
+                  background: cartAdded ? 'rgba(16,185,129,0.1)' : 'rgba(212,175,55,0.08)',
+                  color: cartAdded ? '#10b981' : '#d4af37',
+                }}
+              >
+                {cartAdded ? '✓ Added to Cart' : '+ Add to Cart'}
+              </button>
+            )}
+          </div>
 
           <div className="pi-note">
             <span style={{ color:'#d4af37' }}>π</span>
