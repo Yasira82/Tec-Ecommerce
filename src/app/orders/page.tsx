@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter }           from 'next/navigation';
+import { usePiAuth }           from '@yasser172/tec-auth';
 import { ShopHeader }          from '@/components/shop/ShopHeader';
 import { EcommerceDrawer }     from '@/components/shop/EcommerceDrawer';
 
 const HUB_URL = process.env.NEXT_PUBLIC_HUB_URL ?? 'https://hub.tecosystem.app';
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://ecommerce.tecosystem.app';
 
 interface OrderItem { productId: string; qty: number; price?: number; title?: string }
 interface Order {
@@ -28,13 +28,6 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; 
   cancelled:  { label: 'Cancelled',  color: '#ef4444', bg: 'rgba(239,68,68,0.1)',   icon: '✕'  },
 };
 
-const getStoredUser = () => {
-  try {
-    const raw = document.cookie.split('; ').find(r => r.startsWith('tec_user='))?.split('=')?.[1] ?? '';
-    return raw ? JSON.parse(decodeURIComponent(raw)) : null;
-  } catch { return null; }
-};
-
 const formatDate = (iso: string) => {
   try {
     return new Date(iso).toLocaleDateString('en-US', { day:'numeric', month:'short', year:'numeric' });
@@ -43,9 +36,8 @@ const formatDate = (iso: string) => {
 
 export default function OrdersPage() {
   const router = useRouter();
+  const { isAuthenticated, isLoading: authLoading } = usePiAuth();
 
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [authLoading, setAuthLoading]         = useState(true);
   const [orders,     setOrders]     = useState<Order[]>([]);
   const [fetching,   setFetching]   = useState(false);
   const [piReady,    setPiReady]    = useState(false);
@@ -54,17 +46,16 @@ export default function OrdersPage() {
   const [activeTab,  setActiveTab]  = useState<string>('all');
 
   useEffect(() => {
-    const match = document.cookie.split('; ').find(r => r.startsWith('tec_user='));
-    if (match) {
-      try {
+    if (!isAuthenticated) return;
+    try {
+      const match = document.cookie.split('; ').find(r => r.startsWith('tec_user='));
+      if (match) {
         const value = match.substring(match.indexOf('=') + 1);
         const user = JSON.parse(decodeURIComponent(value));
-        setIsAuthenticated(true);
         if (user?.piUsername) setUsername(user.piUsername);
-      } catch { /* ignore */ }
-    }
-    setAuthLoading(false);
-  }, []);
+      }
+    } catch {}
+  }, [isAuthenticated]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -104,7 +95,7 @@ export default function OrdersPage() {
         <div style={{ textAlign:'center' }}>
           <div style={{ fontSize:48, marginBottom:16 }}>🧾</div>
           <p style={{ fontFamily:'system-ui', fontSize:14, color:'#4a4a5a', marginBottom:20 }}>Login to view your orders</p>
-          <button onClick={() => window.location.href = `${HUB_URL}/api/auth/sso?target=${encodeURIComponent(APP_URL + '/orders')}`} className="btn-shop">🔷 Login with Pi</button>
+          <button onClick={() => router.push('/')} className="btn-shop">🛍 Go to Shop</button>
         </div>
       </div>
     </>
