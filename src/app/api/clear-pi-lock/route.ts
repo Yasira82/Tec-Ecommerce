@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 export async function GET() {
   const pid    = 'TG7uZCch44mt3Q6koqfQLnaYBLm0';
-  const apiKey = o7kvmz1lo6cklitjfuclcifcrbfr8e8qqg7n26dcfpjmook96eo0n5jqiweus0ov
+  const apiKey = 'o7kvmz1lo6cklitjfuclcifcrbfr8e8qqg7n26dcfpjmook96eo0n5jqiweus0ov';
 
   const results: Record<string, unknown> = {};
 
