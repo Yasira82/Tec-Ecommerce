@@ -7,6 +7,8 @@ import { ShopHero }        from '@/components/shop/ShopHero';
 import { ProductGrid }     from '@/components/shop/ProductGrid';
 import { PaymentModal }    from '@/components/shop/PaymentModal';
 import { EcommerceDrawer } from '@/components/shop/EcommerceDrawer';
+import { CartDrawer }      from '@/components/shop/CartDrawer';
+import { useCart }         from '@/lib-client/cart/useCart';
 
 interface Product {
   id: string; title: string; name?: string;
@@ -52,8 +54,10 @@ export default function ShopPage() {
   const [payMessage, setPayMessage] = useState('');
   const [activeProd, setActiveProd] = useState<Product | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [cartOpen,   setCartOpen]   = useState(false);
   const [username,   setUsername]   = useState<string | null>(null);
   const inFlight = useRef(false);
+  const { items: cartItems, itemCount, addToCart, removeFromCart, updateQty, clearCart } = useCart();
 
   useEffect(() => {
     if (!getToken()) { window.location.href = SSO_URL; return; }
@@ -85,13 +89,9 @@ export default function ShopPage() {
   const handleBuy = useCallback(async (product: Product) => {
     if (inFlight.current) return;
 
-    // ✅ ADR-007: Hub → Ecommerce = Force Mode 1
     if (isHubNavigation()) { redirectToHubPayment(product); return; }
-
-    // ✅ Pi not ready = Mode 1 fallback
     if (!window.Pi || !piReady) { redirectToHubPayment(product); return; }
 
-    // Mode 2: Direct payment
     inFlight.current = true;
     setActiveProd(product);
     setPayStatus('creating');
@@ -151,10 +151,11 @@ export default function ShopPage() {
     <div style={{ minHeight:'100vh', background:'#07070f', color:'#fff', fontFamily:'Georgia,serif' }}>
       <style>{`@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}} @keyframes spin{to{transform:rotate(360deg)}}`}</style>
       <EcommerceDrawer isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} username={username ?? undefined} hubUrl={HUB_URL} />
-      <ShopHeader piReady={piReady} onMenuOpen={() => setDrawerOpen(true)} />
+      <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} items={cartItems} onUpdateQty={updateQty} onRemove={removeFromCart} onClear={clearCart} piReady={piReady} />
+      <ShopHeader piReady={piReady} onMenuOpen={() => setDrawerOpen(true)} cartCount={itemCount} onCartOpen={() => setCartOpen(true)} />
       <ShopHero />
       <main style={{ maxWidth:800, margin:'0 auto', padding:'8px 16px 48px' }}>
-        <ProductGrid products={products} piReady={piReady} onBuy={handleBuy} />
+        <ProductGrid products={products} piReady={piReady} onBuy={handleBuy} onAddToCart={addToCart} />
       </main>
       {payStatus !== 'idle' && activeProd && (
         <PaymentModal status={payStatus} product={activeProd} message={payMessage} onClose={closeModal} onRetry={retryPay} />

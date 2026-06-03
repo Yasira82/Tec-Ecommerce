@@ -1,5 +1,7 @@
 'use client';
 
+import { useState } from 'react';
+
 interface Product {
   id: string; title: string; name?: string;
   description: string; price: number;
@@ -7,15 +9,23 @@ interface Product {
 }
 
 interface Props {
-  product:  Product;
-  piReady:  boolean;
-  onBuy:    (p: Product) => void;
-  delay?:   number;
+  product:       Product;
+  piReady:       boolean;
+  onBuy:         (p: Product) => void;
+  onAddToCart?:  (p: Product) => void;
+  delay?:        number;
 }
 
-export function ProductCard({ product, piReady, onBuy, delay = 0 }: Props) {
+export function ProductCard({ product, piReady, onBuy, onAddToCart, delay = 0 }: Props) {
+  const [added, setAdded] = useState(false);
   const imgSrc = product.images?.[0] ?? product.image_url;
   const label  = product.title ?? product.name ?? 'Product';
+
+  const handleAdd = () => {
+    onAddToCart?.(product);
+    setAdded(true);
+    setTimeout(() => setAdded(false), 1600);
+  };
 
   return (
     <article style={{
@@ -38,19 +48,49 @@ export function ProductCard({ product, piReady, onBuy, delay = 0 }: Props) {
         <p style={{ fontFamily:'system-ui', fontSize:11, color:'#4a4a5a', lineHeight:1.5, marginBottom:12, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>
           {product.description}
         </p>
-        <button
-          onClick={() => onBuy(product)}
-          disabled={!piReady}
-          style={{
-            width:'100%', padding:10, borderRadius:12, border:'none',
-            background: piReady ? 'linear-gradient(135deg,#d4af37,#b8882a)' : '#1a1a28',
-            color: piReady ? '#07070f' : '#3a3a4a',
-            fontSize:12, fontWeight:800, fontFamily:'system-ui',
-            cursor: piReady ? 'pointer' : 'not-allowed',
-          }}
-        >
-          {piReady ? 'Buy Now' : 'Connecting...'}
-        </button>
+        {onAddToCart ? (
+          <div style={{ display:'flex', gap:6 }}>
+            <button
+              onClick={handleAdd}
+              style={{
+                flex:1, padding:10, borderRadius:12,
+                border: added ? '1px solid rgba(16,185,129,0.4)' : '1px solid rgba(212,175,55,0.35)',
+                background: added ? 'rgba(16,185,129,0.12)' : 'rgba(212,175,55,0.08)',
+                color: added ? '#10b981' : '#d4af37',
+                fontSize:12, fontWeight:700, fontFamily:'system-ui', cursor:'pointer', transition:'all 0.2s',
+              }}
+            >
+              {added ? '✓ Added' : '+ Cart'}
+            </button>
+            <button
+              onClick={() => piReady && onBuy(product)}
+              disabled={!piReady}
+              style={{
+                flex:1, padding:10, borderRadius:12, border:'none',
+                background: piReady ? 'linear-gradient(135deg,#d4af37,#b8882a)' : '#1a1a28',
+                color: piReady ? '#07070f' : '#3a3a4a',
+                fontSize:12, fontWeight:800, fontFamily:'system-ui',
+                cursor: piReady ? 'pointer' : 'not-allowed',
+              }}
+            >
+              {piReady ? '⚡ Buy' : '···'}
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => onBuy(product)}
+            disabled={!piReady}
+            style={{
+              width:'100%', padding:10, borderRadius:12, border:'none',
+              background: piReady ? 'linear-gradient(135deg,#d4af37,#b8882a)' : '#1a1a28',
+              color: piReady ? '#07070f' : '#3a3a4a',
+              fontSize:12, fontWeight:800, fontFamily:'system-ui',
+              cursor: piReady ? 'pointer' : 'not-allowed',
+            }}
+          >
+            {piReady ? 'Buy Now' : 'Connecting...'}
+          </button>
+        )}
       </div>
     </article>
   );
