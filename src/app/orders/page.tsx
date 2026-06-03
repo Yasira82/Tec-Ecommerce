@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter }           from 'next/navigation';
-import { usePiAuth }           from '@yasser172/tec-auth';
 import { ShopHeader }          from '@/components/shop/ShopHeader';
 import { EcommerceDrawer }     from '@/components/shop/EcommerceDrawer';
 
 const HUB_URL = process.env.NEXT_PUBLIC_HUB_URL ?? 'https://hub.tecosystem.app';
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://ecommerce.tecosystem.app';
+const SSO_URL = `${HUB_URL}/api/auth/sso?target=${encodeURIComponent(APP_URL + '/orders')}`;
 
 interface OrderItem { productId: string; qty: number; price?: number; title?: string }
 interface Order {
@@ -28,6 +29,14 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; 
   cancelled:  { label: 'Cancelled',  color: '#ef4444', bg: 'rgba(239,68,68,0.1)',   icon: '✕'  },
 };
 
+const getToken = () => typeof document === 'undefined' ? null : document.cookie.split('; ').find(r => r.startsWith('tec_access_token='))?.split('=')?.[1] ?? null;
+const getStoredUser = () => {
+  try {
+    const raw = document.cookie.split('; ').find(r => r.startsWith('tec_user='))?.split('=')?.[1] ?? '';
+    return raw ? JSON.parse(decodeURIComponent(raw)) : null;
+  } catch { return null; }
+};
+
 const formatDate = (iso: string) => {
   try {
     return new Date(iso).toLocaleDateString('en-US', { day:'numeric', month:'short', year:'numeric' });
@@ -36,26 +45,21 @@ const formatDate = (iso: string) => {
 
 export default function OrdersPage() {
   const router = useRouter();
-  const { isAuthenticated, isLoading: authLoading } = usePiAuth();
 
+  const [authed,     setAuthed]     = useState<boolean | null>(null);
   const [orders,     setOrders]     = useState<Order[]>([]);
-  const [fetching,   setFetching]   = useState(false);
+  const [fetching,   setFetching]   = useState(true);
   const [piReady,    setPiReady]    = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [username,   setUsername]   = useState<string | null>(null);
   const [activeTab,  setActiveTab]  = useState<string>('all');
 
   useEffect(() => {
-    if (!isAuthenticated) return;
-    try {
-      const match = document.cookie.split('; ').find(r => r.startsWith('tec_user='));
-      if (match) {
-        const value = match.substring(match.indexOf('=') + 1);
-        const user = JSON.parse(decodeURIComponent(value));
-        if (user?.piUsername) setUsername(user.piUsername);
-      }
-    } catch {}
-  }, [isAuthenticated]);
+    if (!getToken()) { window.location.href = SSO_URL; return; }
+    setAuthed(true);
+    const user = getStoredUser();
+    if (user?.piUsername) setUsername(user.piUsername);
+  }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -66,37 +70,28 @@ export default function OrdersPage() {
   }, []);
 
   useEffect(() => {
-    if (!isAuthenticated) return;
-    setFetching(true);
+    if (!authed) return;
     fetch('/api/bff/orders', { credentials: 'include' })
-      .then(r => r.json())
+      .then(r => { if (r.status === 401) { window.location.href = SSO_URL; throw new Error(); } return r.json(); })
       .then(d => {
         const list = d?.data?.orders ?? d?.orders ?? [];
         setOrders(Array.isArray(list) ? list : []);
       })
       .catch(() => setOrders([]))
       .finally(() => setFetching(false));
-  }, [isAuthenticated]);
+  }, [authed]);
 
   const filtered = activeTab === 'all' ? orders : orders.filter(o => o.status === activeTab);
   const tabs     = ['all', ...Array.from(new Set(orders.map(o => o.status)))];
 
-  if (authLoading) return (
-    <>
-      <style>{CSS}</style>
-      <div className="center-screen"><div className="spinner" /></div>
-    </>
-  );
-
-  if (!isAuthenticated) return (
+  if (authed === null || (authed && fetching)) return (
     <>
       <style>{CSS}</style>
       <div className="center-screen">
-        <div style={{ textAlign:'center' }}>
-          <div style={{ fontSize:48, marginBottom:16 }}>🧾</div>
-          <p style={{ fontFamily:'system-ui', fontSize:14, color:'#4a4a5a', marginBottom:20 }}>Login to view your orders</p>
-          <button onClick={() => router.push('/')} className="btn-shop">🛍 Go to Shop</button>
-        </div>
+        <div className="spinner" />
+        <p style={{ fontFamily:'system-ui', fontSize:12, color:'#3a3a4a', marginTop:14 }}>
+          {authed === null ? 'Authenticating...' : 'Loading orders...'}
+        </p>
       </div>
     </>
   );
@@ -133,9 +128,7 @@ export default function OrdersPage() {
           </div>
         )}
 
-        {fetching ? (
-          <div style={{ display:'flex', justifyContent:'center', padding:'60px 0' }}><div className="spinner" /></div>
-        ) : filtered.length === 0 ? (
+        {filtered.length === 0 ? (
           <div style={{ textAlign:'center', padding:'80px 0' }}>
             <div style={{ fontSize:56, marginBottom:16, opacity:0.3 }}>🧾</div>
             <p style={{ fontFamily:'system-ui', fontSize:16, color:'#3a3a4a', marginBottom:8 }}>
@@ -223,7 +216,7 @@ const CSS = `
   @keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:none} }
   @keyframes spin   { to{transform:rotate(360deg)} }
 
-  .center-screen { min-height:100vh; background:#07070f; display:flex; align-items:center; justify-content:center; }
+  .center-screen { min-height:100vh; background:#07070f; display:flex; flex-direction:column; align-items:center; justify-content:center; }
   .spinner { width:32px; height:32px; border-radius:50%; border:3px solid rgba(212,175,55,0.15); border-top-color:#d4af37; animation:spin 0.8s linear infinite; }
 
   .btn-shop { padding:10px 20px; border-radius:12px; border:1px solid rgba(212,175,55,0.25); background:rgba(212,175,55,0.06); color:#d4af37; font-family:system-ui; font-size:13px; font-weight:600; cursor:pointer; white-space:nowrap; transition:background 0.15s; }
