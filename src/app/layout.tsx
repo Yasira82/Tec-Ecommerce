@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Script            from 'next/script';
 import PiSdkLoader       from '@/components/PiSdkLoader';
-import './globals.css';  // ✅
+import './globals.css';
 
 export const metadata: Metadata = {
   title:       'TEC Ecommerce',
@@ -13,7 +13,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <head>
-        <Script src="https://sdk.minepi.com/pi-sdk.js" strategy="beforeInteractive" />
+        <Script src="https://sdk.minepi.com/pi-sdk.js" strategy="afterInteractive" />
       </head>
       <body>
         <PiSdkLoader sandbox={sandbox} />

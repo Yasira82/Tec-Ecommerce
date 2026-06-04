@@ -122,6 +122,13 @@ export default function HomePage() {
   const closeModal = () => { setPayStatus('idle'); setActiveProd(null); setPayMessage(''); inFlight.current = false; };
   const retryPay   = () => { const p = activeProd; closeModal(); setTimeout(() => p && handleBuy(p), 100); };
 
+  if (isLoading) return (
+    <div style={{ minHeight:'100vh', background:'#020205', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:14 }}>
+      <div style={{ width:36, height:36, borderRadius:'50%', border:'3px solid rgba(212,175,55,0.15)', borderTopColor:'#d4af37', animation:'spin 0.8s linear infinite' }} />
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+    </div>
+  );
+
   if (!isAuthenticated) return (
     <div style={{ minHeight:'100vh', background:'#020205', display:'flex', alignItems:'center', justifyContent:'center' }}>
       <style>{CSS}</style>
@@ -130,9 +137,9 @@ export default function HomePage() {
         <div style={{ fontSize:28, fontWeight:900, color: TEC_COLORS.gold, marginBottom:6 }}>TEC Store</div>
         <div style={{ fontSize:13, color: TEC_COLORS.subtext, marginBottom:8 }}>ECOMMERCE · TEC ECOSYSTEM</div>
         <div style={{ fontSize:12, color:'#2a2a3a', marginBottom:36 }}>Shop with Pi — One Identity, One Wallet</div>
-        <button onClick={() => ssoRedirect(HUB_URL, `${APP_URL}/`)} disabled={isLoading}
+        <button onClick={() => ssoRedirect(HUB_URL, `${APP_URL}/`)}
           style={{ padding:'14px 36px', background:`linear-gradient(135deg,${TEC_COLORS.gold},${TEC_COLORS.goldDark})`, border:'none', borderRadius:16, color:'#0a0800', fontSize:15, fontWeight:800, cursor:'pointer' }}>
-          {isLoading ? '...' : '🔷 Login with Pi'}
+          🔷 Login with Pi
         </button>
       </div>
     </div>
@@ -219,7 +226,7 @@ function ProductCard({ product, piReady, onBuy, onAddToCart, featured = false, d
   return (
     <article className="card" style={{ animationDelay:`${delay}ms` }}>
       <div style={{ position:'relative' }}>
-        {imgSrc ? <img src={imgSrc} alt={label} style={{ width:'100%', height, objectFit:'cover', display:'block' }} /> : <div style={{ width:'100%', height, background:'linear-gradient(135deg,#0d0d18,#141428)', display:'flex', alignItems:'center', justifyContent:'center', fontSize: featured ? 34 : 26, opacity:0.3 }}>🛍</div>}
+        {imgSrc ? <img src={imgSrc} alt={label} style={{ width:'100%', height, objectFit:'cover', display:'block' }} /> : <div style={{ width:'100%', height, background:'linear-gradient(135deg,#0d0d18,#141428)', display:'flex', alignItems:'center', justifyContent:'center', fontSize: featured ? 34 : 26, opacity:0.3 }}>🛘</div>}
         <div className="price-badge">{product.price}π</div>
         {product.category && <div className="cat-badge">{product.category}</div>}
       </div>
