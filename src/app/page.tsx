@@ -47,7 +47,15 @@ const redirectToHubPayment = (product: Product) => {
 };
 
 export default function HomePage() {
-  const { isAuthenticated, isLoading } = usePiAuth();
+  const { isAuthenticated: piAuthed, isLoading: piLoading } = usePiAuth();
+  const [tokenReady, setTokenReady] = useState(false);
+  useEffect(() => {
+    const tok = getToken();
+    if (tok && tok.trim()) setTokenReady(true);
+  }, []);
+  const isLoading       = piLoading && !tokenReady;
+  const isAuthenticated = piAuthed  || tokenReady;
+
   const router = useRouter();
 
   const [products,    setProducts]    = useState<Product[]>([]);

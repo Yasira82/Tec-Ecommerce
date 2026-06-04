@@ -179,7 +179,15 @@ function OrderCard({ order, index }: { order: Order; index: number }) {
 
 export default function OrdersPage() {
   const router  = useRouter();
-  const { isAuthenticated, isLoading } = usePiAuth();
+  const { isAuthenticated: piAuthed, isLoading: piLoading } = usePiAuth();
+  const [tokenReady, setTokenReady] = useState(false);
+  useEffect(() => {
+    const tok = document.cookie.split('; ').find(r => r.startsWith('tec_access_token='))?.split('=')?.[1];
+    if (tok && tok.trim()) setTokenReady(true);
+  }, []);
+  const isLoading       = piLoading && !tokenReady;
+  const isAuthenticated = piAuthed  || tokenReady;
+
   const [orders,     setOrders]     = useState<Order[]>([]);
   const [fetching,   setFetching]   = useState(true);
   const [piReady,    setPiReady]    = useState(false);

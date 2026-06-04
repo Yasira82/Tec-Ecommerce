@@ -55,7 +55,14 @@ const PRICE_BUCKETS = [
 ];
 
 export default function ShopPage() {
-  const { isAuthenticated, isLoading } = usePiAuth();
+  const { isAuthenticated: piAuthed, isLoading: piLoading } = usePiAuth();
+  const [tokenReady, setTokenReady] = useState(false);
+  useEffect(() => {
+    const tok = document.cookie.split('; ').find(r => r.startsWith('tec_access_token='))?.split('=')?.[1];
+    if (tok && tok.trim()) setTokenReady(true);
+  }, []);
+  const isLoading       = piLoading && !tokenReady;
+  const isAuthenticated = piAuthed  || tokenReady;
 
   const [products,   setProducts]   = useState<Product[]>([]);
   const [fetching,   setFetching]   = useState(true);
