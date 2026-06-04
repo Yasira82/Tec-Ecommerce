@@ -245,22 +245,21 @@ export function CartDrawer({ isOpen, onClose, items, onUpdateQty, onRemove, onCl
             {/* Checkout button */}
             <button
               onClick={handleCheckout}
-              disabled={!piReady || status === 'creating' || status === 'paying' || status === 'success'}
+              disabled={status === 'creating' || status === 'paying' || status === 'success'}
               style={{
                 width: '100%', padding: '13px', borderRadius: 14, border: 'none',
-                background: (!piReady || status !== 'idle')
+                background: status !== 'idle'
                   ? '#1a1a28'
                   : 'linear-gradient(135deg,#d4af37,#b8882a)',
-                color: (!piReady || status !== 'idle') ? '#3a3a4a' : '#07070f',
+                color: status !== 'idle' ? '#3a3a4a' : '#07070f',
                 fontFamily: 'system-ui', fontSize: 14, fontWeight: 800,
-                cursor: (!piReady || status !== 'idle') ? 'not-allowed' : 'pointer',
+                cursor: status !== 'idle' ? 'not-allowed' : 'pointer',
                 transition: 'opacity 0.15s',
               }}>
               {status === 'creating' ? '⏳ Preparing…'
                 : status === 'paying'   ? '🔷 Pay in Pi Wallet…'
                 : status === 'success'  ? '✅ Done!'
-                : piReady               ? '🔷 Checkout with Pi'
-                : '⏳ Connecting…'}
+                : '🔷 Checkout with Pi'}
             </button>
 
             <p style={{ fontFamily: 'system-ui', fontSize: 10, color: '#3a3a4a', textAlign: 'center', marginTop: 10, lineHeight: 1.5 }}>

@@ -2,12 +2,13 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter }                     from 'next/navigation';
+import { usePiAuth, ssoRedirect }        from '@yasser172/tec-auth';
+import { TEC_COLORS }                    from '@yasser172/tec-ui';
 import { ShopHeader }                    from '@/components/shop/ShopHeader';
 import { EcommerceDrawer }               from '@/components/shop/EcommerceDrawer';
 
 const HUB_URL = process.env.NEXT_PUBLIC_HUB_URL ?? 'https://hub.tecosystem.app';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://ecommerce.tecosystem.app';
-const SSO_URL = `${HUB_URL}/api/auth/sso?target=${encodeURIComponent(APP_URL + '/orders')}`;
 
 interface OrderItem { productId: string; qty: number; price?: number; title?: string }
 interface Order {
@@ -33,11 +34,6 @@ const PROGRESS_STEPS  = ['pending', 'paid', 'shipped', 'completed'];
 const PROGRESS_LABELS = ['Ordered', 'Paid', 'Shipped', 'Delivered'];
 
 /* ─── helpers ─── */
-const getToken = () =>
-  typeof document === 'undefined'
-    ? null
-    : document.cookie.split('; ').find(r => r.startsWith('tec_access_token='))?.split('=')?.[1] ?? null;
-
 const getStoredUser = () => {
   try {
     const raw = document.cookie.split('; ').find(r => r.startsWith('tec_user='))?.split('=')?.[1] ?? '';
@@ -311,9 +307,9 @@ function OrderCard({ order, index }: { order: Order; index: number }) {
    PAGE
 ═══════════════════════════════════════════════════════ */
 export default function OrdersPage() {
-  const router = useRouter();
+  const router  = useRouter();
+  const { isAuthenticated, isLoading } = usePiAuth();
 
-  const [authed,     setAuthed]     = useState<boolean | null>(null);
   const [orders,     setOrders]     = useState<Order[]>([]);
   const [fetching,   setFetching]   = useState(true);
   const [piReady,    setPiReady]    = useState(false);
@@ -323,11 +319,11 @@ export default function OrdersPage() {
   const [search,     setSearch]     = useState('');
 
   useEffect(() => {
-    if (!getToken()) { window.location.href = SSO_URL; return; }
-    setAuthed(true);
-    const user = getStoredUser();
-    if (user?.piUsername) setUsername(user.piUsername);
-  }, []);
+    if (isAuthenticated) {
+      const user = getStoredUser();
+      if (user?.piUsername) setUsername(user.piUsername);
+    }
+  }, [isAuthenticated]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -338,19 +334,16 @@ export default function OrdersPage() {
   }, []);
 
   useEffect(() => {
-    if (!authed) return;
+    if (!isAuthenticated) return;
     fetch('/api/bff/orders', { credentials: 'include' })
-      .then(r => {
-        if (r.status === 401) { window.location.href = SSO_URL; throw new Error(); }
-        return r.json();
-      })
+      .then(r => r.json())
       .then(d => {
         const list = d?.data?.orders ?? d?.orders ?? [];
         setOrders(Array.isArray(list) ? list : []);
       })
       .catch(() => setOrders([]))
       .finally(() => setFetching(false));
-  }, [authed]);
+  }, [isAuthenticated]);
 
   const tabs = useMemo(
     () => ['all', ...Array.from(new Set(orders.map(o => o.status)))],
@@ -376,7 +369,7 @@ export default function OrdersPage() {
   const clearFilters = () => { setSearch(''); setActiveTab('all'); };
 
   /* Loading skeleton */
-  if (authed === null || (authed && fetching)) return (
+  if (isLoading || (isAuthenticated && fetching)) return (
     <>
       <style>{CSS}</style>
       <div style={{ minHeight: '100vh', background: '#07070f', color: '#fff' }}>
@@ -390,6 +383,24 @@ export default function OrdersPage() {
         </div>
       </div>
     </>
+  );
+
+  /* Unauthenticated */
+  if (!isAuthenticated) return (
+    <div style={{ minHeight:'100vh', background:'#07070f', display:'flex', alignItems:'center', justifyContent:'center' }}>
+      <style>{CSS}</style>
+      <div style={{ textAlign:'center' }}>
+        <div style={{ fontSize:52, marginBottom:14 }}>🧾</div>
+        <div style={{ fontSize:22, fontWeight:900, color:TEC_COLORS.gold, marginBottom:6, fontFamily:'Georgia,serif' }}>My Orders</div>
+        <div style={{ fontSize:12, color:'#4a4a5a', fontFamily:'system-ui', marginBottom:32 }}>Login to view your purchase history</div>
+        <button
+          onClick={() => ssoRedirect(HUB_URL, `${APP_URL}/orders`)}
+          style={{ padding:'13px 36px', background:`linear-gradient(135deg,${TEC_COLORS.gold},${TEC_COLORS.goldDark})`, border:'none', borderRadius:16, color:'#0a0800', fontSize:14, fontWeight:800, cursor:'pointer', fontFamily:'system-ui' }}
+        >
+          🔷 Login with Pi
+        </button>
+      </div>
+    </div>
   );
 
   return (
