@@ -47,11 +47,20 @@ const redirectToHubPayment = (product: Product) => {
 };
 
 export default function HomePage() {
-  const { isAuthenticated, isLoading } = usePiAuth();
+  const { isAuthenticated: piAuthed, isLoading: piLoading } = usePiAuth();
+  const [tokenReady, setTokenReady] = useState(false);
+  useEffect(() => {
+    const tok = getToken();
+    if (tok && tok.trim()) setTokenReady(true);
+  }, []);
+  const isLoading       = piLoading && !tokenReady;
+  const isAuthenticated = piAuthed  || tokenReady;
+
   const router = useRouter();
 
   const [products,    setProducts]    = useState<Product[]>([]);
   const [fetching,    setFetching]    = useState(true);
+  const [fetchError,  setFetchError]  = useState(false);
   const [piReady,     setPiReady]     = useState(false);
   const [activeTab,   setActiveTab]   = useState<string>('all');
   const [payStatus,   setPayStatus]   = useState<PayStatus>('idle');
@@ -78,19 +87,26 @@ export default function HomePage() {
     }
   }, [isAuthenticated]);
 
-  useEffect(() => {
+  const loadProducts = useCallback(() => {
     if (!isAuthenticated) return;
+    setFetchError(false);
+    setFetching(true);
     const params = new URLSearchParams({ limit: '20' });
     if (activeTab !== 'all') params.set('category', activeTab);
     fetch(`/api/bff/products?${params}`, { credentials: 'include' })
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) { setFetchError(true); return { data: { products: [] } }; }
+        return r.json();
+      })
       .then(d => {
         const list = d?.data?.products ?? d?.products ?? [];
         setProducts(Array.isArray(list) ? list : []);
       })
-      .catch(() => setProducts([]))
+      .catch(() => { setFetchError(true); setProducts([]); })
       .finally(() => setFetching(false));
   }, [isAuthenticated, activeTab]);
+
+  useEffect(() => { loadProducts(); }, [loadProducts]);
 
   const handleBuy = useCallback(async (product: Product) => {
     if (inFlight.current) return;
@@ -122,6 +138,13 @@ export default function HomePage() {
   const closeModal = () => { setPayStatus('idle'); setActiveProd(null); setPayMessage(''); inFlight.current = false; };
   const retryPay   = () => { const p = activeProd; closeModal(); setTimeout(() => p && handleBuy(p), 100); };
 
+  if (isLoading) return (
+    <div style={{ minHeight:'100vh', background:'#020205', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:14 }}>
+      <div style={{ width:36, height:36, borderRadius:'50%', border:'3px solid rgba(212,175,55,0.15)', borderTopColor:'#d4af37', animation:'spin 0.8s linear infinite' }} />
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+    </div>
+  );
+
   if (!isAuthenticated) return (
     <div style={{ minHeight:'100vh', background:'#020205', display:'flex', alignItems:'center', justifyContent:'center' }}>
       <style>{CSS}</style>
@@ -130,9 +153,9 @@ export default function HomePage() {
         <div style={{ fontSize:28, fontWeight:900, color: TEC_COLORS.gold, marginBottom:6 }}>TEC Store</div>
         <div style={{ fontSize:13, color: TEC_COLORS.subtext, marginBottom:8 }}>ECOMMERCE · TEC ECOSYSTEM</div>
         <div style={{ fontSize:12, color:'#2a2a3a', marginBottom:36 }}>Shop with Pi — One Identity, One Wallet</div>
-        <button onClick={() => ssoRedirect(HUB_URL, `${APP_URL}/`)} disabled={isLoading}
+        <button onClick={() => ssoRedirect(HUB_URL, `${APP_URL}/`)}
           style={{ padding:'14px 36px', background:`linear-gradient(135deg,${TEC_COLORS.gold},${TEC_COLORS.goldDark})`, border:'none', borderRadius:16, color:'#0a0800', fontSize:15, fontWeight:800, cursor:'pointer' }}>
-          {isLoading ? '...' : '🔷 Login with Pi'}
+          🔷 Login with Pi
         </button>
       </div>
     </div>
@@ -191,6 +214,13 @@ export default function HomePage() {
         <div className="section-header"><h2 className="section-title">🛒 {activeTab === 'all' ? 'All Products' : activeTab}</h2><span className="section-count">{products.length} items</span></div>
         {fetching ? (
           <div style={{ display:'flex', justifyContent:'center', padding:'48px 0' }}><div className="spinner" /></div>
+        ) : fetchError ? (
+          <div style={{ textAlign:'center', padding:'60px 0' }}>
+            <div style={{ fontSize:44, opacity:0.35, marginBottom:12 }}>⚠️</div>
+            <p style={{ fontFamily:'system-ui', fontSize:14, color:'#5a3a3a', marginBottom:8 }}>Could not load products</p>
+            <p style={{ fontFamily:'system-ui', fontSize:12, color:'#3a3a4a', marginBottom:20 }}>The shop is temporarily unavailable. Please try again.</p>
+            <button onClick={loadProducts} style={{ fontFamily:'system-ui', fontSize:12, color:'#d4af37', background:'none', border:'1px solid rgba(212,175,55,0.35)', borderRadius:10, padding:'8px 20px', cursor:'pointer' }}>↺ Retry</button>
+          </div>
         ) : products.length === 0 ? (
           <div style={{ textAlign:'center', padding:'60px 0' }}><div style={{ fontSize:48, opacity:0.3, marginBottom:12 }}>📦</div><p style={{ fontFamily:'system-ui', fontSize:14, color:'#3a3a4a' }}>No products yet</p></div>
         ) : (
@@ -219,7 +249,7 @@ function ProductCard({ product, piReady, onBuy, onAddToCart, featured = false, d
   return (
     <article className="card" style={{ animationDelay:`${delay}ms` }}>
       <div style={{ position:'relative' }}>
-        {imgSrc ? <img src={imgSrc} alt={label} style={{ width:'100%', height, objectFit:'cover', display:'block' }} /> : <div style={{ width:'100%', height, background:'linear-gradient(135deg,#0d0d18,#141428)', display:'flex', alignItems:'center', justifyContent:'center', fontSize: featured ? 34 : 26, opacity:0.3 }}>🛍</div>}
+        {imgSrc ? <img src={imgSrc} alt={label} style={{ width:'100%', height, objectFit:'cover', display:'block' }} /> : <div style={{ width:'100%', height, background:'linear-gradient(135deg,#0d0d18,#141428)', display:'flex', alignItems:'center', justifyContent:'center', fontSize: featured ? 34 : 26, opacity:0.3 }}>🛘</div>}
         <div className="price-badge">{product.price}π</div>
         {product.category && <div className="cat-badge">{product.category}</div>}
       </div>
