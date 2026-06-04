@@ -1,8 +1,8 @@
 import { createAuthMiddleware } from '@yasser172/tec-auth/middleware';
 
 export default createAuthMiddleware({
-  protectedRoutes: ['/orders', '/checkout', '/profile'],
-  csrfExcluded:    ['/api/bff/payment/'],
+  protectedRoutes:    ['/app', '/dashboard', '/profile', '/settings'],
+  csrfProtectedPaths: ['/api/auth/logout', '/api/auth/refresh', '/api/bff/'],
   loginRedirectUrl:   '/',
 });
 
