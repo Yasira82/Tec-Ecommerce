@@ -17,7 +17,8 @@ interface Props {
 }
 
 export function ProductCard({ product, piReady, onBuy, onAddToCart, delay = 0 }: Props) {
-  const [added, setAdded] = useState(false);
+  const [added,  setAdded]  = useState(false);
+  const [imgErr, setImgErr] = useState(false);
   const imgSrc = product.images?.[0] ?? product.image_url;
   const label  = product.title ?? product.name ?? 'Product';
 
@@ -35,8 +36,13 @@ export function ProductCard({ product, piReady, onBuy, onAddToCart, delay = 0 }:
       transition: 'transform 0.2s, border-color 0.2s, box-shadow 0.2s',
     }}>
       <div style={{ position: 'relative' }}>
-        {imgSrc
-          ? <img src={imgSrc} alt={label} style={{ width:'100%', height:110, objectFit:'cover', display:'block' }} />
+        {imgSrc && !imgErr
+          ? <img
+              src={imgSrc}
+              alt={label}
+              style={{ width:'100%', height:110, objectFit:'cover', display:'block' }}
+              onError={() => setImgErr(true)}
+            />
           : <div style={{ width:'100%', height:110, background:'linear-gradient(135deg,#0d0d18,#141428)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:26, opacity:0.3 }}>🛍</div>
         }
         <div style={{ position:'absolute', top:8, right:8, background:'rgba(7,7,15,0.88)', border:'1px solid rgba(212,175,55,0.4)', color:'#d4af37', fontSize:11, fontWeight:900, padding:'2px 8px', borderRadius:20, fontFamily:'Georgia', backdropFilter:'blur(8px)' }}>

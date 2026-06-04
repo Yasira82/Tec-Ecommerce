@@ -61,6 +61,7 @@ export default function ProductPage() {
   const [fetching,   setFetching]   = useState(true);
   const [piReady,    setPiReady]    = useState(false);
   const [activeImg,  setActiveImg]  = useState(0);
+  const [mainImgErr, setMainImgErr] = useState(false);
   const [payStatus,  setPayStatus]  = useState<PayStatus>('idle');
   const [payMessage, setPayMessage] = useState('');
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -69,6 +70,9 @@ export default function ProductPage() {
   const [username,   setUsername]   = useState<string | null>(null);
   const inFlight = useRef(false);
   const { items: cartItems, itemCount, addToCart, removeFromCart, updateQty, clearCart } = useCart();
+
+  // Reset image error when slide changes
+  useEffect(() => { setMainImgErr(false); }, [activeImg]);
 
   // Pi SDK
   useEffect(() => {
@@ -185,8 +189,13 @@ export default function ProductPage() {
 
         <div className="images-col">
           <div className="main-img-wrap">
-            {images.length > 0
-              ? <img src={images[activeImg]} alt={label} className="main-img" />
+            {images.length > 0 && !mainImgErr
+              ? <img
+                  src={images[activeImg]}
+                  alt={label}
+                  className="main-img"
+                  onError={() => setMainImgErr(true)}
+                />
               : <div className="main-img-placeholder">🛍</div>
             }
             <div className="price-overlay">{product.price}π</div>
@@ -196,7 +205,12 @@ export default function ProductPage() {
               {images.map((img, i) => (
                 <button key={i} onClick={() => setActiveImg(i)}
                   className={`thumb ${activeImg === i ? 'thumb--active' : ''}`}>
-                  <img src={img} alt={`${label} ${i + 1}`} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+                  <img
+                    src={img}
+                    alt={`${label} ${i + 1}`}
+                    style={{ width:'100%', height:'100%', objectFit:'cover' }}
+                    onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                  />
                 </button>
               ))}
             </div>

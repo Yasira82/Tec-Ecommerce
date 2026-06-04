@@ -4,7 +4,6 @@ const path = require('path');
 const nextConfig = {
   eslint:  { ignoreDuringBuilds: false },
   output:  'standalone',
-  // ✅ حذف outputFileTracingRoot — مش محتاجه في standalone repo
 
   images: {
     formats:         ['image/avif', 'image/webp'],
@@ -41,7 +40,7 @@ const nextConfig = {
               "default-src 'self'",
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' sdk.minepi.com *.minepi.com",
               "connect-src 'self' https: wss:",
-              "img-src 'self' data: blob: *.railway.app *.vercel.app",
+              "img-src 'self' data: blob: https:",
               "style-src 'self' 'unsafe-inline'",
               "font-src 'self' data:",
               "frame-src 'self' sdk.minepi.com *.minepi.com",
