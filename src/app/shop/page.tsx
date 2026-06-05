@@ -17,6 +17,7 @@ interface Product {
   description: string; price: number;
   images?: string[]; image_url?: string;
   category?: string; rating?: number; reviews_count?: number;
+  seller_id?: string; merchant_name?: string;
 }
 type PayStatus = 'idle' | 'creating' | 'paying' | 'success' | 'cancelled' | 'error';
 type SortKey   = 'default' | 'price-asc' | 'price-desc' | 'rating';
@@ -310,6 +311,22 @@ export default function ShopPage() {
           <ProductGrid products={filteredProducts} piReady={piReady} onBuy={handleBuy} onAddToCart={addToCart} />
         )}
       </main>
+      {itemCount > 0 && (
+        <button
+          onClick={() => setCartOpen(true)}
+          style={{
+            position:'fixed', bottom:24, right:20, zIndex:200,
+            display:'flex', alignItems:'center', gap:8,
+            padding:'13px 20px', borderRadius:24,
+            background:'linear-gradient(135deg,#d4af37,#b8882a)',
+            border:'none', cursor:'pointer', boxShadow:'0 4px 24px rgba(212,175,55,0.35)',
+            fontFamily:'system-ui', fontSize:14, fontWeight:800, color:'#07070f',
+            animation:'fabIn 0.25s ease',
+          }}
+        >
+          🛒 <span>{itemCount} {itemCount === 1 ? 'item' : 'items'}</span>
+        </button>
+      )}
       {payStatus !== 'idle' && activeProd && (
         <PaymentModal status={payStatus} product={activeProd} message={payMessage} onClose={closeModal} onRetry={retryPay} />
       )}
@@ -320,6 +337,7 @@ export default function ShopPage() {
 const CSS = `
   @keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:none} }
   @keyframes spin   { to{transform:rotate(360deg)} }
+  @keyframes fabIn  { from{opacity:0;transform:translateY(12px) scale(0.92)} to{opacity:1;transform:none} }
   input[type=number]::-webkit-inner-spin-button,
   input[type=number]::-webkit-outer-spin-button { -webkit-appearance:none; margin:0; }
   input[type=number] { -moz-appearance:textfield; }

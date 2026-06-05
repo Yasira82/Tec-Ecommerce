@@ -1,11 +1,13 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 interface Product {
   id: string; title: string; name?: string;
   description: string; price: number;
   images?: string[]; image_url?: string;
+  seller_id?: string; merchant_name?: string;
 }
 
 interface Props {
@@ -19,8 +21,11 @@ interface Props {
 export function ProductCard({ product, piReady, onBuy, onAddToCart, delay = 0 }: Props) {
   const [added,  setAdded]  = useState(false);
   const [imgErr, setImgErr] = useState(false);
-  const imgSrc = product.images?.[0] ?? product.image_url;
-  const label  = product.title ?? product.name ?? 'Product';
+  const router   = useRouter();
+  const imgSrc   = product.images?.[0] ?? product.image_url;
+  const label    = product.title ?? product.name ?? 'Product';
+  const sellerId = product.seller_id ?? product.merchant_name;
+  const sellerName = product.merchant_name || product.seller_id;
 
   const handleAdd = () => {
     onAddToCart?.(product);
@@ -50,7 +55,15 @@ export function ProductCard({ product, piReady, onBuy, onAddToCart, delay = 0 }:
         </div>
       </div>
       <div style={{ padding: 10 }}>
-        <h3 style={{ fontSize:12, fontWeight:700, color:'#e8d5a3', lineHeight:1.3, marginBottom:4 }}>{label}</h3>
+        <h3 style={{ fontSize:12, fontWeight:700, color:'#e8d5a3', lineHeight:1.3, marginBottom:2 }}>{label}</h3>
+        {sellerName && (
+          <button
+            onClick={e => { e.stopPropagation(); if (sellerId) router.push(`/store/${sellerId}`); }}
+            style={{ background:'none', border:'none', padding:0, cursor:'pointer', fontSize:10, color:'rgba(212,175,55,0.7)', fontFamily:'system-ui', marginBottom:4, display:'flex', alignItems:'center', gap:3, lineHeight:1.3 }}
+          >
+            🏪 <span style={{ textDecoration:'underline', textDecorationColor:'rgba(212,175,55,0.3)' }}>{sellerName}</span>
+          </button>
+        )}
         <p style={{ fontFamily:'system-ui', fontSize:10, color:'#4a4a5a', lineHeight:1.5, marginBottom:8, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>
           {product.description}
         </p>
