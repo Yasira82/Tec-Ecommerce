@@ -66,6 +66,7 @@ export default function ShopPage() {
 
   const [products,   setProducts]   = useState<Product[]>([]);
   const [fetching,   setFetching]   = useState(true);
+  const [fetchError, setFetchError] = useState(false);
   const [piReady,    setPiReady]    = useState(false);
   const [payStatus,  setPayStatus]  = useState<PayStatus>('idle');
   const [payMessage, setPayMessage] = useState('');
@@ -105,17 +106,24 @@ export default function ShopPage() {
     }
   }, [isAuthenticated]);
 
-  useEffect(() => {
+  const loadProducts = useCallback(() => {
     if (!isAuthenticated) return;
+    setFetchError(false);
+    setFetching(true);
     fetch('/api/bff/products?limit=60', { credentials: 'include' })
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) { setFetchError(true); return { data: { products: [] } }; }
+        return r.json();
+      })
       .then(d => {
         const list = d?.data?.products ?? d?.products ?? [];
         setProducts(Array.isArray(list) ? list : []);
       })
-      .catch(() => setProducts([]))
+      .catch(() => { setFetchError(true); setProducts([]); })
       .finally(() => setFetching(false));
   }, [isAuthenticated]);
+
+  useEffect(() => { loadProducts(); }, [loadProducts]);
 
   const categories = useMemo(() =>
     ['all', ...Array.from(new Set(products.map(p => p.category).filter(Boolean) as string[]))],
@@ -281,11 +289,22 @@ export default function ShopPage() {
             <button onClick={clearAllFilters} style={{ fontFamily:'system-ui', fontSize:11, color:'#4a4a5a', background:'none', border:'1px solid rgba(255,255,255,0.08)', borderRadius:8, padding:'3px 10px', cursor:'pointer' }}>✕ Clear filters</button>
           )}
         </div>
-        {filteredProducts.length === 0 ? (
+        {fetchError ? (
           <div style={{ textAlign:'center', padding:'60px 0' }}>
-            <div style={{ fontSize:44, opacity:0.25, marginBottom:12 }}>🔍</div>
-            <p style={{ fontFamily:'system-ui', fontSize:14, color:'#3a3a4a', marginBottom:16 }}>No products match your filters</p>
-            <button onClick={clearAllFilters} style={{ fontFamily:'system-ui', fontSize:12, color:'#d4af37', background:'none', border:'1px solid rgba(212,175,55,0.25)', borderRadius:10, padding:'8px 18px', cursor:'pointer' }}>Clear filters</button>
+            <div style={{ fontSize:44, opacity:0.4, marginBottom:12 }}>⚠️</div>
+            <p style={{ fontFamily:'system-ui', fontSize:14, color:'#5a3a3a', marginBottom:8 }}>Could not load products</p>
+            <p style={{ fontFamily:'system-ui', fontSize:12, color:'#3a3a4a', marginBottom:20 }}>The shop is temporarily unavailable. Please try again.</p>
+            <button onClick={loadProducts} style={{ fontFamily:'system-ui', fontSize:12, color:'#d4af37', background:'none', border:'1px solid rgba(212,175,55,0.35)', borderRadius:10, padding:'8px 20px', cursor:'pointer' }}>↺ Retry</button>
+          </div>
+        ) : filteredProducts.length === 0 ? (
+          <div style={{ textAlign:'center', padding:'60px 0' }}>
+            <div style={{ fontSize:44, opacity:0.25, marginBottom:12 }}>{products.length === 0 ? '📦' : '🔍'}</div>
+            <p style={{ fontFamily:'system-ui', fontSize:14, color:'#3a3a4a', marginBottom:16 }}>
+              {products.length === 0 ? 'No products available yet' : 'No products match your filters'}
+            </p>
+            {hasActiveFilters && (
+              <button onClick={clearAllFilters} style={{ fontFamily:'system-ui', fontSize:12, color:'#d4af37', background:'none', border:'1px solid rgba(212,175,55,0.25)', borderRadius:10, padding:'8px 18px', cursor:'pointer' }}>Clear filters</button>
+            )}
           </div>
         ) : (
           <ProductGrid products={filteredProducts} piReady={piReady} onBuy={handleBuy} onAddToCart={addToCart} />

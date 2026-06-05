@@ -10,7 +10,8 @@ const getUserId = (req: NextRequest): string => {
   try {
     const raw  = req.cookies.get('tec_user')?.value ?? '';
     const user = JSON.parse(decodeURIComponent(raw));
-    return user?.id ?? user?.sub ?? '';
+    // try all common field names used across Hub / auth-service versions
+    return user?.id ?? user?.sub ?? user?.uid ?? user?.userId ?? user?.piUid ?? '';
   } catch { return ''; }
 };
 
@@ -26,6 +27,7 @@ export async function GET(req: NextRequest) {
           Authorization:    `Bearer ${getToken(req)}`,
           'x-request-id':  crypto.randomUUID(),
           'x-internal-key': process.env.INTERNAL_SECRET ?? '',
+          'x-user-id':      userId,
         },
         cache: 'no-store',
       },
@@ -65,6 +67,7 @@ export async function POST(req: NextRequest) {
           'Content-Type':   'application/json',
           'x-request-id':  crypto.randomUUID(),
           'x-internal-key': process.env.INTERNAL_SECRET ?? '',
+          'x-user-id':      userId,
         },
         body: JSON.stringify({
           items,

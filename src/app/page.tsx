@@ -60,6 +60,7 @@ export default function HomePage() {
 
   const [products,    setProducts]    = useState<Product[]>([]);
   const [fetching,    setFetching]    = useState(true);
+  const [fetchError,  setFetchError]  = useState(false);
   const [piReady,     setPiReady]     = useState(false);
   const [activeTab,   setActiveTab]   = useState<string>('all');
   const [payStatus,   setPayStatus]   = useState<PayStatus>('idle');
@@ -86,19 +87,26 @@ export default function HomePage() {
     }
   }, [isAuthenticated]);
 
-  useEffect(() => {
+  const loadProducts = useCallback(() => {
     if (!isAuthenticated) return;
+    setFetchError(false);
+    setFetching(true);
     const params = new URLSearchParams({ limit: '20' });
     if (activeTab !== 'all') params.set('category', activeTab);
     fetch(`/api/bff/products?${params}`, { credentials: 'include' })
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) { setFetchError(true); return { data: { products: [] } }; }
+        return r.json();
+      })
       .then(d => {
         const list = d?.data?.products ?? d?.products ?? [];
         setProducts(Array.isArray(list) ? list : []);
       })
-      .catch(() => setProducts([]))
+      .catch(() => { setFetchError(true); setProducts([]); })
       .finally(() => setFetching(false));
   }, [isAuthenticated, activeTab]);
+
+  useEffect(() => { loadProducts(); }, [loadProducts]);
 
   const handleBuy = useCallback(async (product: Product) => {
     if (inFlight.current) return;
@@ -206,6 +214,13 @@ export default function HomePage() {
         <div className="section-header"><h2 className="section-title">🛒 {activeTab === 'all' ? 'All Products' : activeTab}</h2><span className="section-count">{products.length} items</span></div>
         {fetching ? (
           <div style={{ display:'flex', justifyContent:'center', padding:'48px 0' }}><div className="spinner" /></div>
+        ) : fetchError ? (
+          <div style={{ textAlign:'center', padding:'60px 0' }}>
+            <div style={{ fontSize:44, opacity:0.35, marginBottom:12 }}>⚠️</div>
+            <p style={{ fontFamily:'system-ui', fontSize:14, color:'#5a3a3a', marginBottom:8 }}>Could not load products</p>
+            <p style={{ fontFamily:'system-ui', fontSize:12, color:'#3a3a4a', marginBottom:20 }}>The shop is temporarily unavailable. Please try again.</p>
+            <button onClick={loadProducts} style={{ fontFamily:'system-ui', fontSize:12, color:'#d4af37', background:'none', border:'1px solid rgba(212,175,55,0.35)', borderRadius:10, padding:'8px 20px', cursor:'pointer' }}>↺ Retry</button>
+          </div>
         ) : products.length === 0 ? (
           <div style={{ textAlign:'center', padding:'60px 0' }}><div style={{ fontSize:48, opacity:0.3, marginBottom:12 }}>📦</div><p style={{ fontFamily:'system-ui', fontSize:14, color:'#3a3a4a' }}>No products yet</p></div>
         ) : (

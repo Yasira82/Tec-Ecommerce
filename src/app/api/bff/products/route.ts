@@ -1,12 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 const GATEWAY = process.env.API_GATEWAY_URL
-             ?? process.env.NEXT_PUBLIC_API_GATEWAY_URL!;
+             ?? process.env.NEXT_PUBLIC_API_GATEWAY_URL;
 
 const getToken = (req: NextRequest) =>
   req.cookies.get('tec_access_token')?.value ?? '';
 
 export async function GET(req: NextRequest) {
+  if (!GATEWAY) {
+    console.error('[bff/products] API_GATEWAY_URL is not configured');
+    return NextResponse.json(
+      { error: 'Service not configured', code: 'GATEWAY_NOT_CONFIGURED' },
+      { status: 503 },
+    );
+  }
+
   try {
     const { searchParams } = req.nextUrl;
 
@@ -33,7 +41,10 @@ export async function GET(req: NextRequest) {
     );
 
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) return NextResponse.json(data, { status: res.status });
+    if (!res.ok) {
+      console.error('[bff/products] gateway error:', res.status, JSON.stringify(data));
+      return NextResponse.json(data, { status: res.status });
+    }
 
     // ✅ normalize products
     const raw      = (data?.data?.products ?? data?.products ?? []) as Record<string, unknown>[];
@@ -49,7 +60,8 @@ export async function GET(req: NextRequest) {
     });
 
     return NextResponse.json({ success: true, data: { products } });
-  } catch {
+  } catch (err) {
+    console.error('[bff/products] unexpected error:', err);
     return NextResponse.json({ error: 'Failed to fetch products' }, { status: 500 });
   }
 }

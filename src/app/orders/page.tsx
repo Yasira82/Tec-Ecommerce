@@ -190,6 +190,8 @@ export default function OrdersPage() {
 
   const [orders,     setOrders]     = useState<Order[]>([]);
   const [fetching,   setFetching]   = useState(true);
+  const [fetchError, setFetchError] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   const [piReady,    setPiReady]    = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [username,   setUsername]   = useState<string | null>(null);
@@ -210,12 +212,17 @@ export default function OrdersPage() {
 
   useEffect(() => {
     if (!isAuthenticated) return;
+    setFetchError(false);
+    setFetching(true);
     fetch('/api/bff/orders', { credentials: 'include' })
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) { setFetchError(true); return { orders: [] }; }
+        return r.json();
+      })
       .then(d => { const list = d?.data?.orders ?? d?.orders ?? []; setOrders(Array.isArray(list) ? list : []); })
-      .catch(() => setOrders([]))
+      .catch(() => { setFetchError(true); setOrders([]); })
       .finally(() => setFetching(false));
-  }, [isAuthenticated]);
+  }, [isAuthenticated, retryCount]);
 
   const tabs       = useMemo(() => ['all', ...Array.from(new Set(orders.map(o => o.status)))], [orders]);
   const totalSpent = useMemo(() => orders.reduce((s, o) => s + orderTotal(o), 0), [orders]);
@@ -227,6 +234,7 @@ export default function OrdersPage() {
   }, [orders, activeTab, search]);
 
   const clearFilters = () => { setSearch(''); setActiveTab('all'); };
+  const retryLoad   = () => { setOrders([]); setRetryCount(c => c + 1); };
 
   if (isLoading || (isAuthenticated && fetching)) return (
     <><style>{CSS}</style>
@@ -299,7 +307,17 @@ export default function OrdersPage() {
           </div>
         )}
         {search.trim() && <p style={{ fontFamily: 'system-ui', fontSize: 12, color: '#6b6b7a', marginBottom: 12 }}>{filtered.length} result{filtered.length !== 1 ? 's' : ''} for &ldquo;{search.trim()}&rdquo;</p>}
-        {filtered.length === 0 ? (
+        {fetchError ? (
+          <div style={{ textAlign: 'center', padding: '60px 0' }}>
+            <div style={{ fontSize: 40, opacity: 0.3, marginBottom: 12 }}>⚠️</div>
+            <p style={{ fontFamily: 'system-ui', fontSize: 14, color: '#5a3a3a', marginBottom: 8 }}>Could not load orders</p>
+            <p style={{ fontFamily: 'system-ui', fontSize: 12, color: '#3a3a4a', marginBottom: 20 }}>The orders service is temporarily unavailable.</p>
+            <button onClick={retryLoad}
+              style={{ fontFamily: 'system-ui', fontSize: 12, color: '#d4af37', background: 'none', border: '1px solid rgba(212,175,55,0.3)', borderRadius: 10, padding: '8px 20px', cursor: 'pointer' }}>
+              ↺ Retry
+            </button>
+          </div>
+        ) : filtered.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '72px 0' }}>
             <div style={{ fontSize: 52, opacity: 0.2, marginBottom: 16 }}>🧾</div>
             <p style={{ fontFamily: 'system-ui', fontSize: 16, color: '#3a3a4a', marginBottom: 6 }}>
