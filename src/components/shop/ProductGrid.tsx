@@ -5,6 +5,7 @@ interface Product {
   id: string; title: string; name?: string;
   description: string; price: number;
   images?: string[]; image_url?: string;
+  seller_id?: string; merchant_name?: string;
 }
 interface Props {
   products:      Product[];

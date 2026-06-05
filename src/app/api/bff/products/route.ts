@@ -55,7 +55,8 @@ export async function GET(req: NextRequest) {
         images:        (meta['images'] as string[]) ?? (p['image_url'] ? [p['image_url']] : []),
         rating:        (meta['rating']       as number) ?? 0,
         reviews_count: (meta['reviewCount']  as number) ?? 0,
-        merchant_name: p['seller_id'] ?? '',
+        seller_id:     (p['seller_id'] as string) ?? '',
+        merchant_name: (p['seller_id'] as string) ?? '',
       };
     });
 
