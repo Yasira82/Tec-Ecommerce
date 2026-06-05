@@ -6,7 +6,7 @@ describe('BFF Payment Routes — security', () => {
   it('create route uses API_GATEWAY_URL not NEXT_PUBLIC_', async () => {
     // Verify env precedence
     const GW = process.env.API_GATEWAY_URL
-            ?? process.env.NEXT_PUBLIC_API_GATEWAY_URL
+            ?? process.env.API_GATEWAY_URL
             ?? API_GATEWAY_URL;
 
     expect(GW).toBeDefined();

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 const GW = process.env.API_GATEWAY_URL
-        ?? process.env.NEXT_PUBLIC_API_GATEWAY_URL!;
+        ?? process.env.API_GATEWAY_URL!;
 
 export async function POST(req: NextRequest) {
   const token = req.cookies.get('tec_access_token')?.value;
