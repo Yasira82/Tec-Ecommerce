@@ -7,7 +7,7 @@ describe('Template Health', () => {
 
   it('gateway URL has fallback', () => {
     const url =
-      process.env.NEXT_PUBLIC_API_GATEWAY_URL ??
+      process.env.API_GATEWAY_URL ??
       'https://api-gateway-production-6a68.up.railway.app';
     expect(url).toContain('http');
   });
