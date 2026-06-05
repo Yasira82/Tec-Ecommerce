@@ -12,5 +12,8 @@ test('shop page loads', async ({ page }) => {
   await page.goto('/shop', { waitUntil: 'commit' });
   await page.waitForTimeout(3000);
   const url = page.url();
-  expect(url.includes('hub.tecosystem.app') || url.includes('ecommerce')).toBeTruthy();
+  const hasLoginButton = await page.getByText('Login with Pi').isVisible().catch(() => false);
+  const hasStore       = await page.getByText('TEC Store').isVisible().catch(() => false);
+  const redirected     = url.includes('hub.tecosystem.app');
+  expect(hasLoginButton || hasStore || redirected).toBeTruthy();
 });

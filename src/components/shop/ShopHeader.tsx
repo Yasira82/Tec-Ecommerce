@@ -37,8 +37,9 @@ export function ShopHeader({ piReady, onMenuOpen, cartCount = 0, onCartOpen }: P
         </div>
 
         <nav style={{ display:'flex', gap:2, alignItems:'center' }}>
-          <button onClick={() => router.push('/shop')}   style={navStyle('/shop')}>🛍 Shop</button>
-          <button onClick={() => router.push('/orders')} style={navStyle('/orders')}>🧾 Orders</button>
+          <button onClick={() => router.push('/shop')}     style={navStyle('/shop')}>🛍 Shop</button>
+          <button onClick={() => router.push('/orders')}   style={navStyle('/orders')}>🧾 Orders</button>
+          <button onClick={() => router.push('/merchant')} style={navStyle('/merchant')}>🏪 Store</button>
           {onCartOpen && (
             <button onClick={onCartOpen} style={{ position:'relative', padding:'6px 12px', borderRadius:20, border:'none', cursor:'pointer', fontFamily:'system-ui', fontSize:12, fontWeight:600, background:'rgba(212,175,55,0.08)', color:'#d4af37' }}>
               🛒
