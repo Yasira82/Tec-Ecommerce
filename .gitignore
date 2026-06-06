@@ -22,6 +22,9 @@ tsconfig.tsbuildinfo
 # vercel
 .vercel
 
+# test coverage
+coverage/
+
 # misc
 .DS_Store
 *.pem

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const GW = process.env.API_GATEWAY_URL ?? process.env.NEXT_PUBLIC_API_GATEWAY_URL!;
+
+const GW = process.env.API_GATEWAY_URL ?? process.env.NEXT_PUBLIC_API_GATEWAY_URL ?? '';
+
 
 export async function POST(req: NextRequest) {
   const token = req.cookies.get('tec_access_token')?.value;
@@ -13,7 +15,6 @@ export async function POST(req: NextRequest) {
     headers: {
       'Content-Type':    'application/json',
       Authorization:     `Bearer ${token}`,
-      'x-internal-key':  process.env.INTERNAL_SECRET ?? '',
       'Idempotency-Key': crypto.randomUUID(),
     },
     body: JSON.stringify(body),
