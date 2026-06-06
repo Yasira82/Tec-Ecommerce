@@ -12,9 +12,10 @@ interface Props {
   piReady:       boolean;
   onBuy:         (p: Product) => void;
   onAddToCart?:  (p: Product) => void;
+  onCartOpen?:   () => void;
 }
 
-export function ProductGrid({ products, piReady, onBuy, onAddToCart }: Props) {
+export function ProductGrid({ products, piReady, onBuy, onAddToCart, onCartOpen }: Props) {
   if (products.length === 0) return (
     <div style={{ textAlign:'center', padding:'80px 0' }}>
       <div style={{ fontSize:48, marginBottom:12, opacity:0.4 }}>📦</div>
@@ -25,7 +26,7 @@ export function ProductGrid({ products, piReady, onBuy, onAddToCart }: Props) {
   return (
     <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(140px,1fr))', gap:10 }}>
       {products.map((p, i) => (
-        <ProductCard key={p.id} product={p} piReady={piReady} onBuy={onBuy} onAddToCart={onAddToCart} delay={i * 60} />
+        <ProductCard key={p.id} product={p} piReady={piReady} onBuy={onBuy} onAddToCart={onAddToCart} onCartOpen={onCartOpen} delay={i * 60} />
       ))}
     </div>
   );

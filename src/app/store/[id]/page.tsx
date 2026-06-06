@@ -33,12 +33,13 @@ const formatPi = (amount: number) => `${Number(amount).toFixed(2)}π`;
 const formatDate = (date: string) =>
   new Date(date).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
-function StoreProductCard({ product, onBuy, onAddToCart }: { product: Product; onBuy: (p: Product) => void; onAddToCart: (p: Product) => void; }) {
+function StoreProductCard({ product, onBuy, onAddToCart, onCartOpen }: { product: Product; onBuy: (p: Product) => void; onAddToCart: (p: Product) => void; onCartOpen?: () => void; }) {
   const [imgError, setImgError] = useState(false);
   const [added, setAdded] = useState(false);
 
   const handleAdd = () => {
     onAddToCart(product);
+    onCartOpen?.();
     setAdded(true);
     setTimeout(() => setAdded(false), 1600);
   };
@@ -195,7 +196,7 @@ export default function StorePage() {
         ) : (
           <div style={{ display:'grid', gridTemplateColumns:'repeat(2,1fr)', gap:12 }}>
             {products.map(product => (
-              <StoreProductCard key={product.id} product={product} onBuy={handleBuy} onAddToCart={addToCart} />
+              <StoreProductCard key={product.id} product={product} onBuy={handleBuy} onAddToCart={addToCart} onCartOpen={() => setCartOpen(true)} />
             ))}
           </div>
         )}

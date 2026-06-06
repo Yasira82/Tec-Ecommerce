@@ -199,7 +199,7 @@ export default function HomePage() {
         <section style={{ maxWidth:800, margin:'0 auto', padding:'0 16px 32px' }}>
           <div className="section-header"><h2 className="section-title">⭐ Featured</h2><span className="section-count">{featured.length} items</span></div>
           <div className="featured-grid">
-            {featured.map((p, i) => <ProductCard key={p.id} product={p} piReady={piReady} onBuy={handleBuy} onAddToCart={addToCart} featured delay={i * 80} />)}
+            {featured.map((p, i) => <ProductCard key={p.id} product={p} piReady={piReady} onBuy={handleBuy} onAddToCart={addToCart} onCartOpen={() => setCartOpen(true)} featured delay={i * 80} />)}
           </div>
         </section>
       )}
@@ -225,7 +225,7 @@ export default function HomePage() {
           <div style={{ textAlign:'center', padding:'60px 0' }}><div style={{ fontSize:48, opacity:0.3, marginBottom:12 }}>📦</div><p style={{ fontFamily:'system-ui', fontSize:14, color:'#3a3a4a' }}>No products yet</p></div>
         ) : (
           <div className="products-grid">
-            {(rest.length > 0 ? rest : products).map((p, i) => (<ProductCard key={p.id} product={p} piReady={piReady} onBuy={handleBuy} onAddToCart={addToCart} delay={i * 60} />))}
+            {(rest.length > 0 ? rest : products).map((p, i) => (<ProductCard key={p.id} product={p} piReady={piReady} onBuy={handleBuy} onAddToCart={addToCart} onCartOpen={() => setCartOpen(true)} delay={i * 60} />))}
           </div>
         )}
       </section>
@@ -234,7 +234,7 @@ export default function HomePage() {
   );
 }
 
-function ProductCard({ product, piReady, onBuy, onAddToCart, featured = false, delay = 0 }: { product: Product; piReady: boolean; onBuy: (p: Product) => void; onAddToCart: (p: Product) => void; featured?: boolean; delay?: number; }) {
+function ProductCard({ product, piReady, onBuy, onAddToCart, onCartOpen, featured = false, delay = 0 }: { product: Product; piReady: boolean; onBuy: (p: Product) => void; onAddToCart: (p: Product) => void; onCartOpen?: () => void; featured?: boolean; delay?: number; }) {
   const [added, setAdded] = useState(false);
   const imgSrc = product.images?.[0] ?? product.image_url;
   const label  = product.title ?? product.name ?? 'Product';
@@ -242,6 +242,7 @@ function ProductCard({ product, piReady, onBuy, onAddToCart, featured = false, d
 
   const handleAdd = () => {
     onAddToCart(product);
+    onCartOpen?.();
     setAdded(true);
     setTimeout(() => setAdded(false), 1600);
   };

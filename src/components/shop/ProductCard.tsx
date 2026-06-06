@@ -15,10 +15,11 @@ interface Props {
   piReady:       boolean;
   onBuy:         (p: Product) => void;
   onAddToCart?:  (p: Product) => void;
+  onCartOpen?:   () => void;
   delay?:        number;
 }
 
-export function ProductCard({ product, piReady, onBuy, onAddToCart, delay = 0 }: Props) {
+export function ProductCard({ product, piReady, onBuy, onAddToCart, onCartOpen, delay = 0 }: Props) {
   const [added,  setAdded]  = useState(false);
   const [imgErr, setImgErr] = useState(false);
   const router   = useRouter();
@@ -29,6 +30,7 @@ export function ProductCard({ product, piReady, onBuy, onAddToCart, delay = 0 }:
 
   const handleAdd = () => {
     onAddToCart?.(product);
+    onCartOpen?.();
     setAdded(true);
     setTimeout(() => setAdded(false), 1600);
   };

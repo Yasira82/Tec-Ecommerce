@@ -308,7 +308,7 @@ export default function ShopPage() {
             )}
           </div>
         ) : (
-          <ProductGrid products={filteredProducts} piReady={piReady} onBuy={handleBuy} onAddToCart={addToCart} />
+          <ProductGrid products={filteredProducts} piReady={piReady} onBuy={handleBuy} onAddToCart={addToCart} onCartOpen={() => setCartOpen(true)} />
         )}
       </main>
       {itemCount > 0 && (
