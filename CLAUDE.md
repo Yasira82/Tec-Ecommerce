@@ -150,13 +150,21 @@ style(shop):     UI polish
 ## Phase 0 Items (C-41 — Before Mainnet)
 
 ```
-□ Write Vitest tests for BFF routes
-□ Write Vitest tests for useCart hook
+□ Write Vitest tests for BFF routes          ← NEXT priority
+□ Write Vitest tests for useCart hook        ← NEXT priority
 □ Document Pi App ID + domain (tec-ecommerce → tecosystem.app/shop)
 □ Add to Architecture Binding map in tec-core-backend
 □ Upgrade to shared @yasser172/tec-ui PaymentModal when v1.2.0 publishes
 □ PI_SANDBOX=false verified in production environment
 ```
+
+### Test Coverage Targets (Phase 0 gate)
+| File | Priority | Scenarios |
+|------|----------|-----------|
+| `src/lib-client/cart/useCart.ts` | HIGH | addToCart, removeFromCart, updateQty, clearCart, localStorage persist |
+| `src/app/api/bff/orders/route.ts` | HIGH | single product (product_id), multi-item (items[]), auth fail |
+| `src/app/api/bff/payment/approve/route.ts` | MEDIUM | success, invalid payment_id, gateway error |
+| `src/app/api/bff/payment/complete/route.ts` | MEDIUM | success, already completed (409), gateway error |
 
 ---
 
