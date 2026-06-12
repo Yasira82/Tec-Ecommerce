@@ -232,3 +232,53 @@ Full platform context, ADR system, and engineering roadmap:
 → `TEC_Ecosystem_AI_Key.prompt.yml` in yasira82/tec-app
 → C-47 Kernel Spec — P6 Fail Closed, Payment Invariants
 → C-41 Engineering Roadmap — Phase 0 ecommerce items
+
+---
+
+## Dynamic Orchestration
+
+### Ecosystem Role
+**Consumer Marketplace** — Pi-native ecommerce. Follows patterns from tec-commerce (reference implementation). ADR-007 guard exists in 4 payment handler files — any payment change requires checking all 4.
+
+### Dependency Map
+
+| Direction | Repos / Services |
+|-----------|------------------|
+| Upstream | `@yasser172/tec-auth` · `@yasser172/tec-ui` · `@yasser172/tec-sdk` · `tec-core-backend` |
+| Downstream | None — end-user-facing app |
+
+### Cross-Repo Workflow Triggers
+
+| Event | Coordinate With | Required Action |
+|-------|----------------|------------------|
+| Payment/checkout change | tec-commerce (reference impl) | Check commerce pattern first — then align |
+| `isHubNavigation()` behavior change | tec-app (Hub) | ADR-007 = shared contract — 4 files in this repo must stay aligned |
+| `@yasser172/tec-ui` version bump | tec-app, tec-assets, tec-commerce | Coordinate simultaneous deploy with all 4 apps |
+| New auth behavior | tec-auth (npm package) | Platform-wide — test all 4 apps |
+| Hub payment URL change | tec-app (Hub) | `/hub?pay=1` LOCKED — ADR-007 format must not change |
+| CartDrawer / cart hook change | None (sovereign) | Local concern — but test Mode 1 + Mode 2 |
+
+### ADR-007 Files (4 guards — DO NOT REMOVE from any):
+```
+src/app/page.tsx                     → handleBuy
+src/app/product/[id]/page.tsx        → handleBuy
+src/app/store/[id]/page.tsx          → handleBuy
+src/components/shop/CartDrawer.tsx   → handleCheckout
+```
+
+### Release Chain Position
+
+```
+tec-core-backend (deploy)
+  → tec-sdk (npm publish)
+    → tec-auth (npm publish)
+      → tec-ui (npm publish)
+        → tec-app + tec-ecommerce + tec-assets + tec-commerce  ← HERE (simultaneous)
+```
+
+### Knowledge Base Reference
+→ `yasira82/tec-knowledge-base` (branch: `claude/gifted-knuth-1yhom3`)
+→ Master index: `knowledge-base/C-57___MASTER_CONTENTS_INDEX.md`
+→ Payment ownership (ADR-007): `knowledge-base/C-76___ADR-007.md`
+→ Frontend state governance: `knowledge-base/C-72___FRONTEND_STATE_GOVERNANCE.md`
+→ Strategic roadmap: `knowledge-base/C-77___STRATEGIC_ANALYSIS___RISK_ASSESSMENT.md`
