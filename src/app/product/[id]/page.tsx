@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useRouter }                     from 'next/navigation';
 import { usePiAuth }                                from '@yasser172/tec-auth';
 import { ShopHeader }                               from '@/components/shop/ShopHeader';
-import { PaymentModal, PayStatus }                  from '@yasser172/tec-ui/payment';
+import { PaymentModal, PayStatus }                  from '@/components/shop/PaymentModal';
 import { EcommerceDrawer }                          from '@/components/shop/EcommerceDrawer';
 import { CartDrawer }                               from '@/components/shop/CartDrawer';
 import { useCart }                                  from '@/lib-client/cart/useCart';

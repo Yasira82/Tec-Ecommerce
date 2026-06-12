@@ -7,7 +7,7 @@ import { createPaymentRecord, createU2APayment }             from '@/lib/pi-paym
 import { ShopHeader }      from '@/components/shop/ShopHeader';
 import { ShopHero }        from '@/components/shop/ShopHero';
 import { ProductGrid }     from '@/components/shop/ProductGrid';
-import { PaymentModal }    from '@/components/shop/PaymentModal';
+import { PaymentModal, PayStatus } from '@/components/shop/PaymentModal';
 import { EcommerceDrawer } from '@/components/shop/EcommerceDrawer';
 import { CartDrawer }      from '@/components/shop/CartDrawer';
 import { useCart }         from '@/lib-client/cart/useCart';
@@ -19,7 +19,6 @@ interface Product {
   category?: string; rating?: number; reviews_count?: number;
   seller_id?: string; merchant_name?: string;
 }
-type PayStatus = 'idle' | 'creating' | 'paying' | 'success' | 'cancelled' | 'error';
 type SortKey   = 'default' | 'price-asc' | 'price-desc' | 'rating';
 
 const HUB_URL = process.env.NEXT_PUBLIC_HUB_URL ?? 'https://hub.tecosystem.app';
@@ -328,7 +327,7 @@ export default function ShopPage() {
         </button>
       )}
       {payStatus !== 'idle' && activeProd && (
-        <PaymentModal status={payStatus} product={activeProd} message={payMessage} onClose={closeModal} onRetry={retryPay} />
+        <PaymentModal status={payStatus} amount={activeProd.price} label={activeProd.title ?? activeProd.name ?? ''} message={payMessage} onClose={closeModal} onRetry={retryPay} />
       )}
     </div>
   );

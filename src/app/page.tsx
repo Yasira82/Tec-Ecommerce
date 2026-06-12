@@ -5,7 +5,7 @@ import { useRouter }              from 'next/navigation';
 import { usePiAuth, ssoRedirect } from '@yasser172/tec-auth';
 import { TEC_COLORS }             from '@yasser172/tec-ui';
 import { ShopHeader }             from '@/components/shop/ShopHeader';
-import { PaymentModal, PayStatus } from '@yasser172/tec-ui/payment';
+import { PaymentModal, PayStatus } from '@/components/shop/PaymentModal';
 import { EcommerceDrawer }        from '@/components/shop/EcommerceDrawer';
 import { CartDrawer }             from '@/components/shop/CartDrawer';
 import { useCart }                from '@/lib-client/cart/useCart';
