@@ -5,7 +5,7 @@ import { useRouter }              from 'next/navigation';
 import { usePiAuth, ssoRedirect } from '@yasser172/tec-auth';
 import { TEC_COLORS }             from '@yasser172/tec-ui';
 import { ShopHeader }             from '@/components/shop/ShopHeader';
-import { PaymentModal }           from '@/components/shop/PaymentModal';
+import { PaymentModal, PayStatus } from '@/components/shop/PaymentModal';
 import { EcommerceDrawer }        from '@/components/shop/EcommerceDrawer';
 import { CartDrawer }             from '@/components/shop/CartDrawer';
 import { useCart }                from '@/lib-client/cart/useCart';
@@ -20,8 +20,6 @@ interface Product {
   images?: string[]; image_url?: string;
   category?: string; rating?: number; reviews_count?: number;
 }
-type PayStatus = 'idle' | 'creating' | 'paying' | 'success' | 'cancelled' | 'error';
-
 const getToken     = () => typeof document === 'undefined' ? null : document.cookie.split('; ').find(r => r.startsWith('tec_access_token='))?.split('=')?.[1] ?? null;
 const getCsrfToken = () => typeof document === 'undefined' ? '' : document.cookie.split('; ').find(r => r.startsWith('tec_csrf='))?.split('=')?.[1] ?? '';
 const getStoredUser = () => {
@@ -229,7 +227,7 @@ export default function HomePage() {
           </div>
         )}
       </section>
-      {payStatus !== 'idle' && activeProd && (<PaymentModal status={payStatus} product={activeProd} message={payMessage} onClose={closeModal} onRetry={retryPay} />)}
+      {payStatus !== 'idle' && activeProd && (<PaymentModal status={payStatus} amount={activeProd.price} label={activeProd.title ?? activeProd.name ?? ''} message={payMessage} onClose={closeModal} onRetry={retryPay} />)}
     </div>
   );
 }

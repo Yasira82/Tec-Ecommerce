@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useRouter }                     from 'next/navigation';
 import { usePiAuth }                                from '@yasser172/tec-auth';
 import { ShopHeader }                               from '@/components/shop/ShopHeader';
-import { PaymentModal }                             from '@/components/shop/PaymentModal';
+import { PaymentModal, PayStatus }                  from '@/components/shop/PaymentModal';
 import { EcommerceDrawer }                          from '@/components/shop/EcommerceDrawer';
 import { CartDrawer }                               from '@/components/shop/CartDrawer';
 import { useCart }                                  from '@/lib-client/cart/useCart';
@@ -21,8 +21,6 @@ interface Product {
   reviews_count?: number; merchant_name?: string;
   stock?: number; metadata?: Record<string, unknown>;
 }
-type PayStatus = 'idle' | 'creating' | 'paying' | 'success' | 'cancelled' | 'error';
-
 const getToken     = () => typeof document === 'undefined' ? null : document.cookie.split('; ').find(r => r.startsWith('tec_access_token='))?.split('=')?.[1] ?? null;
 const getCsrfToken = () => typeof document === 'undefined' ? '' : document.cookie.split('; ').find(r => r.startsWith('tec_csrf='))?.split('=')?.[1] ?? '';
 const getStoredUser = () => {
@@ -286,7 +284,8 @@ export default function ProductPage() {
       {payStatus !== 'idle' && product && (
         <PaymentModal
           status={payStatus}
-          product={{ id: product.id, title: label, price: product.price }}
+          amount={product.price}
+          label={label}
           message={payMessage}
           onClose={closeModal}
           onRetry={retryPay}
