@@ -86,7 +86,6 @@ export default function HomePage() {
   }, [isAuthenticated]);
 
   const loadProducts = useCallback(() => {
-    if (!isAuthenticated) return;
     setFetchError(false);
     setFetching(true);
     const params = new URLSearchParams({ limit: '20' });
@@ -102,7 +101,7 @@ export default function HomePage() {
       })
       .catch(() => { setFetchError(true); setProducts([]); })
       .finally(() => setFetching(false));
-  }, [isAuthenticated, activeTab]);
+  }, [activeTab]);
 
   useEffect(() => { loadProducts(); }, [loadProducts]);
 
