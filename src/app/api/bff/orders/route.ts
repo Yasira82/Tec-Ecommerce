@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const GATEWAY = process.env.API_GATEWAY_URL ?? process.env.NEXT_PUBLIC_API_GATEWAY_URL;
+const GATEWAY = process.env.API_GATEWAY_URL;
 
 const getToken = (req: NextRequest) =>
   req.cookies.get('tec_access_token')?.value ?? '';
@@ -9,18 +9,19 @@ const getUserId = (req: NextRequest): string => {
   try {
     const raw  = req.cookies.get('tec_user')?.value ?? '';
     const user = JSON.parse(decodeURIComponent(raw));
-    // try all common field names used across Hub / auth-service versions
     return user?.id ?? user?.sub ?? user?.uid ?? user?.userId ?? user?.piUid ?? '';
   } catch { return ''; }
 };
 
 export async function GET(req: NextRequest) {
+  if (!GATEWAY) return NextResponse.json({ error: 'Gateway not configured' }, { status: 503 });
+
   try {
     const userId = getUserId(req);
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const res = await fetch(
-      `${GATEWAY}/api/commerce/orders?userId=${userId}&limit=20&sort=desc`,
+      `${GATEWAY}/api/commerce/orders?limit=20&sort=desc`,
       {
         headers: {
           Authorization:    `Bearer ${getToken(req)}`,
@@ -41,6 +42,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  if (!GATEWAY) return NextResponse.json({ error: 'Gateway not configured' }, { status: 503 });
+
   try {
     const userId = getUserId(req);
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -52,7 +55,10 @@ export async function POST(req: NextRequest) {
     const bodyItems  = body.items      as { productId: string; qty: number }[] | undefined;
 
     if (!paymentId || (!productId && !bodyItems?.length)) {
-      return NextResponse.json({ error: 'payment_id and either product_id or items[] required' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'payment_id and either product_id or items[] required' },
+        { status: 400 },
+      );
     }
 
     const items = bodyItems ?? [{ productId: productId!, qty: 1 }];
@@ -70,9 +76,8 @@ export async function POST(req: NextRequest) {
         },
         body: JSON.stringify({
           items,
-          userId,
           payment_id: paymentId,
-          memo:       memo ?? (productId ? `Order for product ${productId}` : `Cart order — ${items.length} item(s)`),
+          memo: memo ?? (productId ? `Order for product ${productId}` : `Cart order — ${items.length} item(s)`),
         }),
       },
     );
