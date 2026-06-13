@@ -7,7 +7,7 @@ import { createPaymentRecord, createU2APayment }             from '@/lib/pi-paym
 import { ShopHeader }      from '@/components/shop/ShopHeader';
 import { ShopHero }        from '@/components/shop/ShopHero';
 import { ProductGrid }     from '@/components/shop/ProductGrid';
-import { PaymentModal, PayStatus } from '@/components/shop/PaymentModal';
+import { PaymentModal, PayStatus } from '@yasser172/tec-ui/payment';
 import { EcommerceDrawer } from '@/components/shop/EcommerceDrawer';
 import { CartDrawer }      from '@/components/shop/CartDrawer';
 import { useCart }         from '@/lib-client/cart/useCart';
