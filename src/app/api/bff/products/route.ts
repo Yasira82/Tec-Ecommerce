@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { isE2eMode } from '@/lib/server/e2e-mode';
 
 const GATEWAY = process.env.API_GATEWAY_URL ?? process.env.NEXT_PUBLIC_API_GATEWAY_URL;
 
@@ -6,6 +7,10 @@ const getToken = (req: NextRequest) =>
   req.cookies.get('tec_access_token')?.value ?? '';
 
 export async function GET(req: NextRequest) {
+  if (isE2eMode()) {
+    return NextResponse.json({ success: true, data: { products: [] } });
+  }
+
   if (!GATEWAY) {
     console.error('[bff/products] API_GATEWAY_URL is not configured');
     return NextResponse.json(
