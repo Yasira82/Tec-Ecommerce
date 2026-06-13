@@ -160,7 +160,7 @@ style(shop):     UI polish
 
 ### Test Coverage Targets (Phase 0 gate)
 | File | Priority | Scenarios |
-|------|----------|-----------|
+|------|----------|----------|
 | `src/lib-client/cart/useCart.ts` | HIGH | addToCart, removeFromCart, updateQty, clearCart, localStorage persist |
 | `src/app/api/bff/orders/route.ts` | HIGH | single product (product_id), multi-item (items[]), auth fail |
 | `src/app/api/bff/payment/approve/route.ts` | MEDIUM | success, invalid payment_id, gateway error |
@@ -282,3 +282,22 @@ tec-core-backend (deploy)
 → Payment ownership (ADR-007): `knowledge-base/C-76___ADR-007.md`
 → Frontend state governance: `knowledge-base/C-72___FRONTEND_STATE_GOVERNANCE.md`
 → Strategic roadmap: `knowledge-base/C-77___STRATEGIC_ANALYSIS___RISK_ASSESSMENT.md`
+
+
+---
+
+## Skills
+
+Available via plugin — invoke automatically when the situation matches:
+
+| Situation | Skill |
+|-----------|-------|
+| Writing new feature or fixing a bug → use TDD | `/tdd` |
+| Bug, regression, or unexpected behavior | `/diagnose` |
+| Writing or modifying tests | `/test-guard` |
+| Writing or modifying BFF routes, payment handlers, or API contracts | `/clean-code-guard` |
+| Updating docs, CLAUDE.md, or knowledge-base entries | `/docs-guard` |
+| Planning a new feature or architectural decision | `/grill-with-docs` |
+| Breaking down a roadmap item into GitHub Issues | `/to-issues` |
+| Session is getting long or context is filling up | `/handoff` |
+| Adding pre-commit hooks to this repo | `/setup-pre-commit` |
