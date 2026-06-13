@@ -4,8 +4,8 @@ import { z } from 'zod';
 const GW = process.env.API_GATEWAY_URL;
 
 const CompleteSchema = z.object({
-  paymentId: z.string().min(1),
-  txid:      z.string().min(1),
+  payment_id:     z.string().min(1),
+  transaction_id: z.string().min(1),
 });
 
 export async function POST(req: NextRequest) {
