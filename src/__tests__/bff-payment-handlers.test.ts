@@ -30,7 +30,7 @@ beforeEach(() => {
 describe('POST /api/bff/payment/approve', () => {
   it('returns 401 when token missing', async () => {
     const { POST } = await import('@/app/api/bff/payment/approve/route');
-    const res = await POST(makeReq({ body: { payment_id: 'p1', pi_payment_id: 'pi1' } }));
+    const res = await POST(makeReq({ body: { paymentId: 'p1', txid: 'pi1' } }));
     expect(res.status).toBe(401);
     const body = await res.json();
     expect(body.error).toBe('Unauthorized');
@@ -45,7 +45,7 @@ describe('POST /api/bff/payment/approve', () => {
     const { POST } = await import('@/app/api/bff/payment/approve/route');
     const res = await POST(makeReq({
       cookies: { tec_access_token: 'tok-123', tec_user: userCookie },
-      body:    { payment_id: 'pay-1', pi_payment_id: 'pi-pay-1' },
+      body:    { paymentId: 'pay-1', txid: 'pi-pay-1' },
     }));
     expect(res.status).toBe(200);
     const body = await res.json();
@@ -61,7 +61,7 @@ describe('POST /api/bff/payment/approve', () => {
     const { POST } = await import('@/app/api/bff/payment/approve/route');
     const res = await POST(makeReq({
       cookies: { tec_access_token: 'tok-123' },
-      body:    { payment_id: 'pay-1', pi_payment_id: 'pi-pay-1' },
+      body:    { paymentId: 'pay-1', txid: 'pi-pay-1' },
     }));
     expect(res.status).toBe(409);
   });
@@ -75,7 +75,7 @@ describe('POST /api/bff/payment/approve', () => {
     const { POST } = await import('@/app/api/bff/payment/approve/route');
     await POST(makeReq({
       cookies: { tec_access_token: 'tok-123' },
-      body:    { payment_id: 'pay-1', pi_payment_id: 'pi-pay-1' },
+      body:    { paymentId: 'pay-1', txid: 'pi-pay-1' },
     }));
 
     const [, init] = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
@@ -84,7 +84,7 @@ describe('POST /api/bff/payment/approve', () => {
     );
   });
 
-  it('merges userId from cookie into gateway body', async () => {
+  it('forwards paymentId and txid to gateway body', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
       ok: true, status: 200,
       json: async () => ({}),
@@ -93,12 +93,13 @@ describe('POST /api/bff/payment/approve', () => {
     const { POST } = await import('@/app/api/bff/payment/approve/route');
     await POST(makeReq({
       cookies: { tec_access_token: 'tok-123', tec_user: userCookie },
-      body:    { payment_id: 'pay-1', pi_payment_id: 'pi-pay-1' },
+      body:    { paymentId: 'pay-1', txid: 'pi-pay-1' },
     }));
 
     const [, init] = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
     const sent = JSON.parse(init.body);
-    expect(sent.userId).toBe('user-123');
+    expect(sent.paymentId).toBe('pay-1');
+    expect(sent.txid).toBe('pi-pay-1');
   });
 });
 
@@ -109,7 +110,7 @@ describe('POST /api/bff/payment/complete', () => {
     const res = await POST(
       new NextRequest('http://localhost/api/bff/payment/complete', {
         method: 'POST',
-        body:   JSON.stringify({ payment_id: 'p1', transaction_id: 'tx1' }),
+        body:   JSON.stringify({ paymentId: 'p1', txid: 'tx1' }),
       })
     );
     expect(res.status).toBe(401);
@@ -125,7 +126,7 @@ describe('POST /api/bff/payment/complete', () => {
     const res = await POST(makeReq({
       url:     'http://localhost/api/bff/payment/complete',
       cookies: { tec_access_token: 'tok-123' },
-      body:    { payment_id: 'pay-1', transaction_id: 'txid-abc' },
+      body:    { paymentId: 'pay-1', txid: 'txid-abc' },
     }));
     expect(res.status).toBe(200);
     const body = await res.json();
@@ -142,12 +143,12 @@ describe('POST /api/bff/payment/complete', () => {
     const res = await POST(makeReq({
       url:     'http://localhost/api/bff/payment/complete',
       cookies: { tec_access_token: 'tok-123' },
-      body:    { payment_id: 'pay-1', transaction_id: 'txid-abc' },
+      body:    { paymentId: 'pay-1', txid: 'txid-abc' },
     }));
     expect(res.status).toBe(409);
   });
 
-  it('passes transaction_id not txid to gateway', async () => {
+  it('passes txid not transaction_id to gateway', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
       ok: true, status: 200,
       json: async () => ({}),
@@ -157,13 +158,13 @@ describe('POST /api/bff/payment/complete', () => {
     await POST(makeReq({
       url:     'http://localhost/api/bff/payment/complete',
       cookies: { tec_access_token: 'tok-123' },
-      body:    { payment_id: 'pay-1', transaction_id: 'tx-999' },
+      body:    { paymentId: 'pay-1', txid: 'tx-999' },
     }));
 
     const [, init] = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
     const sent = JSON.parse(init.body);
-    expect(sent).toHaveProperty('transaction_id', 'tx-999');
-    expect(sent).not.toHaveProperty('txid');
+    expect(sent).toHaveProperty('txid', 'tx-999');
+    expect(sent).not.toHaveProperty('transaction_id');
   });
 
   it('adds Idempotency-Key to gateway call', async () => {
@@ -176,7 +177,7 @@ describe('POST /api/bff/payment/complete', () => {
     await POST(makeReq({
       url:     'http://localhost/api/bff/payment/complete',
       cookies: { tec_access_token: 'tok-123' },
-      body:    { payment_id: 'pay-1', transaction_id: 'tx-1' },
+      body:    { paymentId: 'pay-1', txid: 'tx-1' },
     }));
 
     const [, init] = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0];

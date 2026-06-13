@@ -192,8 +192,8 @@ describe('POST /api/bff/orders', () => {
     }));
 
     const [, init] = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
-    const sent = JSON.parse(init.body);
-    expect(sent.userId).toBe('user-123');
-    expect(sent.userId).not.toBe('spoofed-id');
+    const headers = init.headers as Record<string, string>;
+    expect(headers['x-user-id']).toBe('user-123');
+    expect(headers['x-user-id']).not.toBe('spoofed-id');
   });
 });
