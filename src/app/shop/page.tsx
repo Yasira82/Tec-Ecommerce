@@ -107,7 +107,6 @@ export default function ShopPage() {
   }, [isAuthenticated]);
 
   const loadProducts = useCallback(() => {
-    if (!isAuthenticated) return;
     setFetchError(false);
     setFetching(true);
     fetch('/api/bff/products?limit=60', { credentials: 'include' })
@@ -121,7 +120,7 @@ export default function ShopPage() {
       })
       .catch(() => { setFetchError(true); setProducts([]); })
       .finally(() => setFetching(false));
-  }, [isAuthenticated]);
+  }, []);
 
   useEffect(() => { loadProducts(); }, [loadProducts]);
 
@@ -196,23 +195,6 @@ export default function ShopPage() {
     <div style={{ minHeight:'100vh', background:'#07070f', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:14 }}>
       <div style={{ width:36, height:36, borderRadius:'50%', border:'3px solid rgba(212,175,55,0.15)', borderTopColor:'#d4af37', animation:'spin 0.8s linear infinite' }} />
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-    </div>
-  );
-
-  if (!isAuthenticated) return (
-    <div style={{ minHeight:'100vh', background:'#07070f', display:'flex', alignItems:'center', justifyContent:'center' }}>
-      <div style={{ textAlign:'center', animation:'fadeIn 0.5s ease' }}>
-        <div style={{ fontSize:52, marginBottom:14 }}>🛍️</div>
-        <div style={{ fontSize:26, fontWeight:900, color:TEC_COLORS.gold, marginBottom:6, fontFamily:'Georgia,serif' }}>TEC Store</div>
-        <div style={{ fontSize:12, color:'#4a4a5a', fontFamily:'system-ui', marginBottom:32 }}>Login with Pi to browse and buy</div>
-        <button
-          onClick={() => ssoRedirect(HUB_URL, `${APP_URL}/shop`)}
-          style={{ padding:'13px 36px', background:`linear-gradient(135deg,${TEC_COLORS.gold},${TEC_COLORS.goldDark})`, border:'none', borderRadius:16, color:'#0a0800', fontSize:14, fontWeight:800, cursor:'pointer', fontFamily:'system-ui' }}
-        >
-          🔷 Login with Pi
-        </button>
-      </div>
-      <style>{`@keyframes fadeIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}`}</style>
     </div>
   );
 
