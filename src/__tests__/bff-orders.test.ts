@@ -86,13 +86,13 @@ describe('GET /api/bff/orders', () => {
 
 // ── POST /api/bff/orders ────────────────────────────────────────
 describe('POST /api/bff/orders', () => {
-  it('returns 403 when CSRF token missing', async () => {
+  it('returns 403 when CSRF cookie present but header mismatches', async () => {
     const { POST } = await import('@/app/api/bff/orders/route');
     const res = await POST(makeReq({
       method:  'POST',
-      cookies: { tec_user: userCookie },
+      cookies: { tec_user: userCookie, tec_csrf: 'cookie-value' },
+      headers: { 'x-csrf-token': 'wrong-value' },
       body:    { payment_id: 'pay-1', product_id: 'prod-1' },
-      // no tec_csrf cookie, no x-csrf-token header
     }));
     expect(res.status).toBe(403);
     const body = await res.json();
