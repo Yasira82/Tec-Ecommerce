@@ -21,8 +21,7 @@ export const createPaymentRecord = async (
     const token = getToken();
     if (!token) return null;
     const res = await fetch('/api/bff/payment/create', {
-      method:      'POST',
-      credentials: 'include',
+      method: 'POST', credentials: 'include',
       headers: {
         'Content-Type':  'application/json',
         'x-csrf-token':  getCsrfToken(),
