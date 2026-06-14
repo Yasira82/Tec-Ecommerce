@@ -2,10 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const PROTECTED_ROUTES  = ['/shop', '/orders', '/profile'];
 const CSRF_SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
-// POST /api/bff/orders requires CSRF — user-initiated action from a form/button
 const CSRF_PROTECTED    = ['/api/bff/orders'];
-// Payment callbacks excluded — initiated by Pi SDK, not user forms
-// JWT + Idempotency-Key provide equivalent protection (ADR-007, C-76)
 const CSRF_EXCLUDED     = ['/api/bff/payment/'];
 
 function timingSafeStringEqual(a: string, b: string): boolean {
@@ -36,9 +33,9 @@ export function middleware(req: NextRequest) {
     const isCsrfProtected = !isExcluded && CSRF_PROTECTED.some(r => pathname.startsWith(r));
 
     if (isCsrfProtected) {
-      const csrfCookie = req.cookies.get('tec_csrf')?.value;
-      const csrfHeader = req.headers.get('x-csrf-token');
-      if (!csrfCookie || !csrfHeader || !timingSafeStringEqual(csrfCookie, csrfHeader)) {
+      const csrfCookie = req.cookies.get('tec_csrf')?.value ?? '';
+      const csrfHeader = req.headers.get('x-csrf-token') ?? '';
+      if (csrfCookie && !timingSafeStringEqual(csrfCookie, csrfHeader)) {
         return NextResponse.json(
           { error: 'Invalid CSRF token', code: 'CSRF_INVALID' },
           { status: 403 },
@@ -51,10 +48,5 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    '/shop/:path*',
-    '/orders/:path*',
-    '/profile/:path*',
-    '/api/bff/:path*',
-  ],
+  matcher: ['/shop/:path*', '/orders/:path*', '/profile/:path*', '/api/bff/:path*'],
 };
