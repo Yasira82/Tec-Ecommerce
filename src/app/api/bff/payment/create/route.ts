@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
-const GW = process.env.API_GATEWAY_URL ?? process.env.NEXT_PUBLIC_API_GATEWAY_URL ?? '';
+const GW = process.env.API_GATEWAY_URL ?? '';
 
 const CreateSchema = z.object({
   amount:   z.number().positive(),
@@ -18,11 +18,11 @@ const getUserId = (req: NextRequest): string => {
 };
 
 export async function POST(req: NextRequest) {
-  if (!GW) return NextResponse.json({ error: 'Gateway not configured' }, { status: 503 });
+  if (!GW) return NextResponse.json({ error: 'Service unavailable' }, { status: 503 });
 
   const csrfCookie = req.cookies.get('tec_csrf')?.value ?? '';
   const csrfHeader = req.headers.get('x-csrf-token') ?? '';
-  if (csrfCookie && csrfCookie !== csrfHeader) {
+  if (!csrfCookie || csrfCookie !== csrfHeader) {
     return NextResponse.json({ error: 'CSRF validation failed' }, { status: 403 });
   }
 

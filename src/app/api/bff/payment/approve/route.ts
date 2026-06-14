@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
-const GW = process.env.API_GATEWAY_URL ?? process.env.NEXT_PUBLIC_API_GATEWAY_URL ?? '';
+const GW = process.env.API_GATEWAY_URL ?? '';
 
 const ApproveSchema = z.object({
   payment_id:    z.string().min(1),
@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
 
   const csrfCookie = req.cookies.get('tec_csrf')?.value ?? '';
   const csrfHeader = req.headers.get('x-csrf-token') ?? '';
-  if (csrfCookie && csrfCookie !== csrfHeader) {
+  if (!csrfCookie || csrfCookie !== csrfHeader) {
     return NextResponse.json({ error: 'CSRF validation failed' }, { status: 403 });
   }
 
