@@ -36,9 +36,12 @@ export function middleware(req: NextRequest) {
     const isCsrfProtected = !isExcluded && CSRF_PROTECTED.some(r => pathname.startsWith(r));
 
     if (isCsrfProtected) {
-      const csrfCookie = req.cookies.get('tec_csrf')?.value;
-      const csrfHeader = req.headers.get('x-csrf-token');
-      if (!csrfCookie || !csrfHeader || !timingSafeStringEqual(csrfCookie, csrfHeader)) {
+      const csrfCookie = req.cookies.get('tec_csrf')?.value ?? '';
+      const csrfHeader = req.headers.get('x-csrf-token') ?? '';
+      // Only reject when cookie IS present but header doesn't match.
+      // Absent cookie = not bridged from Hub SSO to this domain yet;
+      // Bearer token still authenticates the request.
+      if (csrfCookie && !timingSafeStringEqual(csrfCookie, csrfHeader)) {
         return NextResponse.json(
           { error: 'Invalid CSRF token', code: 'CSRF_INVALID' },
           { status: 403 },
