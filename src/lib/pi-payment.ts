@@ -57,12 +57,10 @@ export const createPaymentRecord = async (
       },
       body: JSON.stringify({
         amount,
-        currency:       'PI',
-        payment_method: 'pi',
+        memo,
         metadata: {
           source:     'ecommerce',
           product_id: productId,
-          memo,
         },
       }),
     });
