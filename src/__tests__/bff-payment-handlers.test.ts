@@ -6,18 +6,26 @@ const GW = 'https://api.example.com';
 
 const makeReq = (opts: {
   cookies?: Record<string, string>;
+  headers?: Record<string, string>;
   body?:    unknown;
   url?:     string;
 }) => {
   const cookieStr = opts.cookies
     ? Object.entries(opts.cookies).map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join('; ')
     : '';
+  const headers: Record<string, string> = {};
+  if (cookieStr) headers['Cookie'] = cookieStr;
+  if (opts.headers) Object.assign(headers, opts.headers);
   return new NextRequest(opts.url ?? 'http://localhost/api/bff/payment/approve', {
     method:  'POST',
-    headers: cookieStr ? { Cookie: cookieStr } : {},
+    headers,
     body:    opts.body ? JSON.stringify(opts.body) : undefined,
   });
 };
+
+const CSRF_TOKEN = 'test-csrf-token';
+const csrfCookies = { tec_csrf: CSRF_TOKEN };
+const csrfHeaders = { 'x-csrf-token': CSRF_TOKEN };
 
 const userCookie = JSON.stringify({ id: 'user-123', piId: 'pi-456' });
 
@@ -28,9 +36,21 @@ beforeEach(() => {
 
 // ── POST /api/bff/payment/approve ───────────────────────────────
 describe('POST /api/bff/payment/approve', () => {
-  it('returns 401 when token missing', async () => {
+  it('returns 403 when CSRF token missing', async () => {
     const { POST } = await import('@/app/api/bff/payment/approve/route');
     const res = await POST(makeReq({ body: { payment_id: 'p1', pi_payment_id: 'pi1' } }));
+    expect(res.status).toBe(403);
+    const body = await res.json();
+    expect(body.error).toBe('CSRF validation failed');
+  });
+
+  it('returns 401 when token missing', async () => {
+    const { POST } = await import('@/app/api/bff/payment/approve/route');
+    const res = await POST(makeReq({
+      cookies: { ...csrfCookies },
+      headers: csrfHeaders,
+      body:    { payment_id: 'p1', pi_payment_id: 'pi1' },
+    }));
     expect(res.status).toBe(401);
     const body = await res.json();
     expect(body.error).toBe('Unauthorized');
@@ -44,7 +64,8 @@ describe('POST /api/bff/payment/approve', () => {
 
     const { POST } = await import('@/app/api/bff/payment/approve/route');
     const res = await POST(makeReq({
-      cookies: { tec_access_token: 'tok-123', tec_user: userCookie },
+      cookies: { tec_access_token: 'tok-123', tec_user: userCookie, ...csrfCookies },
+      headers: csrfHeaders,
       body:    { payment_id: 'pay-1', pi_payment_id: 'pi-pay-1' },
     }));
     expect(res.status).toBe(200);
@@ -60,7 +81,8 @@ describe('POST /api/bff/payment/approve', () => {
 
     const { POST } = await import('@/app/api/bff/payment/approve/route');
     const res = await POST(makeReq({
-      cookies: { tec_access_token: 'tok-123' },
+      cookies: { tec_access_token: 'tok-123', ...csrfCookies },
+      headers: csrfHeaders,
       body:    { payment_id: 'pay-1', pi_payment_id: 'pi-pay-1' },
     }));
     expect(res.status).toBe(409);
@@ -74,7 +96,8 @@ describe('POST /api/bff/payment/approve', () => {
 
     const { POST } = await import('@/app/api/bff/payment/approve/route');
     await POST(makeReq({
-      cookies: { tec_access_token: 'tok-123' },
+      cookies: { tec_access_token: 'tok-123', ...csrfCookies },
+      headers: csrfHeaders,
       body:    { payment_id: 'pay-1', pi_payment_id: 'pi-pay-1' },
     }));
 
@@ -92,7 +115,8 @@ describe('POST /api/bff/payment/approve', () => {
 
     const { POST } = await import('@/app/api/bff/payment/approve/route');
     await POST(makeReq({
-      cookies: { tec_access_token: 'tok-123', tec_user: userCookie },
+      cookies: { tec_access_token: 'tok-123', tec_user: userCookie, ...csrfCookies },
+      headers: csrfHeaders,
       body:    { payment_id: 'pay-1', pi_payment_id: 'pi-pay-1' },
     }));
 
@@ -105,7 +129,7 @@ describe('POST /api/bff/payment/approve', () => {
 
 // ── POST /api/bff/payment/complete ──────────────────────────────
 describe('POST /api/bff/payment/complete', () => {
-  it('returns 401 when token missing', async () => {
+  it('returns 403 when CSRF token missing', async () => {
     const { POST } = await import('@/app/api/bff/payment/complete/route');
     const res = await POST(
       new NextRequest('http://localhost/api/bff/payment/complete', {
@@ -113,6 +137,19 @@ describe('POST /api/bff/payment/complete', () => {
         body:   JSON.stringify({ payment_id: 'p1', transaction_id: 'tx1' }),
       })
     );
+    expect(res.status).toBe(403);
+    const body = await res.json();
+    expect(body.error).toBe('CSRF validation failed');
+  });
+
+  it('returns 401 when token missing', async () => {
+    const { POST } = await import('@/app/api/bff/payment/complete/route');
+    const res = await POST(makeReq({
+      url:     'http://localhost/api/bff/payment/complete',
+      cookies: { ...csrfCookies },
+      headers: csrfHeaders,
+      body:    { payment_id: 'p1', transaction_id: 'tx1' },
+    }));
     expect(res.status).toBe(401);
   });
 
@@ -125,7 +162,8 @@ describe('POST /api/bff/payment/complete', () => {
     const { POST } = await import('@/app/api/bff/payment/complete/route');
     const res = await POST(makeReq({
       url:     'http://localhost/api/bff/payment/complete',
-      cookies: { tec_access_token: 'tok-123' },
+      cookies: { tec_access_token: 'tok-123', ...csrfCookies },
+      headers: csrfHeaders,
       body:    { payment_id: 'pay-1', transaction_id: 'txid-abc' },
     }));
     expect(res.status).toBe(200);
@@ -142,7 +180,8 @@ describe('POST /api/bff/payment/complete', () => {
     const { POST } = await import('@/app/api/bff/payment/complete/route');
     const res = await POST(makeReq({
       url:     'http://localhost/api/bff/payment/complete',
-      cookies: { tec_access_token: 'tok-123' },
+      cookies: { tec_access_token: 'tok-123', ...csrfCookies },
+      headers: csrfHeaders,
       body:    { payment_id: 'pay-1', transaction_id: 'txid-abc' },
     }));
     expect(res.status).toBe(409);
@@ -157,7 +196,8 @@ describe('POST /api/bff/payment/complete', () => {
     const { POST } = await import('@/app/api/bff/payment/complete/route');
     await POST(makeReq({
       url:     'http://localhost/api/bff/payment/complete',
-      cookies: { tec_access_token: 'tok-123' },
+      cookies: { tec_access_token: 'tok-123', ...csrfCookies },
+      headers: csrfHeaders,
       body:    { payment_id: 'pay-1', transaction_id: 'tx-999' },
     }));
 
@@ -176,7 +216,8 @@ describe('POST /api/bff/payment/complete', () => {
     const { POST } = await import('@/app/api/bff/payment/complete/route');
     await POST(makeReq({
       url:     'http://localhost/api/bff/payment/complete',
-      cookies: { tec_access_token: 'tok-123' },
+      cookies: { tec_access_token: 'tok-123', ...csrfCookies },
+      headers: csrfHeaders,
       body:    { payment_id: 'pay-1', transaction_id: 'tx-1' },
     }));
 

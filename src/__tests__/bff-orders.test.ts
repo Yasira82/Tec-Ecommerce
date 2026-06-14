@@ -7,18 +7,26 @@ const GW = 'https://api.example.com';
 const makeReq = (opts: {
   method?:  string;
   cookies?: Record<string, string>;
+  headers?: Record<string, string>;
   body?:    unknown;
   url?:     string;
 }) => {
   const cookieStr = opts.cookies
     ? Object.entries(opts.cookies).map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join('; ')
     : '';
+  const headers: Record<string, string> = {};
+  if (cookieStr) headers['Cookie'] = cookieStr;
+  if (opts.headers) Object.assign(headers, opts.headers);
   return new NextRequest(opts.url ?? 'http://localhost/api/bff/orders', {
     method:  opts.method ?? 'GET',
-    headers: cookieStr ? { Cookie: cookieStr } : {},
+    headers,
     body:    opts.body ? JSON.stringify(opts.body) : undefined,
   });
 };
+
+const CSRF_TOKEN = 'test-csrf-token';
+const csrfCookies = { tec_csrf: CSRF_TOKEN };
+const csrfHeaders = { 'x-csrf-token': CSRF_TOKEN };
 
 const userCookie = JSON.stringify({ id: 'user-123', piId: 'pi-456' });
 
@@ -78,11 +86,26 @@ describe('GET /api/bff/orders', () => {
 
 // ── POST /api/bff/orders ────────────────────────────────────────
 describe('POST /api/bff/orders', () => {
+  it('returns 403 when CSRF token missing', async () => {
+    const { POST } = await import('@/app/api/bff/orders/route');
+    const res = await POST(makeReq({
+      method:  'POST',
+      cookies: { tec_user: userCookie },
+      body:    { payment_id: 'pay-1', product_id: 'prod-1' },
+      // no tec_csrf cookie, no x-csrf-token header
+    }));
+    expect(res.status).toBe(403);
+    const body = await res.json();
+    expect(body.error).toBe('CSRF validation failed');
+  });
+
   it('returns 401 when tec_user cookie missing', async () => {
     const { POST } = await import('@/app/api/bff/orders/route');
     const res = await POST(makeReq({
-      method: 'POST',
-      body:   { payment_id: 'pay-1', product_id: 'prod-1' },
+      method:   'POST',
+      cookies:  { ...csrfCookies },
+      headers:  csrfHeaders,
+      body:     { payment_id: 'pay-1', product_id: 'prod-1' },
     }));
     expect(res.status).toBe(401);
   });
@@ -91,7 +114,8 @@ describe('POST /api/bff/orders', () => {
     const { POST } = await import('@/app/api/bff/orders/route');
     const res = await POST(makeReq({
       method:  'POST',
-      cookies: { tec_user: userCookie },
+      cookies: { tec_user: userCookie, ...csrfCookies },
+      headers: csrfHeaders,
       body:    { product_id: 'prod-1' },
     }));
     expect(res.status).toBe(400);
@@ -101,7 +125,8 @@ describe('POST /api/bff/orders', () => {
     const { POST } = await import('@/app/api/bff/orders/route');
     const res = await POST(makeReq({
       method:  'POST',
-      cookies: { tec_user: userCookie },
+      cookies: { tec_user: userCookie, ...csrfCookies },
+      headers: csrfHeaders,
       body:    { payment_id: 'pay-1' },
     }));
     expect(res.status).toBe(400);
@@ -116,7 +141,8 @@ describe('POST /api/bff/orders', () => {
     const { POST } = await import('@/app/api/bff/orders/route');
     const res = await POST(makeReq({
       method:  'POST',
-      cookies: { tec_user: userCookie, tec_access_token: 'tok-123' },
+      cookies: { tec_user: userCookie, tec_access_token: 'tok-123', ...csrfCookies },
+      headers: csrfHeaders,
       body:    { payment_id: 'pay-1', product_id: 'prod-abc' },
     }));
     expect(res.status).toBe(200);
@@ -137,7 +163,8 @@ describe('POST /api/bff/orders', () => {
     const items = [{ productId: 'prod-1', qty: 2 }, { productId: 'prod-2', qty: 1 }];
     const res = await POST(makeReq({
       method:  'POST',
-      cookies: { tec_user: userCookie, tec_access_token: 'tok-123' },
+      cookies: { tec_user: userCookie, tec_access_token: 'tok-123', ...csrfCookies },
+      headers: csrfHeaders,
       body:    { payment_id: 'pay-2', items },
     }));
     expect(res.status).toBe(200);
@@ -157,7 +184,8 @@ describe('POST /api/bff/orders', () => {
     const items = [{ productId: 'prod-cart', qty: 3 }];
     await POST(makeReq({
       method:  'POST',
-      cookies: { tec_user: userCookie, tec_access_token: 'tok-123' },
+      cookies: { tec_user: userCookie, tec_access_token: 'tok-123', ...csrfCookies },
+      headers: csrfHeaders,
       body:    { payment_id: 'pay-3', product_id: 'prod-single', items },
     }));
 
@@ -172,7 +200,8 @@ describe('POST /api/bff/orders', () => {
     const { POST } = await import('@/app/api/bff/orders/route');
     const res = await POST(makeReq({
       method:  'POST',
-      cookies: { tec_user: userCookie, tec_access_token: 'tok-123' },
+      cookies: { tec_user: userCookie, tec_access_token: 'tok-123', ...csrfCookies },
+      headers: csrfHeaders,
       body:    { payment_id: 'pay-4', product_id: 'prod-1' },
     }));
     expect(res.status).toBe(500);
@@ -187,7 +216,8 @@ describe('POST /api/bff/orders', () => {
     const { POST } = await import('@/app/api/bff/orders/route');
     await POST(makeReq({
       method:  'POST',
-      cookies: { tec_user: userCookie, tec_access_token: 'tok-123' },
+      cookies: { tec_user: userCookie, tec_access_token: 'tok-123', ...csrfCookies },
+      headers: csrfHeaders,
       body:    { payment_id: 'pay-5', product_id: 'prod-1', userId: 'spoofed-id' },
     }));
 
