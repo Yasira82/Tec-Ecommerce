@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 
-const GATEWAY = process.env.API_GATEWAY_URL;
+const GATEWAY = process.env.API_GATEWAY_URL ?? '';
+
+const OrderSchema = z.object({
+  items:      z.array(z.object({ productId: z.string(), qty: z.number().int().positive() })).optional(),
+  product_id: z.string().optional(),
+  payment_id: z.string().min(1),
+  memo:       z.string().optional(),
+});
 
 const getToken = (req: NextRequest) =>
   req.cookies.get('tec_access_token')?.value ?? '';
@@ -14,7 +22,7 @@ const getUserId = (req: NextRequest): string => {
 };
 
 export async function GET(req: NextRequest) {
-  if (!GATEWAY) return NextResponse.json({ error: 'Gateway not configured' }, { status: 503 });
+  if (!GATEWAY) return NextResponse.json({ error: 'Service unavailable' }, { status: 503 });
 
   try {
     const userId = getUserId(req);
@@ -42,26 +50,34 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  if (!GATEWAY) return NextResponse.json({ error: 'Gateway not configured' }, { status: 503 });
+  if (!GATEWAY) return NextResponse.json({ error: 'Service unavailable' }, { status: 503 });
+
+  const csrfCookie = req.cookies.get('tec_csrf')?.value ?? '';
+  const csrfHeader = req.headers.get('x-csrf-token') ?? '';
+  if (!csrfCookie || csrfCookie !== csrfHeader) {
+    return NextResponse.json({ error: 'CSRF validation failed' }, { status: 403 });
+  }
 
   try {
     const userId = getUserId(req);
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const body       = await req.json();
-    const productId  = body.product_id as string | undefined;
-    const paymentId  = body.payment_id as string;
-    const memo       = body.memo       as string | undefined;
-    const bodyItems  = body.items      as { productId: string; qty: number }[] | undefined;
+    const rawBody = await req.json().catch(() => ({}));
+    const parsed  = OrderSchema.safeParse(rawBody);
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'VALIDATION_ERROR', details: parsed.error.flatten() }, { status: 400 });
+    }
 
-    if (!paymentId || (!productId && !bodyItems?.length)) {
+    const { product_id, payment_id, memo, items: bodyItems } = parsed.data;
+
+    if (!product_id && !bodyItems?.length) {
       return NextResponse.json(
         { error: 'payment_id and either product_id or items[] required' },
         { status: 400 },
       );
     }
 
-    const items = bodyItems ?? [{ productId: productId!, qty: 1 }];
+    const items = bodyItems ?? [{ productId: product_id!, qty: 1 }];
 
     const res = await fetch(
       `${GATEWAY}/api/commerce/orders`,
@@ -76,8 +92,8 @@ export async function POST(req: NextRequest) {
         },
         body: JSON.stringify({
           items,
-          payment_id: paymentId,
-          memo: memo ?? (productId ? `Order for product ${productId}` : `Cart order — ${items.length} item(s)`),
+          payment_id,
+          memo: memo ?? (product_id ? `Order for product ${product_id}` : `Cart order — ${items.length} item(s)`),
         }),
       },
     );

@@ -1,10 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 
+const GW = process.env.API_GATEWAY_URL ?? '';
 
-const GW = process.env.API_GATEWAY_URL ?? process.env.NEXT_PUBLIC_API_GATEWAY_URL ?? '';
-
+const CreateSchema = z.object({
+  amount:   z.number().positive(),
+  memo:     z.string().min(1),
+  metadata: z.record(z.unknown()).optional(),
+});
 
 export async function POST(req: NextRequest) {
+  if (!GW) return NextResponse.json({ error: 'Service unavailable' }, { status: 503 });
+
+  const csrfCookie = req.cookies.get('tec_csrf')?.value ?? '';
+  const csrfHeader = req.headers.get('x-csrf-token') ?? '';
+  if (!csrfCookie || csrfCookie !== csrfHeader) {
+    return NextResponse.json({ error: 'CSRF validation failed' }, { status: 403 });
+  }
+
   const token = req.cookies.get('tec_access_token')?.value;
   if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
@@ -17,8 +30,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const body = await req.json().catch(() => ({}));
-  const { amount, currency, payment_method, metadata } = body;
+  const rawBody = await req.json().catch(() => ({}));
+  const parsed  = CreateSchema.safeParse(rawBody);
+  if (!parsed.success) {
+    return NextResponse.json({ error: 'VALIDATION_ERROR', details: parsed.error.flatten() }, { status: 400 });
+  }
+
+  const { amount, memo, metadata } = parsed.data;
 
   const res = await fetch(`${GW}/api/payment/create`, {
     method:  'POST',
@@ -30,9 +48,10 @@ export async function POST(req: NextRequest) {
     },
     body: JSON.stringify({
       userId,
-      amount:         Number(amount),
-      currency:       currency       ?? 'PI',
-      payment_method: payment_method ?? 'pi',
+      amount,
+      memo,
+      currency:       'PI',
+      payment_method: 'pi',
       metadata:       { ...metadata, source: 'ecommerce' },
     }),
   });
