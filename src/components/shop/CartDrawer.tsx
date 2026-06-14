@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useRef }          from 'react';
-import { useRouter }                  from 'next/navigation';
 import { CartItem }                   from '@/lib-client/cart/useCart';
 import { createPaymentRecord, createU2APayment } from '@/lib/pi-payment';
 
@@ -23,7 +22,7 @@ const redirectToHubPayment = (total: number, count: number) => {
   const params = new URLSearchParams({
     pay: '1', amount: total.toString(),
     memo, product_id: 'cart_checkout',
-    return_url: `${APP_URL}/orders`, source: 'ecommerce',
+    return_url: APP_URL, source: 'ecommerce',
   });
   window.location.href = `${HUB_URL}/hub?${params.toString()}`;
 };
@@ -40,7 +39,6 @@ interface Props {
 }
 
 export function CartDrawer({ isOpen, onClose, items, onUpdateQty, onRemove, onClear, piReady }: Props) {
-  const router   = useRouter();
   const inFlight = useRef(false);
   const [status, setStatus] = useState<CheckoutStatus>('idle');
   const [errMsg, setErrMsg] = useState('');
@@ -68,7 +66,7 @@ export function CartDrawer({ isOpen, onClose, items, onUpdateQty, onRemove, onCl
         await fetch('/api/bff/orders', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json', 'x-csrf-token': getCsrfToken() }, body: JSON.stringify({ items: cartItems, payment_id: internalId, memo }) }).catch(() => {});
         setStatus('success');
         onClear();
-        setTimeout(() => { setStatus('idle'); onClose(); router.push('/orders'); }, 1800);
+        setTimeout(() => { setStatus('idle'); onClose(); }, 1800);
       } else {
         setStatus(result.status === 'cancelled' ? 'cancelled' : 'error');
         setErrMsg(result.message ?? '');
@@ -138,7 +136,7 @@ export function CartDrawer({ isOpen, onClose, items, onUpdateQty, onRemove, onCl
             </div>
             {status === 'creating' && <div style={{ fontFamily: 'system-ui', fontSize: 12, color: '#f0c040', textAlign: 'center', marginBottom: 10 }}>Preparing payment…</div>}
             {status === 'paying'   && <div style={{ fontFamily: 'system-ui', fontSize: 12, color: '#7ee7c0', textAlign: 'center', marginBottom: 10 }}>Complete payment in Pi wallet…</div>}
-            {status === 'success'  && <div style={{ fontFamily: 'system-ui', fontSize: 12, color: '#10b981', textAlign: 'center', marginBottom: 10 }}>🎉 Payment successful! Redirecting…</div>}
+            {status === 'success'  && <div style={{ fontFamily: 'system-ui', fontSize: 12, color: '#10b981', textAlign: 'center', marginBottom: 10 }}>🎉 Payment successful!</div>}
             {(status === 'error' || status === 'cancelled') && (
               <div style={{ marginBottom: 10, textAlign: 'center' }}>
                 <div style={{ fontFamily: 'system-ui', fontSize: 12, color: status === 'cancelled' ? '#a78bfa' : '#ef4444', marginBottom: 6 }}>
