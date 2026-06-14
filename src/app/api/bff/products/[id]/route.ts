@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const GATEWAY = process.env.API_GATEWAY_URL ?? process.env.NEXT_PUBLIC_API_GATEWAY_URL;
+const GATEWAY = process.env.API_GATEWAY_URL ?? '';
 
 const getToken = (req: NextRequest) =>
   req.cookies.get('tec_access_token')?.value ?? '';
@@ -9,6 +9,8 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  if (!GATEWAY) return NextResponse.json({ error: 'Service unavailable' }, { status: 503 });
+
   try {
     const { id } = await params;
     const res = await fetch(`${GATEWAY}/api/commerce/products/${id}`, {

@@ -20,6 +20,10 @@ interface Merchant {
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://ecommerce.tecosystem.app';
 const HUB_URL = process.env.NEXT_PUBLIC_HUB_URL ?? 'https://hub.tecosystem.app';
 
+const isHubNavigation = () =>
+  typeof document !== 'undefined' &&
+  document.referrer.toLowerCase().includes('hub.tecosystem.app');
+
 const buyRedirect = (product: Product) => {
   window.location.href = `${HUB_URL}/hub?pay=1`
     + `&amount=${product.price}`
@@ -120,8 +124,13 @@ export default function StorePage() {
 
   const handleBuy = useCallback((product: Product) => {
     if (!isAuth) { router.push('/shop'); return; }
+    // ADR-007: check hub navigation FIRST before any Pi SDK attempt
+    if (isHubNavigation() || !(window as any).Pi || !piReady) {
+      buyRedirect(product);
+      return;
+    }
     buyRedirect(product);
-  }, [isAuth, router]);
+  }, [isAuth, piReady, router]);
 
   if (loading) return (
     <div style={{ minHeight:'100vh', background:'#020205', display:'flex', alignItems:'center', justifyContent:'center' }}>
@@ -203,4 +212,4 @@ export default function StorePage() {
       </div>
     </div>
   );
-        }
+}

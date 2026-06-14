@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const GW = process.env.API_GATEWAY_URL ?? process.env.NEXT_PUBLIC_API_GATEWAY_URL;
+const GW = process.env.API_GATEWAY_URL ?? '';
 
 const tryRefresh = async (refreshToken: string): Promise<string | null> => {
   try {
@@ -29,6 +29,8 @@ const resolve = (token: string, pi_payment_id: string) =>
   );
 
 export async function POST(req: NextRequest) {
+  if (!GW) return NextResponse.json({ error: 'Service unavailable' }, { status: 503 });
+
   let token = req.cookies.get('tec_access_token')?.value;
   if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 

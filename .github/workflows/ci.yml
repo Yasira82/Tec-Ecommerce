@@ -73,7 +73,6 @@ jobs:
         run: npm run build
         env:
           NEXT_PUBLIC_PI_SANDBOX:      'false'
-          NEXT_PUBLIC_API_GATEWAY_URL: ${{ secrets.NEXT_PUBLIC_API_GATEWAY_URL || 'https://api-gateway-production-6a68.up.railway.app' }}
           NEXT_PUBLIC_PI_APP_ID:       ${{ secrets.NEXT_PUBLIC_PI_APP_ID || 'test-app-id' }}
           API_GATEWAY_URL:             ${{ secrets.API_GATEWAY_URL || 'https://api-gateway-production-6a68.up.railway.app' }}
           INTERNAL_SECRET:             ${{ secrets.INTERNAL_SECRET || 'ci-test-secret-minimum-32-chars!!' }}
