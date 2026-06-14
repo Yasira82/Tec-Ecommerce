@@ -29,7 +29,7 @@ const buyRedirect = (product: Product) => {
     + `&amount=${product.price}`
     + `&memo=${encodeURIComponent(`Buy ${product.title} — TEC Ecommerce`)}`
     + `&product_id=${encodeURIComponent(product.id)}`
-    + `&return_url=${encodeURIComponent(`${APP_URL}/shop`)}`
+    + `&return_url=${encodeURIComponent(APP_URL)}`
     + `&source=ecommerce`;
 };
 
@@ -123,8 +123,7 @@ export default function StorePage() {
   }, [id]);
 
   const handleBuy = useCallback((product: Product) => {
-    if (!isAuth) { router.push('/shop'); return; }
-    // ADR-007: check hub navigation FIRST before any Pi SDK attempt
+    if (!isAuth) { router.push('/'); return; }
     if (isHubNavigation() || !(window as any).Pi || !piReady) {
       buyRedirect(product);
       return;
@@ -145,7 +144,7 @@ export default function StorePage() {
 
       <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} items={cartItems} onUpdateQty={updateQty} onRemove={removeFromCart} onClear={clearCart} piReady={piReady} />
       <header style={{ padding:'14px 16px', display:'flex', alignItems:'center', gap:12, position:'sticky', top:0, background:'rgba(2,2,5,0.95)', backdropFilter:'blur(20px)', zIndex:100, borderBottom:'1px solid #ffffff06' }}>
-        <button onClick={() => router.push('/shop')}
+        <button onClick={() => router.push('/')}
           style={{ background:'#ffffff08', border:'1px solid #ffffff10', borderRadius:10, padding:'6px 12px', color:'#6b6b7a', fontSize:14, cursor:'pointer' }}>←</button>
         <div style={{ fontSize:14, fontWeight:700, color:'#fff', flex:1 }}>Merchant Store</div>
         {itemCount > 0 && (
