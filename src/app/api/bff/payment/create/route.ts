@@ -4,18 +4,24 @@ import { z } from 'zod';
 const GW = process.env.API_GATEWAY_URL ?? '';
 
 const CreateSchema = z.object({
-  amount:   z.number().positive(),
-  memo:     z.string().min(1),
-  metadata: z.record(z.unknown()).optional(),
+  amount:     z.number().positive(),
+  memo:       z.string().min(1),
+  metadata:   z.record(z.unknown()).optional(),
 });
 
+const getUserId = (req: NextRequest): string => {
+  try {
+    const raw = req.cookies.get('tec_user')?.value ?? '';
+    const u   = JSON.parse(decodeURIComponent(raw));
+    return u?.id ?? u?.sub ?? u?.piId ?? '';
+  } catch { return ''; }
+};
+
 export async function POST(req: NextRequest) {
-  if (!GW) return NextResponse.json({ error: 'Service unavailable' }, { status: 503 });
+  if (!GW) return NextResponse.json({ error: 'Gateway not configured' }, { status: 503 });
 
   const csrfCookie = req.cookies.get('tec_csrf')?.value ?? '';
   const csrfHeader = req.headers.get('x-csrf-token') ?? '';
-  // Only enforce CSRF when cookie is present — absent cookie means it isn't bridged
-  // from Hub SSO to this domain yet (cross-domain SSO); Bearer token protects the route.
   if (csrfCookie && csrfCookie !== csrfHeader) {
     return NextResponse.json({ error: 'CSRF validation failed' }, { status: 403 });
   }
@@ -23,12 +29,8 @@ export async function POST(req: NextRequest) {
   const token = req.cookies.get('tec_access_token')?.value;
   if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const userRaw = req.cookies.get('tec_user')?.value;
-  const user    = userRaw ? JSON.parse(decodeURIComponent(userRaw)) : null;
-  const userId  = user?.id ?? user?.piId ?? null;
-
+  const userId = getUserId(req);
   if (!userId) {
-    console.error('[bff/payment/create] missing userId from tec_user cookie');
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
