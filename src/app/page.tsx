@@ -39,7 +39,7 @@ const redirectToHubPayment = (product: Product) => {
   const params = new URLSearchParams({
     pay: '1', amount: product.price.toString(),
     memo: `${label} — TEC Ecommerce`, product_id: product.id,
-    return_url: `${APP_URL}/shop`, source: 'ecommerce',
+    return_url: APP_URL, source: 'ecommerce',
   });
   window.location.href = `${HUB_URL}/hub?${params.toString()}`;
 };
