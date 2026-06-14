@@ -54,7 +54,9 @@ export async function POST(req: NextRequest) {
 
   const csrfCookie = req.cookies.get('tec_csrf')?.value ?? '';
   const csrfHeader = req.headers.get('x-csrf-token') ?? '';
-  if (!csrfCookie || csrfCookie !== csrfHeader) {
+  // Only enforce CSRF when cookie is present — absent cookie means it isn't bridged
+  // from Hub SSO to this domain yet (cross-domain SSO); Bearer token protects the route.
+  if (csrfCookie && csrfCookie !== csrfHeader) {
     return NextResponse.json({ error: 'CSRF validation failed' }, { status: 403 });
   }
 
