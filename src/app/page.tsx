@@ -264,12 +264,11 @@ function ProductCard({ product, piReady, onBuy, onAddToCart, onCartOpen, feature
             {added ? '✓ Added' : '+ Cart'}
           </button>
           <button
-            className={`buy-btn ${!piReady ? 'buy-btn--off' : ''}`}
-            onClick={() => piReady && onBuy(product)}
-            disabled={!piReady}
+            className="buy-btn"
+            onClick={() => onBuy(product)}
             style={{ flex:1 }}
           >
-            {piReady ? '⚡ Buy' : '···'}
+            ⚡ Buy
           </button>
         </div>
       </div>
@@ -307,7 +306,6 @@ const CSS = `
   .add-btn:hover { background:rgba(212,175,55,0.15); }
   .add-btn--done { background:rgba(16,185,129,0.12); border-color:rgba(16,185,129,0.4); color:#10b981; cursor:default; }
   .buy-btn { width:100%; padding:7px 6px; border-radius:10px; border:none; background:linear-gradient(135deg,#d4af37,#b8882a); color:#07070f; font-size:11px; font-weight:800; font-family:system-ui; cursor:pointer; transition:opacity 0.15s; }
-  .buy-btn:hover:not(.buy-btn--off) { opacity:0.88; }
-  .buy-btn--off { background:#1a1a28; color:#3a3a4a; cursor:not-allowed; }
+  .buy-btn:hover { opacity:0.88; }
   .spinner { width:32px; height:32px; border-radius:50%; border:3px solid rgba(212,175,55,0.15); border-top-color:#d4af37; animation:spin 0.8s linear infinite; }
 `;
