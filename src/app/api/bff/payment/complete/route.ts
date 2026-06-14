@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
-const GW = process.env.API_GATEWAY_URL;
+const GW = process.env.API_GATEWAY_URL ?? process.env.NEXT_PUBLIC_API_GATEWAY_URL ?? '';
 
 const CompleteSchema = z.object({
   payment_id:     z.string().min(1),
