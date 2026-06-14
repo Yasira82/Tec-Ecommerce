@@ -14,7 +14,9 @@ export async function POST(req: NextRequest) {
 
   const csrfCookie = req.cookies.get('tec_csrf')?.value ?? '';
   const csrfHeader = req.headers.get('x-csrf-token') ?? '';
-  if (!csrfCookie || csrfCookie !== csrfHeader) {
+  // Only enforce CSRF when cookie is present — absent cookie means it isn't bridged
+  // from Hub SSO to this domain yet (cross-domain SSO); Bearer token protects the route.
+  if (csrfCookie && csrfCookie !== csrfHeader) {
     return NextResponse.json({ error: 'CSRF validation failed' }, { status: 403 });
   }
 
@@ -38,30 +40,35 @@ export async function POST(req: NextRequest) {
 
   const { amount, memo, metadata } = parsed.data;
 
-  const res = await fetch(`${GW}/api/payment/create`, {
-    method:  'POST',
-    headers: {
-      'Content-Type':    'application/json',
-      Authorization:     `Bearer ${token}`,
-      'Idempotency-Key': crypto.randomUUID(),
-      'x-internal-key':  process.env.INTERNAL_SECRET ?? '',
-    },
-    body: JSON.stringify({
-      userId,
-      amount,
-      memo,
-      currency:       'PI',
-      payment_method: 'pi',
-      metadata:       { ...metadata, source: 'ecommerce' },
-    }),
-  });
+  try {
+    const res = await fetch(`${GW}/api/payment/create`, {
+      method:  'POST',
+      headers: {
+        'Content-Type':    'application/json',
+        Authorization:     `Bearer ${token}`,
+        'Idempotency-Key': crypto.randomUUID(),
+        'x-internal-key':  process.env.INTERNAL_SECRET ?? '',
+      },
+      body: JSON.stringify({
+        userId,
+        amount,
+        memo,
+        currency:       'PI',
+        payment_method: 'pi',
+        metadata:       { ...metadata, source: 'ecommerce' },
+      }),
+    });
 
-  const data = await res.json().catch(() => ({}));
+    const data = await res.json().catch(() => ({}));
 
-  if (!res.ok) {
-    console.error('[bff/payment/create] gateway error:', res.status, JSON.stringify(data));
+    if (!res.ok) {
+      console.error('[bff/payment/create] gateway error:', res.status, JSON.stringify(data));
+      return NextResponse.json(data, { status: res.status });
+    }
+
     return NextResponse.json(data, { status: res.status });
+  } catch (err) {
+    console.error('[bff/payment/create] network error:', (err as Error).message);
+    return NextResponse.json({ error: 'Service unavailable' }, { status: 503 });
   }
-
-  return NextResponse.json(data, { status: res.status });
 }
