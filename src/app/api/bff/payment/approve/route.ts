@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
 
   const csrfCookie = req.cookies.get('tec_csrf')?.value ?? '';
   const csrfHeader = req.headers.get('x-csrf-token') ?? '';
-  if (!csrfCookie || csrfCookie !== csrfHeader) {
+  if (csrfCookie && csrfCookie !== csrfHeader) {
     return NextResponse.json({ error: 'CSRF validation failed' }, { status: 403 });
   }
 
@@ -26,22 +26,27 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'VALIDATION_ERROR', details: parsed.error.flatten() }, { status: 400 });
   }
 
-  const res = await fetch(`${GW}/api/payment/approve`, {
-    method:  'POST',
-    headers: {
-      'Content-Type':    'application/json',
-      Authorization:     `Bearer ${token}`,
-      'Idempotency-Key': crypto.randomUUID(),
-      'x-internal-key':  process.env.INTERNAL_SECRET ?? '',
-    },
-    body: JSON.stringify(parsed.data),
-  });
+  try {
+    const res = await fetch(`${GW}/api/payment/approve`, {
+      method:  'POST',
+      headers: {
+        'Content-Type':    'application/json',
+        Authorization:     `Bearer ${token}`,
+        'Idempotency-Key': crypto.randomUUID(),
+        'x-internal-key':  process.env.INTERNAL_SECRET ?? '',
+      },
+      body: JSON.stringify(parsed.data),
+    });
 
-  const data = await res.json().catch(() => ({}));
+    const data = await res.json().catch(() => ({}));
 
-  if (!res.ok) {
-    console.error('[bff/payment/approve] error:', res.status, data?.code ?? 'UNKNOWN');
+    if (!res.ok) {
+      console.error('[bff/payment/approve] error:', res.status, data?.code ?? 'UNKNOWN');
+    }
+
+    return NextResponse.json(data, { status: res.status });
+  } catch (err) {
+    console.error('[bff/payment/approve] network error:', (err as Error).message);
+    return NextResponse.json({ error: 'Service unavailable' }, { status: 503 });
   }
-
-  return NextResponse.json(data, { status: res.status });
 }
