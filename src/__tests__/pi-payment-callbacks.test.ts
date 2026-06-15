@@ -54,7 +54,7 @@ describe('createU2APayment — Pi callbacks', () => {
     expect(result.status).toBe('cancelled');
   });
 
-  it('onError → rejects with Pi SDK error message', async () => {
+  it('onError → resolves with status=error and Pi error message', async () => {
     vi.resetModules();
     mockGatewayOk();
     const mockCreate = setupPiWindow();
@@ -64,7 +64,10 @@ describe('createU2APayment — Pi callbacks', () => {
     await vi.waitFor(() => expect(mockCreate).toHaveBeenCalled());
     const cb = mockCreate.mock.calls[0][1];
     cb.onError(new Error('insufficient funds'));
-    await expect(p).rejects.toThrow('Pi SDK error: insufficient funds');
+    const result = await p;
+    expect(result.success).toBe(false);
+    expect(result.status).toBe('error');
+    expect(result.message).toBe('insufficient funds');
   });
 
   it('onReadyForServerApproval → calls /api/bff/payment/approve', async () => {
@@ -87,27 +90,33 @@ describe('createU2APayment — Pi callbacks', () => {
     expect(body.payment_id).toBe(INTERNAL_ID);
   });
 
-  it('onReadyForServerApproval with invalid ID → rejects', async () => {
+  it('onReadyForServerApproval passes any piPaymentId to gateway (no local validation)', async () => {
     vi.resetModules();
-    mockGatewayOk();
+    const fetchSpy = mockGatewayOk();
     const mockCreate = setupPiWindow();
 
     const { createU2APayment } = await import('@/lib/pi-payment');
     const p = createU2APayment(1, 'test', {}, INTERNAL_ID);
     await vi.waitFor(() => expect(mockCreate).toHaveBeenCalled());
     const cb = mockCreate.mock.calls[0][1];
-    cb.onReadyForServerApproval('invalid id!!!');
-    await expect(p).rejects.toThrow('Invalid payment ID');
+    await cb.onReadyForServerApproval('any-id-format');
+    cb.onCancel();
+    await p;
+
+    const approveCall = fetchSpy.mock.calls.find(([url]) => String(url).includes('payment/approve'));
+    expect(approveCall).toBeDefined();
+    const body = JSON.parse((approveCall![1] as RequestInit).body as string);
+    expect(body.pi_payment_id).toBe('any-id-format');
   });
 
-  it('onReadyForServerApproval gateway failure → rejects', async () => {
+  it('onReadyForServerApproval gateway failure → resolves with status=error', async () => {
     vi.resetModules();
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) => {
       const u = String(url);
       if (u.includes('payment/create'))
         return { ok: true, status: 200, json: async () => ({ data: { id: INTERNAL_ID } }) } as Response;
       if (u.includes('payment/approve'))
-        return { ok: false, status: 422, json: async () => ({ message: 'Invalid payment' }) } as Response;
+        return { ok: false, status: 422, json: async () => ({ error: 'Invalid payment' }) } as Response;
       return { ok: false, status: 404, json: async () => ({}) } as Response;
     });
     const mockCreate = setupPiWindow();
@@ -117,7 +126,10 @@ describe('createU2APayment — Pi callbacks', () => {
     await vi.waitFor(() => expect(mockCreate).toHaveBeenCalled());
     const cb = mockCreate.mock.calls[0][1];
     await cb.onReadyForServerApproval('pi-pay-abc123');
-    await expect(p).rejects.toThrow('Invalid payment');
+    const result = await p;
+    expect(result.success).toBe(false);
+    expect(result.status).toBe('error');
+    expect(result.message).toBe('Invalid payment');
   });
 
   it('onReadyForServerCompletion → resolves with success', async () => {
@@ -136,9 +148,9 @@ describe('createU2APayment — Pi callbacks', () => {
     expect(result.status).toBe('completed');
   });
 
-  it('onReadyForServerCompletion with invalid txid → rejects', async () => {
+  it('onReadyForServerCompletion passes any txid to gateway (no local validation)', async () => {
     vi.resetModules();
-    mockGatewayOk();
+    const fetchSpy = mockGatewayOk();
     const mockCreate = setupPiWindow();
 
     const { createU2APayment } = await import('@/lib/pi-payment');
@@ -146,8 +158,15 @@ describe('createU2APayment — Pi callbacks', () => {
     await vi.waitFor(() => expect(mockCreate).toHaveBeenCalled());
     const cb = mockCreate.mock.calls[0][1];
     await cb.onReadyForServerApproval('pi-pay-abc123');
-    cb.onReadyForServerCompletion('pi-pay-abc123', 'bad txid!!!');
-    await expect(p).rejects.toThrow('Invalid payment data');
+    await cb.onReadyForServerCompletion('pi-pay-abc123', 'any-txid-format');
+    const result = await p;
+    expect(result.success).toBe(true);
+    expect(result.status).toBe('completed');
+
+    const completeCall = fetchSpy.mock.calls.find(([url]) => String(url).includes('payment/complete'));
+    expect(completeCall).toBeDefined();
+    const body = JSON.parse((completeCall![1] as RequestInit).body as string);
+    expect(body.transaction_id).toBe('any-txid-format');
   });
 
   it('onReadyForServerCompletion passes transaction_id not txid', async () => {

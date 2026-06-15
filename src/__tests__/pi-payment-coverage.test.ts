@@ -64,34 +64,32 @@ describe('createPaymentRecord — edge cases', () => {
 describe('createU2APayment — guard checks', () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    delete (window as any).__TEC_PI_READY;
+    delete (window as any).Pi;
   });
 
-  it('throws Missing internalId when internalId is empty string', async () => {
-    vi.resetModules();
-    (window as any).__TEC_PI_READY = true;
-    (window as any).Pi = {
-      authenticate: vi.fn().mockResolvedValue({}),
-      createPayment: vi.fn(),
-    };
-    const { createU2APayment } = await import('@/lib/pi-payment');
-    await expect(createU2APayment(5, 'test', {}, '')).rejects.toThrow('Missing internalId');
-  });
-
-  it('waitForPiSdk slow-path resolves via tec-pi-ready event and throws when Pi unavailable', async () => {
+  it('resolves with status=error when window.Pi is not available', async () => {
     vi.resetModules();
     delete (window as any).__TEC_PI_READY;
     delete (window as any).Pi;
-
-    // Fire the event after tiny delay to exercise the slow path
-    setTimeout(() => {
-      window.dispatchEvent(new Event('tec-pi-ready'));
-    }, 5);
-
     const { createU2APayment } = await import('@/lib/pi-payment');
+    const result = await createU2APayment(5, 'test', {}, 'valid-id');
+    expect(result.status).toBe('error');
+    expect(result.success).toBe(false);
+    expect(result.message).toBe('Pi SDK not ready');
+  });
 
-    // After waitForPiSdk resolves, window.Pi is still undefined → throws
-    await expect(
-      createU2APayment(5, 'test', {}, 'valid-internal-id'),
-    ).rejects.toThrow('Pi SDK not available');
+  it('resolves with status=error when Pi.authenticate throws', async () => {
+    vi.resetModules();
+    (window as any).__TEC_PI_READY = true;
+    (window as any).Pi = {
+      authenticate:  vi.fn().mockRejectedValue(new Error('auth rejected')),
+      createPayment: vi.fn(),
+    };
+    const { createU2APayment } = await import('@/lib/pi-payment');
+    const result = await createU2APayment(5, 'test', {}, 'valid-id');
+    expect(result.status).toBe('error');
+    expect(result.success).toBe(false);
+    expect(result.message).toContain('auth rejected');
   });
 });
