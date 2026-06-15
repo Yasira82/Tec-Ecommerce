@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
-const GW = process.env.API_GATEWAY_URL ?? '';
+const GW = process.env.API_GATEWAY_URL ?? process.env.NEXT_PUBLIC_API_GATEWAY_URL ?? '';
 
 const ApproveSchema = z.object({
   payment_id:    z.string().min(1),
@@ -26,15 +26,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'VALIDATION_ERROR', details: parsed.error.flatten() }, { status: 400 });
   }
 
+  const gwHeaders: Record<string, string> = {
+    'Content-Type':    'application/json',
+    Authorization:     `Bearer ${token}`,
+    'Idempotency-Key': crypto.randomUUID(),
+  };
+  if (process.env.INTERNAL_SECRET) gwHeaders['x-internal-key'] = process.env.INTERNAL_SECRET;
+
   try {
     const res = await fetch(`${GW}/api/payment/approve`, {
       method:  'POST',
-      headers: {
-        'Content-Type':    'application/json',
-        Authorization:     `Bearer ${token}`,
-        'Idempotency-Key': crypto.randomUUID(),
-        'x-internal-key':  process.env.INTERNAL_SECRET ?? '',
-      },
+      headers: gwHeaders,
       body: JSON.stringify(parsed.data),
     });
 

@@ -43,15 +43,17 @@ export async function POST(req: NextRequest) {
 
   const { amount, metadata } = parsed.data;
 
+  const gwHeaders: Record<string, string> = {
+    'Content-Type':    'application/json',
+    Authorization:     `Bearer ${token}`,
+    'Idempotency-Key': crypto.randomUUID(),
+  };
+  if (process.env.INTERNAL_SECRET) gwHeaders['x-internal-key'] = process.env.INTERNAL_SECRET;
+
   try {
     const res = await fetch(`${GW}/api/payment/create`, {
       method:  'POST',
-      headers: {
-        'Content-Type':    'application/json',
-        Authorization:     `Bearer ${token}`,
-        'Idempotency-Key': crypto.randomUUID(),
-        'x-internal-key':  process.env.INTERNAL_SECRET ?? '',
-      },
+      headers: gwHeaders,
       body: JSON.stringify({
         userId,
         amount:         Number(amount),
