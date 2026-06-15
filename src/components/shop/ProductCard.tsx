@@ -84,14 +84,13 @@ export function ProductCard({ product, piReady, onBuy, onAddToCart, onCartOpen, 
               {added ? '✓ Added' : '+ Cart'}
             </button>
             <button
-              onClick={() => piReady && onBuy(product)}
-              disabled={!piReady}
+              onClick={() => onBuy(product)}
               style={{
                 flex:1, padding:'7px 4px', borderRadius:10, border:'none',
                 background: piReady ? 'linear-gradient(135deg,#d4af37,#b8882a)' : '#1a1a28',
                 color: piReady ? '#07070f' : '#3a3a4a',
                 fontSize:11, fontWeight:800, fontFamily:'system-ui',
-                cursor: piReady ? 'pointer' : 'not-allowed',
+                cursor: 'pointer',
               }}
             >
               {piReady ? '⚡ Buy' : '···'}
@@ -100,13 +99,12 @@ export function ProductCard({ product, piReady, onBuy, onAddToCart, onCartOpen, 
         ) : (
           <button
             onClick={() => onBuy(product)}
-            disabled={!piReady}
             style={{
               width:'100%', padding:'7px 4px', borderRadius:10, border:'none',
               background: piReady ? 'linear-gradient(135deg,#d4af37,#b8882a)' : '#1a1a28',
               color: piReady ? '#07070f' : '#3a3a4a',
               fontSize:11, fontWeight:800, fontFamily:'system-ui',
-              cursor: piReady ? 'pointer' : 'not-allowed',
+              cursor: 'pointer',
             }}
           >
             {piReady ? 'Buy Now' : 'Connecting...'}

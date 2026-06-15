@@ -39,7 +39,7 @@ const redirectToHubPayment = (product: Product) => {
   const params = new URLSearchParams({
     pay: '1', amount: product.price.toString(),
     memo: `${label} — TEC Ecommerce`, product_id: product.id,
-    return_url: APP_URL, source: 'ecommerce',
+    return_url: `${APP_URL}/shop`, source: 'ecommerce',
   });
   window.location.href = `${HUB_URL}/hub?${params.toString()}`;
 };
@@ -264,11 +264,11 @@ function ProductCard({ product, piReady, onBuy, onAddToCart, onCartOpen, feature
             {added ? '✓ Added' : '+ Cart'}
           </button>
           <button
-            className="buy-btn"
+            className={`buy-btn ${!piReady ? 'buy-btn--off' : ''}`}
             onClick={() => onBuy(product)}
             style={{ flex:1 }}
           >
-            ⚡ Buy
+            {piReady ? '⚡ Buy' : '···'}
           </button>
         </div>
       </div>
@@ -300,12 +300,13 @@ const CSS = `
   .card:hover { transform:translateY(-3px); border-color:rgba(212,175,55,0.3); box-shadow:0 8px 24px rgba(212,175,55,0.07); }
   .price-badge { position:absolute; top:7px; right:7px; background:rgba(7,7,15,0.88); border:1px solid rgba(212,175,55,0.4); color:#d4af37; font-size:11px; font-weight:900; padding:2px 7px; border-radius:20px; font-family:Georgia; backdrop-filter:blur(8px); }
   .cat-badge { position:absolute; top:7px; left:7px; background:rgba(7,7,15,0.75); color:#6b6b7a; font-family:system-ui; font-size:8px; padding:2px 6px; border-radius:20px; text-transform:uppercase; letter-spacing:1px; }
-  .card-title { font-weight:700; color:#e8d5a3; line-height:1.3; margin-bottom:4px; }
+  .card-title { font-weight:700; color:#e8d5a3; }
   .card-desc { font-family:system-ui; font-size:10px; color:#4a4a5a; line-height:1.5; margin-bottom:8px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
   .add-btn { padding:7px 6px; border-radius:10px; border:1px solid rgba(212,175,55,0.35); background:rgba(212,175,55,0.08); color:#d4af37; font-size:11px; font-weight:700; font-family:system-ui; cursor:pointer; transition:all 0.2s; }
   .add-btn:hover { background:rgba(212,175,55,0.15); }
   .add-btn--done { background:rgba(16,185,129,0.12); border-color:rgba(16,185,129,0.4); color:#10b981; cursor:default; }
   .buy-btn { width:100%; padding:7px 6px; border-radius:10px; border:none; background:linear-gradient(135deg,#d4af37,#b8882a); color:#07070f; font-size:11px; font-weight:800; font-family:system-ui; cursor:pointer; transition:opacity 0.15s; }
-  .buy-btn:hover { opacity:0.88; }
+  .buy-btn:hover:not(.buy-btn--off) { opacity:0.88; }
+  .buy-btn--off { background:#1a1a28; color:#3a3a4a; cursor:pointer; }
   .spinner { width:32px; height:32px; border-radius:50%; border:3px solid rgba(212,175,55,0.15); border-top-color:#d4af37; animation:spin 0.8s linear infinite; }
 `;
