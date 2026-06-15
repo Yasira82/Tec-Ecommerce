@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
-const GW = process.env.API_GATEWAY_URL ?? '';
+const GW = process.env.API_GATEWAY_URL ?? process.env.NEXT_PUBLIC_API_GATEWAY_URL ?? '';
 
 const CreateSchema = z.object({
-  amount:     z.number().positive(),
-  memo:       z.string().min(1),
-  metadata:   z.record(z.unknown()).optional(),
+  amount:   z.number().positive(),
+  memo:     z.string().optional(),
+  metadata: z.record(z.unknown()).optional(),
 });
 
 const getUserId = (req: NextRequest): string => {
@@ -31,6 +31,7 @@ export async function POST(req: NextRequest) {
 
   const userId = getUserId(req);
   if (!userId) {
+    console.error('[bff/payment/create] missing userId from tec_user cookie');
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -40,7 +41,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'VALIDATION_ERROR', details: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { amount, memo, metadata } = parsed.data;
+  const { amount, metadata } = parsed.data;
 
   try {
     const res = await fetch(`${GW}/api/payment/create`, {
@@ -53,8 +54,7 @@ export async function POST(req: NextRequest) {
       },
       body: JSON.stringify({
         userId,
-        amount,
-        memo,
+        amount:         Number(amount),
         currency:       'PI',
         payment_method: 'pi',
         metadata:       { ...metadata, source: 'ecommerce' },
