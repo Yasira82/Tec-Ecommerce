@@ -48,7 +48,7 @@ export function CartDrawer({ isOpen, onClose, items, onUpdateQty, onRemove, onCl
 
   const handleCheckout = async () => {
     if (inFlight.current || items.length === 0) return;
-    if (isHubNavigation() || !(window as any).Pi || !piReady) {
+    if (isHubNavigation() || (window as any).__TEC_PI_FOREIGN_SESSION || !(window as any).Pi || !piReady) {
       redirectToHubPayment(total, itemCount);
       return;
     }
@@ -62,6 +62,7 @@ export function CartDrawer({ isOpen, onClose, items, onUpdateQty, onRemove, onCl
       setStatus('paying');
       const cartItems = items.map(i => ({ productId: i.product.id, qty: i.qty }));
       const result    = await createU2APayment(total, memo, { source: 'cart', items: cartItems }, internalId);
+      if (result.message === 'foreign_session') { redirectToHubPayment(total, itemCount); inFlight.current = false; return; }
       if (result.success) {
         await fetch('/api/bff/orders', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json', 'x-csrf-token': getCsrfToken() }, body: JSON.stringify({ items: cartItems, payment_id: internalId, memo }) }).catch(() => {});
         setStatus('success');

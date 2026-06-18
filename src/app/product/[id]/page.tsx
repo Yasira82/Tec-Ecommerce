@@ -113,7 +113,7 @@ export default function ProductPage() {
   const handleBuy = useCallback(async () => {
     if (!product || inFlight.current) return;
 
-    if (isHubNavigation()) { redirectToHubPayment(product); return; }
+    if (isHubNavigation() || (window as any).__TEC_PI_FOREIGN_SESSION) { redirectToHubPayment(product); return; }
     if (!window.Pi || !piReady) { redirectToHubPayment(product); return; }
 
     inFlight.current = true;
@@ -126,6 +126,7 @@ export default function ProductPage() {
       if (!internalId) { setPayStatus('error'); setPayMessage('Failed to initialize.'); inFlight.current = false; return; }
       setPayStatus('paying');
       const result = await createU2APayment(product.price, memo, { source: 'ecommerce', product_id: product.id }, internalId);
+      if (result.message === 'foreign_session') { redirectToHubPayment(product); inFlight.current = false; return; }
       if (result.success) {
         fetch('/api/bff/orders', { method:'POST', credentials:'include', headers:{'Content-Type':'application/json','x-csrf-token':getCsrfToken()}, body: JSON.stringify({ product_id: product.id, payment_id: internalId }) }).catch(() => {});
         setPayStatus('success');

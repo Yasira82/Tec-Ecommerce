@@ -52,6 +52,11 @@ export const createU2APayment = async (
       return;
     }
 
+    if ((window as any).__TEC_PI_FOREIGN_SESSION) {
+      resolve({ status: 'error', success: false, message: 'foreign_session' });
+      return;
+    }
+
     let settled = false;
     const done = (result: PaymentResult) => {
       if (settled) return;

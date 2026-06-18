@@ -124,7 +124,7 @@ export default function StorePage() {
 
   const handleBuy = useCallback((product: Product) => {
     if (!isAuth) { router.push('/'); return; }
-    if (isHubNavigation() || !(window as any).Pi || !piReady) {
+    if (isHubNavigation() || (window as any).__TEC_PI_FOREIGN_SESSION || !(window as any).Pi || !piReady) {
       buyRedirect(product);
       return;
     }
