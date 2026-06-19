@@ -19,7 +19,7 @@ export async function GET(
         headers: {
           Authorization:    `Bearer ${getToken(req)}`,
           'x-request-id':  crypto.randomUUID(),
-          'x-internal-key': process.env.INTERNAL_SECRET ?? '',
+          ...(process.env.INTERNAL_SECRET && { 'x-internal-key': process.env.INTERNAL_SECRET }),
         },
         cache: 'no-store',
       }),
@@ -27,7 +27,7 @@ export async function GET(
         headers: {
           Authorization:    `Bearer ${getToken(req)}`,
           'x-request-id':  crypto.randomUUID(),
-          'x-internal-key': process.env.INTERNAL_SECRET ?? '',
+          ...(process.env.INTERNAL_SECRET && { 'x-internal-key': process.env.INTERNAL_SECRET }),
         },
         cache: 'no-store',
       }),

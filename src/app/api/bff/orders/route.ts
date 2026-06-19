@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
         headers: {
           Authorization:    `Bearer ${getToken(req)}`,
           'x-request-id':  crypto.randomUUID(),
-          'x-internal-key': process.env.INTERNAL_SECRET ?? '',
+          ...(process.env.INTERNAL_SECRET && { 'x-internal-key': process.env.INTERNAL_SECRET }),
           'x-user-id':      userId,
         },
         cache: 'no-store',
@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
           Authorization:    `Bearer ${getToken(req)}`,
           'Content-Type':   'application/json',
           'x-request-id':  crypto.randomUUID(),
-          'x-internal-key': process.env.INTERNAL_SECRET ?? '',
+          ...(process.env.INTERNAL_SECRET && { 'x-internal-key': process.env.INTERNAL_SECRET }),
           'x-user-id':      userId,
         },
         body: JSON.stringify({

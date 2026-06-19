@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
         headers: {
           'Content-Type':   'application/json',
           Authorization:    `Bearer ${token}`,
-          'x-internal-key': process.env.INTERNAL_SECRET ?? '',
+          ...(process.env.INTERNAL_SECRET && { 'x-internal-key': process.env.INTERNAL_SECRET }),
           'x-request-id':   crypto.randomUUID(),
         },
         body: JSON.stringify({ pi_payment_id: pid }),
