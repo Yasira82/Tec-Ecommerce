@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
 
   const csrfCookie = req.cookies.get('tec_csrf')?.value ?? '';
   const csrfHeader = req.headers.get('x-csrf-token') ?? '';
-  if (csrfCookie && csrfCookie !== csrfHeader) {
+  if (!csrfCookie || csrfCookie !== csrfHeader) {
     return NextResponse.json({ error: 'CSRF validation failed' }, { status: 403 });
   }
 
