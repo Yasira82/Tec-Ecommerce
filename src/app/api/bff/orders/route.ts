@@ -4,7 +4,7 @@ import { z } from 'zod';
 const GATEWAY = process.env.API_GATEWAY_URL ?? '';
 
 const OrderSchema = z.object({
-  items:      z.array(z.object({ productId: z.string(), qty: z.number().int().positive() })).optional(),
+  items:      z.array(z.object({ productId: z.string(), qty: z.coerce.number().int().positive() })).optional(),
   product_id: z.string().optional(),
   payment_id: z.string().min(1),
   memo:       z.string().optional(),
