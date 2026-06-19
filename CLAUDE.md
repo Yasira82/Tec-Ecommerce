@@ -10,7 +10,21 @@ Pi-native ecommerce marketplace within the TEC Federated Platform.
 Product listings, merchant stores, shopping cart, and Pi payments.
 
 **Current Phase: Phase 0 — Pre-Mainnet Hardening**
-NEW-J shipped (cart + ADR-007 fixes). Phase 0 items: tests + Pi App ID documentation.
+
+---
+
+## Pi App Identity
+
+| Field | Value |
+|-------|-------|
+| **Pi App ID** | `ecommerce-app-71ca4d3e462eaf54` |
+| **Domain** | `https://ecommerce.tecosystem.app` |
+| **PI_SANDBOX** | `false` (Mainnet) |
+
+```typescript
+// Pi.init() uses domain registration — DO NOT change domain without Pi Portal update
+Pi.init({ version: "2.0", sandbox: false })
+```
 
 ---
 
@@ -112,6 +126,7 @@ npx playwright test # E2E tests
 - Do NOT store auth tokens in localStorage — cookies only
 - Do NOT add `NEXT_PUBLIC_*` env vars for internal Railway service URLs
 - Do NOT modify payment flow files without thorough testing
+- Do NOT change the domain without updating Pi Developer Portal registration
 
 ---
 
@@ -136,6 +151,7 @@ style(shop):     UI polish
 | R2 | ADR-007 guard removed | P1 | `isHubNavigation()` in every handler — DO NOT REMOVE |
 | R3 | BFF leaks Railway URL | P1 | server-only `API_GATEWAY_URL` |
 | R4 | Cart state lost on refresh | P3 | useCart persists to localStorage `tec_cart` |
+| R5 | Domain change without Pi Portal update | P0 | `ecommerce.tecosystem.app` LOCKED — coordinate with Pi Portal |
 
 ---
 
@@ -155,8 +171,9 @@ ADR-007 check: if modifying any payment handler file, verify `isHubNavigation()`
 ## Knowledge Base Reference
 → `yasira82/tec-knowledge-base` (branch: `claude/gifted-knuth-1yhom3`)
 → **Current State: `knowledge-base/C-02___CURRENT_STATE_.md`** — اقرأه أول كل session
-→ Master index: `knowledge-base/C-57___MASTER_CONTENTS_INDEX.md`
+→ Dual-Mode Payment: `knowledge-base/C-12_Dual_Mode_Payment.md`
 → Payment ownership (ADR-007): `knowledge-base/C-76___ADR-007.md`
+→ Pi App Identity: `knowledge-base/C-01_Project_Identity.md`
 
 ---
 

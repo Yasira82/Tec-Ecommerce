@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const PROTECTED_ROUTES  = ['/shop', '/orders', '/profile'];
 const CSRF_SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
-// POST /api/bff/orders requires CSRF — user-initiated action from a form/button
-const CSRF_PROTECTED    = ['/api/bff/orders'];
-// Payment callbacks excluded — initiated by Pi SDK, not user forms
-// JWT + Idempotency-Key provide equivalent protection (ADR-007, C-76)
-const CSRF_EXCLUDED     = ['/api/bff/payment/'];
+const CSRF_PROTECTED    = [
+  '/api/auth/refresh',
+  '/api/bff/orders',
+  '/api/bff/payment',
+  '/api/payment',
+];
 
 function timingSafeStringEqual(a: string, b: string): boolean {
   const aBytes = new TextEncoder().encode(a);
@@ -32,16 +33,12 @@ export function middleware(req: NextRequest) {
   }
 
   if (!CSRF_SAFE_METHODS.has(method)) {
-    const isExcluded      = CSRF_EXCLUDED.some(r => pathname.startsWith(r));
-    const isCsrfProtected = !isExcluded && CSRF_PROTECTED.some(r => pathname.startsWith(r));
+    const isCsrfProtected = CSRF_PROTECTED.some(r => pathname.startsWith(r));
 
     if (isCsrfProtected) {
-      const csrfCookie = req.cookies.get('tec_csrf')?.value ?? '';
-      const csrfHeader = req.headers.get('x-csrf-token') ?? '';
-      // Only reject when cookie IS present but header doesn't match.
-      // Absent cookie = not bridged from Hub SSO to this domain yet;
-      // Bearer token still authenticates the request.
-      if (csrfCookie && !timingSafeStringEqual(csrfCookie, csrfHeader)) {
+      const csrfCookie = req.cookies.get('tec_csrf')?.value;
+      const csrfHeader = req.headers.get('x-csrf-token');
+      if (!csrfCookie || !csrfHeader || !timingSafeStringEqual(csrfCookie, csrfHeader)) {
         return NextResponse.json(
           { error: 'Invalid CSRF token', code: 'CSRF_INVALID' },
           { status: 403 },
@@ -54,10 +51,5 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    '/shop/:path*',
-    '/orders/:path*',
-    '/profile/:path*',
-    '/api/bff/:path*',
-  ],
+  matcher: ['/shop/:path*', '/orders/:path*', '/profile/:path*', '/api/bff/:path*', '/api/payment/:path*', '/api/auth/refresh'],
 };

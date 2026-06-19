@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
-const GW = process.env.API_GATEWAY_URL ?? process.env.NEXT_PUBLIC_API_GATEWAY_URL ?? '';
+const GW = process.env.API_GATEWAY_URL ?? '';
 
 const CreateSchema = z.object({
   amount:   z.number().positive(),
@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
 
   const csrfCookie = req.cookies.get('tec_csrf')?.value ?? '';
   const csrfHeader = req.headers.get('x-csrf-token') ?? '';
-  if (csrfCookie && csrfCookie !== csrfHeader) {
+  if (!csrfCookie || csrfCookie !== csrfHeader) {
     return NextResponse.json({ error: 'CSRF validation failed' }, { status: 403 });
   }
 
@@ -31,7 +31,6 @@ export async function POST(req: NextRequest) {
 
   const userId = getUserId(req);
   if (!userId) {
-    console.error('[bff/payment/create] missing userId from tec_user cookie');
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -64,12 +63,10 @@ export async function POST(req: NextRequest) {
     });
 
     const data = await res.json().catch(() => ({}));
-
     if (!res.ok) {
       console.error('[bff/payment/create] gateway error:', res.status, JSON.stringify(data));
       return NextResponse.json(data, { status: res.status });
     }
-
     return NextResponse.json(data, { status: res.status });
   } catch (err) {
     console.error('[bff/payment/create] network error:', (err as Error).message);
