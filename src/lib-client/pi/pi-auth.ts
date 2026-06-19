@@ -63,9 +63,18 @@ export const getStoredUser = () => {
   } catch { return null; }
 };
 
+// ── Helper — قراءة CSRF token من الـ cookie ───────────────
+const getCsrfToken = (): string => {
+  if (typeof document === 'undefined') return '';
+  return document.cookie
+    .split('; ')
+    .find(row => row.startsWith('tec_csrf='))
+    ?.split('=')?.[1] ?? '';
+};
+
 export const logout = async () => {
   try {
-    await fetch('/api/auth/logout', { method: 'POST' });
+    await fetch('/api/auth/logout', { method: 'POST', credentials: 'include', headers: { 'x-csrf-token': getCsrfToken() } });
     sdk.clearAuthToken();
   } catch (err) {
     console.error('[Pi Auth] Logout failed:', err);
@@ -84,6 +93,7 @@ export const refreshAccessToken = async (): Promise<string | null> => {
     const res = await fetch('/api/auth/refresh', {
       method:      'POST',
       credentials: 'include',
+      headers:     { 'x-csrf-token': getCsrfToken() },
     });
     if (!res.ok) {
       await logout();
@@ -177,14 +187,7 @@ const _addBreadcrumb = (message: string, data: Record<string, unknown>): void =>
   } catch {}
 };
 
-// ── Helper — قراءة CSRF token من الـ cookie ───────────────
-const getCsrfToken = (): string => {
-  if (typeof document === 'undefined') return '';
-  return document.cookie
-    .split('; ')
-    .find(row => row.startsWith('tec_csrf='))
-    ?.split('=')?.[1] ?? '';
-};
+// (getCsrfToken moved above logout — used by all POST fetch calls)
 
 // ── Resolve Incomplete Payment — بعد الـ login ────────────
 let _pendingPaymentId: string | null = null;
@@ -303,7 +306,7 @@ export const loginWithPi = async (): Promise<TecAuthResponse> => {
   const res = await fetch('/api/auth/pi-login', {
     method:      'POST',
     credentials: 'include',
-    headers:     { 'Content-Type': 'application/json' },
+    headers:     { 'Content-Type': 'application/json', 'x-csrf-token': getCsrfToken() },
     body:        JSON.stringify({ accessToken: piAuth.accessToken }),
   });
 
