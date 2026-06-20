@@ -30,7 +30,8 @@ export async function GET(req: NextRequest) {
 
     const csrf       = crypto.randomUUID();
     const userJson   = encodeURIComponent(JSON.stringify(user));
-    const redirectTo = redirect.startsWith('/') ? redirect : '/shop';
+    // Block open redirect: only same-origin absolute paths (no //host, no scheme)
+    const redirectTo = redirect.startsWith('/') && !redirect.startsWith('//') ? redirect : '/shop';
     const response   = NextResponse.redirect(new URL(redirectTo, req.url));
 
     const cookieDomain =
