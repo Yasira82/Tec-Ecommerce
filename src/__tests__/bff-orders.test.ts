@@ -86,17 +86,18 @@ describe('GET /api/bff/orders', () => {
 
 // ── POST /api/bff/orders ────────────────────────────────────────
 describe('POST /api/bff/orders', () => {
-  it('returns 403 when CSRF cookie present but header mismatches', async () => {
+  it('delegates CSRF to middleware — a CSRF mismatch does NOT 403 at the route (falls through to 401 auth)', async () => {
+    // CSRF is enforced once in middleware (double-submit OR first-party Origin).
+    // The route no longer double-checks it (that 403'd order creation in Pi Browser
+    // after a successful payment, when the sameSite=None cookie is dropped).
     const { POST } = await import('@/app/api/bff/orders/route');
     const res = await POST(makeReq({
       method:  'POST',
-      cookies: { tec_user: userCookie, tec_csrf: 'cookie-value' },
-      headers: { 'x-csrf-token': 'wrong-value' },
+      cookies: { tec_csrf: 'cookie-value' },        // no tec_user
+      headers: { 'x-csrf-token': 'wrong-value' },   // mismatched CSRF
       body:    { payment_id: 'pay-1', product_id: 'prod-1' },
     }));
-    expect(res.status).toBe(403);
-    const body = await res.json();
-    expect(body.error).toBe('CSRF validation failed');
+    expect(res.status).toBe(401);                    // not 403
   });
 
   it('returns 401 when tec_user cookie missing', async () => {
