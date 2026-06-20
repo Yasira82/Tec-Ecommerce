@@ -52,12 +52,10 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   if (!GATEWAY) return NextResponse.json({ error: 'Service unavailable' }, { status: 503 });
 
-  const csrfCookie = req.cookies.get('tec_csrf')?.value ?? '';
-  const csrfHeader = req.headers.get('x-csrf-token') ?? '';
-  if (!csrfCookie || csrfCookie !== csrfHeader) {
-    return NextResponse.json({ error: 'CSRF validation failed' }, { status: 403 });
-  }
-
+  // CSRF enforced once in middleware (double-submit OR first-party Origin) —
+  // single source of truth (P2). A duplicate strict double-submit check here
+  // 403'd order creation in Pi Browser (sameSite=None cookie dropped), so a
+  // successful payment would fail to create its order.
   try {
     const userId = getUserId(req);
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
