@@ -11,12 +11,9 @@ const ApproveSchema = z.object({
 export async function POST(req: NextRequest) {
   if (!GW) return NextResponse.json({ error: 'Service unavailable' }, { status: 503 });
 
-  const csrfCookie = req.cookies.get('tec_csrf')?.value ?? '';
-  const csrfHeader = req.headers.get('x-csrf-token') ?? '';
-  if (!csrfCookie || csrfCookie !== csrfHeader) {
-    return NextResponse.json({ error: 'CSRF validation failed' }, { status: 403 });
-  }
-
+  // CSRF enforced once in middleware (double-submit OR first-party Origin) —
+  // single source of truth (P2). A duplicate strict double-submit check here
+  // 403'd legit Mode-2 payments in Pi Browser, where sameSite=None cookies drop.
   const token = req.cookies.get('tec_access_token')?.value;
   if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 

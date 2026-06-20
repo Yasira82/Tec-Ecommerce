@@ -36,16 +36,16 @@ beforeEach(() => {
 
 // ── POST /api/bff/payment/approve ───────────────────────────────
 describe('POST /api/bff/payment/approve', () => {
-  it('returns 403 when CSRF cookie present but header mismatches', async () => {
+  it('delegates CSRF to middleware — a CSRF mismatch does NOT 403 at the route (falls through to 401 auth)', async () => {
+    // CSRF is enforced once in middleware (double-submit OR first-party Origin).
+    // The route no longer double-checks it (that 403'd legit Pi-Browser payments).
     const { POST } = await import('@/app/api/bff/payment/approve/route');
     const res = await POST(makeReq({
-      cookies: { tec_access_token: 'tok-123', tec_csrf: 'cookie-value' },
-      headers: { 'x-csrf-token': 'wrong-value' },
+      cookies: { tec_csrf: 'cookie-value' },        // no access token
+      headers: { 'x-csrf-token': 'wrong-value' },   // mismatched CSRF
       body:    { payment_id: 'p1', pi_payment_id: 'pi1' },
     }));
-    expect(res.status).toBe(403);
-    const body = await res.json();
-    expect(body.error).toBe('CSRF validation failed');
+    expect(res.status).toBe(401);                    // not 403
   });
 
   it('returns 401 when token missing', async () => {
@@ -133,17 +133,16 @@ describe('POST /api/bff/payment/approve', () => {
 
 // ── POST /api/bff/payment/complete ──────────────────────────────
 describe('POST /api/bff/payment/complete', () => {
-  it('returns 403 when CSRF cookie present but header mismatches', async () => {
+  it('delegates CSRF to middleware — a CSRF mismatch does NOT 403 at the route (falls through to 401 auth)', async () => {
+    // CSRF is enforced once in middleware (double-submit OR first-party Origin).
     const { POST } = await import('@/app/api/bff/payment/complete/route');
     const res = await POST(makeReq({
       url:     'http://localhost/api/bff/payment/complete',
-      cookies: { tec_access_token: 'tok-123', tec_csrf: 'cookie-value' },
-      headers: { 'x-csrf-token': 'wrong-value' },
+      cookies: { tec_csrf: 'cookie-value' },        // no access token
+      headers: { 'x-csrf-token': 'wrong-value' },   // mismatched CSRF
       body:    { payment_id: 'p1', transaction_id: 'tx1' },
     }));
-    expect(res.status).toBe(403);
-    const body = await res.json();
-    expect(body.error).toBe('CSRF validation failed');
+    expect(res.status).toBe(401);                    // not 403
   });
 
   it('returns 401 when token missing', async () => {
