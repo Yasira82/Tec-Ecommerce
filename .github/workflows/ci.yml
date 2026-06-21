@@ -12,13 +12,17 @@ permissions:
 
 jobs:
   payment-policy:
-    name: Payment contract policy (ADR-009)
+    name: Drift Detection — KB claims vs code
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Check payment contract
+      - name: Drift Detection — KB claims vs code
+        # Each check maps to a C-doc; a violation = doc↔runtime drift.
+        # ADR-009 (payment contract) · C-12 §11 (CSRF) · C-76/ADR-007 (dual-mode guard).
         run: |
           violations=0
+
+          # ── ADR-009: unified payment contract ───────────────────────────
           if grep -rniE 'x-service-secret|SERVICE_SECRET' src; then
             echo "::error::ADR-009: use x-internal-key / INTERNAL_SECRET (not x-service-secret / SERVICE_SECRET)"
             violations=1
@@ -27,11 +31,25 @@ jobs:
             echo "::error::ADR-009: payment amount must be a number — no z.string() for amount in payment routes"
             violations=1
           fi
+
+          # ── C-12 §11 / P2: CSRF enforced ONLY in middleware ─────────────
           if grep -rnE 'csrfCookie !== csrfHeader|csrfCookie === csrfHeader|CSRF validation failed|CSRF token mismatch' src/app/api 2>/dev/null; then
             echo "::error::CSRF must be enforced ONLY in middleware (P2 single source of truth). Remove route-level CSRF checks — they 403 legit Pi-Browser payments."
             violations=1
           fi
-          [ "$violations" -eq 0 ] && echo "payment contract policy OK" || exit 1
+
+          # ── C-76 / ADR-007: every Mode-2 buy handler must guard ─────────
+          # Any component/page triggering createU2APayment() must check
+          # isHubNavigation() first (pi-test diagnostic harness is exempt).
+          handlers=$(grep -rlE 'createU2APayment\(' src/app src/components --include=*.tsx 2>/dev/null | grep -v '/pi-test/' || true)
+          for f in $handlers; do
+            if ! grep -qE 'isHubNavigation' "$f"; then
+              echo "::error::ADR-007 (C-76): $f triggers a Mode-2 Pi payment without isHubNavigation() guard"
+              violations=1
+            fi
+          done
+
+          [ "$violations" -eq 0 ] && echo "Drift Detection OK — code matches KB claims" || exit 1
 
   lint:
     name: Lint
