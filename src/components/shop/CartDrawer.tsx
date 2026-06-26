@@ -83,10 +83,10 @@ export function CartDrawer({ isOpen, onClose, items, onUpdateQty, onRemove, onCl
   return (
     <>
       {isOpen && <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 290, background: 'rgba(2,2,5,0.75)', backdropFilter: 'blur(6px)' }} />}
-      <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, zIndex: 300, width: 320, maxWidth: '92vw', background: '#0a0a12', borderLeft: '1px solid rgba(212,175,55,0.1)', transform: isOpen ? 'translateX(0)' : 'translateX(100%)', transition: 'transform 0.3s cubic-bezier(0.16,1,0.3,1)', display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
+      <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, zIndex: 300, width: 320, maxWidth: '92vw', background: '#0B1020', borderLeft: '1px solid rgba(251,191,36,0.1)', transform: isOpen ? 'translateX(0)' : 'translateX(100%)', transition: 'transform 0.3s cubic-bezier(0.16,1,0.3,1)', display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
         <div style={{ padding: '18px 20px 14px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 34, height: 34, borderRadius: 10, background: 'linear-gradient(135deg,#d4af37,#b8882a)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17 }}>🛒</div>
+            <div style={{ width: 34, height: 34, borderRadius: 10, background: 'linear-gradient(135deg,#FBBF24,#F59E0B)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17 }}>🛒</div>
             <div>
               <div style={{ fontSize: 14, fontWeight: 800, color: '#e8d5a3', fontFamily: 'Georgia,serif' }}>Cart</div>
               <div style={{ fontSize: 10, color: '#4a4a5a', fontFamily: 'system-ui' }}>{itemCount} item{itemCount !== 1 ? 's' : ''}</div>
@@ -109,12 +109,12 @@ export function CartDrawer({ isOpen, onClose, items, onUpdateQty, onRemove, onCl
             const label  = product.title ?? 'Product';
             return (
               <div key={product.id} style={{ display: 'flex', gap: 12, padding: '12px 20px', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                <div style={{ width: 54, height: 54, borderRadius: 10, overflow: 'hidden', flexShrink: 0, background: '#0d0d18', border: '1px solid rgba(212,175,55,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ width: 54, height: 54, borderRadius: 10, overflow: 'hidden', flexShrink: 0, background: '#111627', border: '1px solid rgba(251,191,36,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   {imgSrc ? <img src={imgSrc} alt={label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: 22, opacity: 0.25 }}>🛍</span>}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontFamily: 'system-ui', fontSize: 13, fontWeight: 600, color: '#d0d0e0', marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</div>
-                  <div style={{ fontFamily: 'Georgia,serif', fontSize: 13, fontWeight: 700, color: '#d4af37', marginBottom: 8 }}>
+                  <div style={{ fontFamily: 'Georgia,serif', fontSize: 13, fontWeight: 700, color: '#FBBF24', marginBottom: 8 }}>
                     {(product.price * qty).toFixed(2)}π
                     {qty > 1 && <span style={{ fontFamily: 'system-ui', fontSize: 10, color: '#6b6b7a', marginLeft: 4 }}>({product.price}π each)</span>}
                   </div>
@@ -133,7 +133,7 @@ export function CartDrawer({ isOpen, onClose, items, onUpdateQty, onRemove, onCl
           <div style={{ padding: '16px 20px', borderTop: '1px solid rgba(255,255,255,0.06)', flexShrink: 0 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
               <span style={{ fontFamily: 'system-ui', fontSize: 12, color: '#6b6b7a' }}>Total ({itemCount} items)</span>
-              <span style={{ fontFamily: 'Georgia,serif', fontSize: 22, fontWeight: 900, color: '#d4af37' }}>{total.toFixed(2)}π</span>
+              <span style={{ fontFamily: 'Georgia,serif', fontSize: 22, fontWeight: 900, color: '#FBBF24' }}>{total.toFixed(2)}π</span>
             </div>
             {status === 'creating' && <div style={{ fontFamily: 'system-ui', fontSize: 12, color: '#f0c040', textAlign: 'center', marginBottom: 10 }}>Preparing payment…</div>}
             {status === 'paying'   && <div style={{ fontFamily: 'system-ui', fontSize: 12, color: '#7ee7c0', textAlign: 'center', marginBottom: 10 }}>Complete payment in Pi wallet…</div>}
@@ -149,8 +149,8 @@ export function CartDrawer({ isOpen, onClose, items, onUpdateQty, onRemove, onCl
             <button onClick={handleCheckout}
               disabled={status === 'creating' || status === 'paying' || status === 'success'}
               style={{ width: '100%', padding: '13px', borderRadius: 14, border: 'none',
-                background: status !== 'idle' ? '#1a1a28' : 'linear-gradient(135deg,#d4af37,#b8882a)',
-                color: status !== 'idle' ? '#3a3a4a' : '#07070f',
+                background: status !== 'idle' ? '#1a1a28' : 'linear-gradient(135deg,#FBBF24,#F59E0B)',
+                color: status !== 'idle' ? '#3a3a4a' : '#050816',
                 fontFamily: 'system-ui', fontSize: 14, fontWeight: 800,
                 cursor: status !== 'idle' ? 'not-allowed' : 'pointer',
                 transition: 'opacity 0.15s' }}>

@@ -49,7 +49,7 @@ function StoreProductCard({ product, onBuy, onAddToCart, onCartOpen }: { product
   };
 
   return (
-    <div style={{ background:'#0d0d14', border:'1px solid #ffffff08', borderRadius:14, overflow:'hidden', display:'flex', flexDirection:'column' }}>
+    <div style={{ background:'#0B1020', border:'1px solid #ffffff08', borderRadius:14, overflow:'hidden', display:'flex', flexDirection:'column' }}>
       <div style={{ width:'100%', aspectRatio:'1', background:'#ffffff05', overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center' }}>
         {product.images?.[0] && !imgError ? (
           <img src={product.images[0]} alt={product.title} onError={() => setImgError(true)}
@@ -66,7 +66,7 @@ function StoreProductCard({ product, onBuy, onAddToCart, onCartOpen }: { product
           <span style={{ fontSize:14, fontWeight:900, color:TEC_COLORS.gold }}>{formatPi(product.price)}</span>
           <div style={{ display:'flex', gap:6 }}>
             <button onClick={handleAdd}
-              style={{ padding:'5px 10px', background: added ? 'rgba(16,185,129,0.12)' : 'rgba(212,175,55,0.08)', border: added ? '1px solid rgba(16,185,129,0.4)' : '1px solid rgba(212,175,55,0.35)', borderRadius:8, color: added ? '#10b981' : TEC_COLORS.gold, fontSize:11, fontWeight:700, cursor:'pointer', transition:'all 0.2s' }}>
+              style={{ padding:'5px 10px', background: added ? 'rgba(16,185,129,0.12)' : 'rgba(251,191,36,0.08)', border: added ? '1px solid rgba(16,185,129,0.4)' : '1px solid rgba(251,191,36,0.35)', borderRadius:8, color: added ? '#10b981' : TEC_COLORS.gold, fontSize:11, fontWeight:700, cursor:'pointer', transition:'all 0.2s' }}>
               {added ? '✓' : '+ Cart'}
             </button>
             <button onClick={() => onBuy(product)}
@@ -132,14 +132,14 @@ export default function StorePage() {
   }, [isAuth, piReady, router]);
 
   if (loading) return (
-    <div style={{ minHeight:'100vh', background:'#020205', display:'flex', alignItems:'center', justifyContent:'center' }}>
-      <div style={{ width:32, height:32, borderRadius:'50%', border:'2px solid rgba(212,175,55,0.15)', borderTopColor:TEC_COLORS.gold, animation:'spin 0.8s linear infinite' }} />
+    <div style={{ minHeight:'100vh', background:'#050816', display:'flex', alignItems:'center', justifyContent:'center' }}>
+      <div style={{ width:32, height:32, borderRadius:'50%', border:'2px solid rgba(251,191,36,0.15)', borderTopColor:TEC_COLORS.gold, animation:'spin 0.8s linear infinite' }} />
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
   );
 
   return (
-    <div style={{ minHeight:'100vh', background:'#020205', color:'#fff', fontFamily:'-apple-system,BlinkMacSystemFont,system-ui,sans-serif', paddingBottom:32 }}>
+    <div style={{ minHeight:'100vh', background:'#050816', color:'#fff', fontFamily:'-apple-system,BlinkMacSystemFont,system-ui,sans-serif', paddingBottom:32 }}>
       <style>{`::-webkit-scrollbar{display:none}`}</style>
 
       <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} items={cartItems} onUpdateQty={updateQty} onRemove={removeFromCart} onClear={clearCart} piReady={piReady} />
@@ -149,17 +149,17 @@ export default function StorePage() {
         <div style={{ fontSize:14, fontWeight:700, color:'#fff', flex:1 }}>Merchant Store</div>
         {itemCount > 0 && (
           <button onClick={() => setCartOpen(true)}
-            style={{ position:'relative', background:'#ffffff08', border:'1px solid rgba(212,175,55,0.2)', borderRadius:10, padding:'6px 12px', color:TEC_COLORS.gold, fontSize:14, cursor:'pointer', display:'flex', alignItems:'center', gap:6 }}>
+            style={{ position:'relative', background:'#ffffff08', border:'1px solid rgba(251,191,36,0.2)', borderRadius:10, padding:'6px 12px', color:TEC_COLORS.gold, fontSize:14, cursor:'pointer', display:'flex', alignItems:'center', gap:6 }}>
             🛒
-            <span style={{ position:'absolute', top:-6, right:-6, width:18, height:18, borderRadius:'50%', background:'linear-gradient(135deg,#d4af37,#b8882a)', color:'#0a0800', fontSize:10, fontWeight:900, display:'flex', alignItems:'center', justifyContent:'center' }}>{itemCount}</span>
+            <span style={{ position:'absolute', top:-6, right:-6, width:18, height:18, borderRadius:'50%', background:'linear-gradient(135deg,#FBBF24,#F59E0B)', color:'#0a0800', fontSize:10, fontWeight:900, display:'flex', alignItems:'center', justifyContent:'center' }}>{itemCount}</span>
           </button>
         )}
       </header>
 
       {merchant ? (
-        <div style={{ padding:'24px 16px 16px', background:'linear-gradient(180deg,#0d0d14 0%,#020205 100%)', borderBottom:'1px solid #ffffff06' }}>
+        <div style={{ padding:'24px 16px 16px', background:'linear-gradient(180deg,#0B1020 0%,#050816 100%)', borderBottom:'1px solid #ffffff06' }}>
           <div style={{ display:'flex', alignItems:'center', gap:16, marginBottom:16 }}>
-            <div style={{ width:64, height:64, borderRadius:'50%', background:'linear-gradient(135deg,#d4af37,#b8882a)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:24, fontWeight:900, color:'#0a0800', flexShrink:0, border:'2px solid rgba(212,175,55,0.3)' }}>
+            <div style={{ width:64, height:64, borderRadius:'50%', background:'linear-gradient(135deg,#FBBF24,#F59E0B)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:24, fontWeight:900, color:'#0a0800', flexShrink:0, border:'2px solid rgba(251,191,36,0.3)' }}>
               {merchant.display_name?.[0]?.toUpperCase() ?? '@'}
             </div>
             <div>

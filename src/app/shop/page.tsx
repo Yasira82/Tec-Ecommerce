@@ -192,22 +192,22 @@ export default function ShopPage() {
   const retryPay   = () => { const p = activeProd; closeModal(); setTimeout(() => p && handleBuy(p), 100); };
 
   if (isLoading) return (
-    <div style={{ minHeight:'100vh', background:'#07070f', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:14 }}>
-      <div style={{ width:36, height:36, borderRadius:'50%', border:'3px solid rgba(212,175,55,0.15)', borderTopColor:'#d4af37', animation:'spin 0.8s linear infinite' }} />
+    <div style={{ minHeight:'100vh', background:'#050816', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:14 }}>
+      <div style={{ width:36, height:36, borderRadius:'50%', border:'3px solid rgba(251,191,36,0.15)', borderTopColor:'#FBBF24', animation:'spin 0.8s linear infinite' }} />
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
   );
 
   if (fetching) return (
-    <div style={{ minHeight:'100vh', background:'#07070f', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:14 }}>
-      <div style={{ width:36, height:36, borderRadius:'50%', border:'3px solid rgba(212,175,55,0.15)', borderTopColor:'#d4af37', animation:'spin 0.8s linear infinite' }} />
+    <div style={{ minHeight:'100vh', background:'#050816', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:14 }}>
+      <div style={{ width:36, height:36, borderRadius:'50%', border:'3px solid rgba(251,191,36,0.15)', borderTopColor:'#FBBF24', animation:'spin 0.8s linear infinite' }} />
       <p style={{ fontFamily:'system-ui,sans-serif', fontSize:12, color:'#3a3a4a' }}>Loading products…</p>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
   );
 
   return (
-    <div style={{ minHeight:'100vh', background:'#07070f', color:'#fff', fontFamily:'Georgia,serif' }}>
+    <div style={{ minHeight:'100vh', background:'#050816', color:'#fff', fontFamily:'Georgia,serif' }}>
       <style>{CSS}</style>
       <EcommerceDrawer isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} username={username ?? undefined} hubUrl={HUB_URL} />
       <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} items={cartItems} onUpdateQty={updateQty} onRemove={removeFromCart} onClear={clearCart} piReady={piReady} />
@@ -218,7 +218,7 @@ export default function ShopPage() {
           <span style={{ position:'absolute', left:13, top:'50%', transform:'translateY(-50%)', fontSize:15, color:'#4a4a5a', pointerEvents:'none' }}>🔍</span>
           <input type="text" value={searchQuery} onChange={e => handleSearchChange(e.target.value)} placeholder="Search products…"
             style={{ width:'100%', boxSizing:'border-box', padding:'11px 14px 11px 38px', background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:14, color:'#e8d5a3', fontFamily:'system-ui', fontSize:13, outline:'none', transition:'border-color 0.15s' }}
-            onFocus={e => (e.target.style.borderColor = 'rgba(212,175,55,0.4)')}
+            onFocus={e => (e.target.style.borderColor = 'rgba(251,191,36,0.4)')}
             onBlur={e  => (e.target.style.borderColor = 'rgba(255,255,255,0.08)')}
           />
           {searchQuery && <button onClick={() => handleSearchChange('')} style={{ position:'absolute', right:12, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', color:'#4a4a5a', cursor:'pointer', fontSize:16, lineHeight:1 }}>×</button>}
@@ -229,9 +229,9 @@ export default function ShopPage() {
               {categories.map(c => (
                 <button key={c} onClick={() => setActiveCategory(c)}
                   style={{ padding:'6px 14px', borderRadius:20, fontFamily:'system-ui', fontSize:12, fontWeight:600, whiteSpace:'nowrap', cursor:'pointer', transition:'all 0.15s',
-                    background: activeCategory === c ? 'rgba(212,175,55,0.14)' : 'rgba(255,255,255,0.04)',
-                    border:     activeCategory === c ? '1px solid rgba(212,175,55,0.4)' : '1px solid rgba(255,255,255,0.08)',
-                    color:      activeCategory === c ? '#d4af37' : '#6b6b7a' }}>
+                    background: activeCategory === c ? 'rgba(251,191,36,0.14)' : 'rgba(255,255,255,0.04)',
+                    border:     activeCategory === c ? '1px solid rgba(251,191,36,0.4)' : '1px solid rgba(255,255,255,0.08)',
+                    color:      activeCategory === c ? '#FBBF24' : '#6b6b7a' }}>
                   {c === 'all' ? '🏪 All' : c}
                 </button>
               ))}
@@ -252,9 +252,9 @@ export default function ShopPage() {
             return (
               <button key={b.label} onClick={() => { setMaxPriceBucket(b.max); setCustomMax(''); }}
                 style={{ padding:'4px 12px', borderRadius:20, fontFamily:'system-ui', fontSize:11, fontWeight:600, cursor:'pointer', transition:'all 0.15s',
-                  background: active ? 'rgba(212,175,55,0.14)' : 'rgba(255,255,255,0.04)',
-                  border:     active ? '1px solid rgba(212,175,55,0.4)' : '1px solid rgba(255,255,255,0.06)',
-                  color:      active ? '#d4af37' : '#6b6b7a' }}>
+                  background: active ? 'rgba(251,191,36,0.14)' : 'rgba(255,255,255,0.04)',
+                  border:     active ? '1px solid rgba(251,191,36,0.4)' : '1px solid rgba(255,255,255,0.06)',
+                  color:      active ? '#FBBF24' : '#6b6b7a' }}>
                 {b.label}
               </button>
             );
@@ -276,7 +276,7 @@ export default function ShopPage() {
             <div style={{ fontSize:44, opacity:0.4, marginBottom:12 }}>⚠️</div>
             <p style={{ fontFamily:'system-ui', fontSize:14, color:'#5a3a3a', marginBottom:8 }}>Could not load products</p>
             <p style={{ fontFamily:'system-ui', fontSize:12, color:'#3a3a4a', marginBottom:20 }}>The shop is temporarily unavailable. Please try again.</p>
-            <button onClick={loadProducts} style={{ fontFamily:'system-ui', fontSize:12, color:'#d4af37', background:'none', border:'1px solid rgba(212,175,55,0.35)', borderRadius:10, padding:'8px 20px', cursor:'pointer' }}>↺ Retry</button>
+            <button onClick={loadProducts} style={{ fontFamily:'system-ui', fontSize:12, color:'#FBBF24', background:'none', border:'1px solid rgba(251,191,36,0.35)', borderRadius:10, padding:'8px 20px', cursor:'pointer' }}>↺ Retry</button>
           </div>
         ) : filteredProducts.length === 0 ? (
           <div style={{ textAlign:'center', padding:'60px 0' }}>
@@ -285,7 +285,7 @@ export default function ShopPage() {
               {products.length === 0 ? 'No products available yet' : 'No products match your filters'}
             </p>
             {hasActiveFilters && (
-              <button onClick={clearAllFilters} style={{ fontFamily:'system-ui', fontSize:12, color:'#d4af37', background:'none', border:'1px solid rgba(212,175,55,0.25)', borderRadius:10, padding:'8px 18px', cursor:'pointer' }}>Clear filters</button>
+              <button onClick={clearAllFilters} style={{ fontFamily:'system-ui', fontSize:12, color:'#FBBF24', background:'none', border:'1px solid rgba(251,191,36,0.25)', borderRadius:10, padding:'8px 18px', cursor:'pointer' }}>Clear filters</button>
             )}
           </div>
         ) : (
@@ -299,9 +299,9 @@ export default function ShopPage() {
             position:'fixed', bottom:24, right:20, zIndex:200,
             display:'flex', alignItems:'center', gap:8,
             padding:'13px 20px', borderRadius:24,
-            background:'linear-gradient(135deg,#d4af37,#b8882a)',
-            border:'none', cursor:'pointer', boxShadow:'0 4px 24px rgba(212,175,55,0.35)',
-            fontFamily:'system-ui', fontSize:14, fontWeight:800, color:'#07070f',
+            background:'linear-gradient(135deg,#FBBF24,#F59E0B)',
+            border:'none', cursor:'pointer', boxShadow:'0 4px 24px rgba(251,191,36,0.35)',
+            fontFamily:'system-ui', fontSize:14, fontWeight:800, color:'#050816',
             animation:'fabIn 0.25s ease',
           }}
         >

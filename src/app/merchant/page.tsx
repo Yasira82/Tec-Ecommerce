@@ -29,7 +29,7 @@ const getStoredUser = () => {
 function StatCard({ label, value, color = '#e8d5a3', sub }: { label: string; value: string | number; color?: string; sub?: string }) {
   return (
     <div style={{
-      background: '#0d0d18', border: '1px solid rgba(212,175,55,0.1)',
+      background: '#111627', border: '1px solid rgba(251,191,36,0.1)',
       borderRadius: 16, padding: '20px 18px',
     }}>
       <div style={{ fontSize: 10, color: '#4a4a5a', fontFamily: 'system-ui', fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 8 }}>
@@ -96,14 +96,14 @@ export default function MerchantPage() {
   const categories = new Set(products.map(p => p.category).filter(Boolean));
 
   if (authLoading || (loading && products.length === 0)) return (
-    <div style={{ minHeight: '100vh', background: '#07070f', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ width: 32, height: 32, borderRadius: '50%', border: '3px solid rgba(212,175,55,0.15)', borderTopColor: '#d4af37', animation: 'spin 0.8s linear infinite' }} />
+    <div style={{ minHeight: '100vh', background: '#050816', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ width: 32, height: 32, borderRadius: '50%', border: '3px solid rgba(251,191,36,0.15)', borderTopColor: '#FBBF24', animation: 'spin 0.8s linear infinite' }} />
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 
   return (
-    <div style={{ minHeight: '100vh', background: '#07070f', color: '#fff', fontFamily: 'Georgia, serif' }}>
+    <div style={{ minHeight: '100vh', background: '#050816', color: '#fff', fontFamily: 'Georgia, serif' }}>
 
       <EcommerceDrawer isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} username={username ?? undefined} hubUrl={HUB_URL} />
       <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} items={cartItems} onUpdateQty={updateQty} onRemove={removeFromCart} onClear={clearCart} piReady={piReady} />
@@ -123,7 +123,7 @@ export default function MerchantPage() {
             <button
               onClick={load}
               disabled={loading}
-              style={{ padding: '8px 16px', borderRadius: 12, border: '1px solid rgba(212,175,55,0.2)', background: 'transparent', color: loading ? '#3a3a4a' : '#d4af37', fontFamily: 'system-ui', fontSize: 12, cursor: loading ? 'not-allowed' : 'pointer' }}
+              style={{ padding: '8px 16px', borderRadius: 12, border: '1px solid rgba(251,191,36,0.2)', background: 'transparent', color: loading ? '#3a3a4a' : '#FBBF24', fontFamily: 'system-ui', fontSize: 12, cursor: loading ? 'not-allowed' : 'pointer' }}
             >
               {loading ? '⟳' : '↻ Refresh'}
             </button>
@@ -141,7 +141,7 @@ export default function MerchantPage() {
           <StatCard label="Products"        value={products.length}                  color="#e8d5a3" />
           <StatCard label="In Stock"         value={inStock}                          color="#10b981" />
           <StatCard label="Out of Stock"     value={outOfStock}                       color="#ef4444" />
-          <StatCard label="Catalogue Value"  value={`${totalValue.toFixed(0)}π`}     color="#d4af37" sub={`${categories.size} categor${categories.size === 1 ? 'y' : 'ies'}`} />
+          <StatCard label="Catalogue Value"  value={`${totalValue.toFixed(0)}π`}     color="#FBBF24" sub={`${categories.size} categor${categories.size === 1 ? 'y' : 'ies'}`} />
         </div>
 
         {/* ── Error ── */}
@@ -152,9 +152,9 @@ export default function MerchantPage() {
         )}
 
         {/* ── Product table ── */}
-        <div style={{ background: '#0d0d18', border: '1px solid rgba(212,175,55,0.1)', borderRadius: 18, overflow: 'hidden' }}>
+        <div style={{ background: '#111627', border: '1px solid rgba(251,191,36,0.1)', borderRadius: 18, overflow: 'hidden' }}>
 
-          <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(212,175,55,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(251,191,36,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
               <div style={{ fontSize: 14, fontWeight: 700, color: '#e8d5a3' }}>Products</div>
               <div style={{ fontFamily: 'system-ui', fontSize: 11, color: '#4a4a5a', marginTop: 2 }}>
@@ -184,11 +184,11 @@ export default function MerchantPage() {
                     borderBottom: i < products.length - 1 ? '1px solid rgba(255,255,255,0.03)' : 'none',
                     cursor: 'pointer', transition: 'background 0.15s',
                   }}
-                  onMouseEnter={e => (e.currentTarget.style.background = 'rgba(212,175,55,0.04)')}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'rgba(251,191,36,0.04)')}
                   onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                 >
                   {/* Thumbnail */}
-                  <div style={{ width: 48, height: 48, borderRadius: 10, overflow: 'hidden', flexShrink: 0, background: '#141428', border: '1px solid rgba(212,175,55,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ width: 48, height: 48, borderRadius: 10, overflow: 'hidden', flexShrink: 0, background: '#141428', border: '1px solid rgba(251,191,36,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     {imgSrc
                       ? <img
                           src={imgSrc}
@@ -207,7 +207,7 @@ export default function MerchantPage() {
                   </div>
 
                   {/* Price */}
-                  <div style={{ fontSize: 14, fontWeight: 800, color: '#d4af37', fontFamily: 'Georgia', flexShrink: 0 }}>{p.price}π</div>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: '#FBBF24', fontFamily: 'Georgia', flexShrink: 0 }}>{p.price}π</div>
 
                   {/* Stock badge */}
                   <div style={{
@@ -222,7 +222,7 @@ export default function MerchantPage() {
 
                   {/* Rating */}
                   {(p.rating ?? 0) > 0 && (
-                    <div style={{ fontFamily: 'system-ui', fontSize: 11, color: '#d4af37', flexShrink: 0 }}>★ {p.rating!.toFixed(1)}</div>
+                    <div style={{ fontFamily: 'system-ui', fontSize: 11, color: '#FBBF24', flexShrink: 0 }}>★ {p.rating!.toFixed(1)}</div>
                   )}
 
                   <div style={{ fontSize: 13, color: '#3a3a4a', flexShrink: 0 }}>›</div>
