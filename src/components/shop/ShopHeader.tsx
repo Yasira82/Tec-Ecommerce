@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter, usePathname } from 'next/navigation';
+import { Icon } from '@yasser172/tec-ui';
 
 interface Props {
   piReady:      boolean;
@@ -37,9 +38,9 @@ export function ShopHeader({ piReady, onMenuOpen, cartCount = 0, onCartOpen }: P
         </div>
 
         <nav style={{ display:'flex', gap:2, alignItems:'center', flex:1, justifyContent:'center' }}>
-          <button onClick={() => router.push('/shop')}     style={navStyle('/shop')}>🛍 Shop</button>
-          <button onClick={() => router.push('/orders')}   style={navStyle('/orders')}>🧾 Orders</button>
-          <button onClick={() => router.push('/merchant')} style={navStyle('/merchant')}>🏪 Sell</button>
+          <button onClick={() => router.push('/shop')}     style={navStyle('/shop')}><span style={{ display:'inline-flex', alignItems:'center', gap:5 }}><Icon name="store" size={15} />Shop</span></button>
+          <button onClick={() => router.push('/orders')}   style={navStyle('/orders')}><span style={{ display:'inline-flex', alignItems:'center', gap:5 }}><Icon name="receipt" size={15} />Orders</span></button>
+          <button onClick={() => router.push('/merchant')} style={navStyle('/merchant')}><span style={{ display:'inline-flex', alignItems:'center', gap:5 }}><Icon name="tag" size={15} />Sell</span></button>
         </nav>
 
         <div style={{ display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
@@ -56,7 +57,7 @@ export function ShopHeader({ piReady, onMenuOpen, cartCount = 0, onCartOpen }: P
                 transition: 'all 0.2s',
               }}
             >
-              🛒
+              <Icon name="cart" size={18} />
               {cartCount > 0 && (
                 <span style={{ fontFamily:'system-ui', fontSize:12, fontWeight:900, color:'#FBBF24', lineHeight:1 }}>
                   {cartCount > 99 ? '99+' : cartCount}
