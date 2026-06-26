@@ -25,8 +25,11 @@ export function ProductCard({ product, piReady, onBuy, onAddToCart, onCartOpen, 
   const router   = useRouter();
   const imgSrc   = product.images?.[0] ?? product.image_url;
   const label    = product.title ?? product.name ?? 'Product';
-  const sellerId = product.seller_id ?? product.merchant_name;
-  const sellerName = product.merchant_name || product.seller_id;
+  const sellerId = product.seller_id;
+  // Never surface a raw UUID as the store name — fall back to a clean label.
+  const rawName  = product.merchant_name?.trim();
+  const isUuid   = !!rawName && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawName);
+  const sellerName = (rawName && !isUuid) ? rawName : 'TEC Store';
 
   const handleAdd = () => {
     onAddToCart?.(product);
