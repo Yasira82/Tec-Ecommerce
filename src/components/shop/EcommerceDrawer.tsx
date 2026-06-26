@@ -14,7 +14,7 @@ interface Props {
 
 function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
   return (
-    <button onClick={() => onChange(!value)} style={{ width:44, height:24, borderRadius:12, position:'relative', cursor:'pointer', flexShrink:0, border:'none', background: value ? 'linear-gradient(135deg,#d4af37,#b8882a)' : '#1a1a2a', transition:'all 0.2s' }}>
+    <button onClick={() => onChange(!value)} style={{ width:44, height:24, borderRadius:12, position:'relative', cursor:'pointer', flexShrink:0, border:'none', background: value ? 'linear-gradient(135deg,#FBBF24,#F59E0B)' : '#1a1a2a', transition:'all 0.2s' }}>
       <div style={{ position:'absolute', top:3, left: value ? 23 : 3, width:18, height:18, borderRadius:'50%', background:'#fff', transition:'left 0.2s', boxShadow:'0 1px 4px rgba(0,0,0,0.3)' }} />
     </button>
   );
@@ -81,15 +81,15 @@ export function EcommerceDrawer({ isOpen, onClose, username, hubUrl }: Props) {
         <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:290, background:'rgba(2,2,5,0.8)', backdropFilter:'blur(8px)' }} />
       )}
 
-      <div style={{ position:'fixed', top:0, left:0, bottom:0, zIndex:300, width:280, background:'#0a0a12', borderRight:'1px solid #ffffff0a', transform: isOpen ? 'translateX(0)' : 'translateX(-100%)', transition:'transform 0.3s cubic-bezier(0.16,1,0.3,1)', display:'flex', flexDirection:'column', overflowY:'auto' }}>
+      <div style={{ position:'fixed', top:0, left:0, bottom:0, zIndex:300, width:280, background:'#0B1020', borderRight:'1px solid #ffffff0a', transform: isOpen ? 'translateX(0)' : 'translateX(-100%)', transition:'transform 0.3s cubic-bezier(0.16,1,0.3,1)', display:'flex', flexDirection:'column', overflowY:'auto' }}>
 
         {/* Header */}
         <div style={{ padding:'20px 20px 16px', borderBottom:'1px solid #ffffff0a' }}>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16 }}>
             <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-              <div style={{ width:36, height:36, borderRadius:10, background:'linear-gradient(135deg,#d4af37,#b8882a)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:18, color:'#07070f' }}>🛍</div>
+              <div style={{ width:36, height:36, borderRadius:10, background:'linear-gradient(135deg,#FBBF24,#F59E0B)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:18, color:'#050816' }}>🛍</div>
               <div>
-                <div style={{ fontSize:14, fontWeight:800, color:'#d4af37' }}>Ecommerce</div>
+                <div style={{ fontSize:14, fontWeight:800, color:'#FBBF24' }}>Ecommerce</div>
                 <div style={{ fontSize:9, color:'#4a4a5a', letterSpacing:2 }}>TEC ECOSYSTEM</div>
               </div>
             </div>
@@ -98,7 +98,7 @@ export function EcommerceDrawer({ isOpen, onClose, username, hubUrl }: Props) {
 
           {username && (
             <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 12px', background:'#ffffff05', borderRadius:12 }}>
-              <div style={{ width:38, height:38, borderRadius:'50%', background:'linear-gradient(135deg,#d4af37,#b8882a)', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:900, fontSize:15, color:'#07070f', flexShrink:0 }}>
+              <div style={{ width:38, height:38, borderRadius:'50%', background:'linear-gradient(135deg,#FBBF24,#F59E0B)', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:900, fontSize:15, color:'#050816', flexShrink:0 }}>
                 {username[0].toUpperCase()}
               </div>
               <div style={{ flex:1 }}>
@@ -124,9 +124,9 @@ export function EcommerceDrawer({ isOpen, onClose, username, hubUrl }: Props) {
           />
 
           {piRate && (
-            <div style={{ margin:'0 20px 4px', padding:'8px 12px', background:'rgba(212,175,55,0.06)', border:'1px solid rgba(212,175,55,0.15)', borderRadius:10 }}>
+            <div style={{ margin:'0 20px 4px', padding:'8px 12px', background:'rgba(251,191,36,0.06)', border:'1px solid rgba(251,191,36,0.15)', borderRadius:10 }}>
               <div style={{ fontSize:10, color:'#4a4a5a' }}>Pi rate</div>
-              <div style={{ fontSize:13, fontWeight:700, color:'#d4af37' }}>1π ≈ ${piRate.toFixed(4)}</div>
+              <div style={{ fontSize:13, fontWeight:700, color:'#FBBF24' }}>1π ≈ ${piRate.toFixed(4)}</div>
             </div>
           )}
 
@@ -147,7 +147,7 @@ export function EcommerceDrawer({ isOpen, onClose, username, hubUrl }: Props) {
         {/* Footer */}
         <div style={{ padding:'16px 20px', borderTop:'1px solid #ffffff0a' }}>
           <button onClick={() => { window.location.href = `${hubUrl}/hub`; }}
-            style={{ width:'100%', padding:11, borderRadius:12, background:'#ffffff08', border:'1px solid #ffffff10', color:'#d4af37', fontSize:13, fontWeight:600, cursor:'pointer', marginBottom:12 }}>
+            style={{ width:'100%', padding:11, borderRadius:12, background:'#ffffff08', border:'1px solid #ffffff10', color:'#FBBF24', fontSize:13, fontWeight:600, cursor:'pointer', marginBottom:12 }}>
             🔷 Back to Hub
           </button>
           <div style={{ textAlign:'center' }}>

@@ -167,7 +167,7 @@ export default function ProductPage() {
   const label  = product.title ?? product.name ?? 'Product';
 
   return (
-    <div style={{ minHeight:'100vh', background:'#07070f', color:'#fff', fontFamily:'Georgia,serif' }}>
+    <div style={{ minHeight:'100vh', background:'#050816', color:'#fff', fontFamily:'Georgia,serif' }}>
       <style>{CSS}</style>
 
       <EcommerceDrawer isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} username={username ?? undefined} hubUrl={HUB_URL} />
@@ -264,9 +264,9 @@ export default function ProductPage() {
                 }}
                 style={{
                   width:'100%', padding:14, borderRadius:16, cursor:'pointer', fontFamily:'system-ui', fontSize:14, fontWeight:700, transition:'all 0.2s',
-                  border: cartAdded ? '1px solid rgba(16,185,129,0.4)' : '1px solid rgba(212,175,55,0.35)',
-                  background: cartAdded ? 'rgba(16,185,129,0.1)' : 'rgba(212,175,55,0.08)',
-                  color: cartAdded ? '#10b981' : '#d4af37',
+                  border: cartAdded ? '1px solid rgba(16,185,129,0.4)' : '1px solid rgba(251,191,36,0.35)',
+                  background: cartAdded ? 'rgba(16,185,129,0.1)' : 'rgba(251,191,36,0.08)',
+                  color: cartAdded ? '#10b981' : '#FBBF24',
                 }}
               >
                 {cartAdded ? '✓ Added to Cart' : '+ Add to Cart'}
@@ -275,7 +275,7 @@ export default function ProductPage() {
           </div>
 
           <div className="pi-note">
-            <span style={{ color:'#d4af37' }}>π</span>
+            <span style={{ color:'#FBBF24' }}>π</span>
             &nbsp;Instant payment via Pi Network · Secured by blockchain
           </div>
         </div>
@@ -300,13 +300,13 @@ const CSS = `
   @keyframes fadeIn { from{opacity:0} to{opacity:1} }
   @keyframes spin   { to{transform:rotate(360deg)} }
 
-  .center-screen { min-height:100vh; background:#07070f; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; }
-  .spinner { width:32px; height:32px; border-radius:50%; border:3px solid rgba(212,175,55,0.15); border-top-color:#d4af37; animation:spin 0.8s linear infinite; }
-  .btn-back { padding:10px 24px; border-radius:12px; border:1px solid rgba(212,175,55,0.2); background:transparent; color:#d4af37; font-family:system-ui; font-size:13px; cursor:pointer; }
+  .center-screen { min-height:100vh; background:#050816; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; }
+  .spinner { width:32px; height:32px; border-radius:50%; border:3px solid rgba(251,191,36,0.15); border-top-color:#FBBF24; animation:spin 0.8s linear infinite; }
+  .btn-back { padding:10px 24px; border-radius:12px; border:1px solid rgba(251,191,36,0.2); background:transparent; color:#FBBF24; font-family:system-ui; font-size:13px; cursor:pointer; }
 
   .breadcrumb { max-width:800px; margin:0 auto; padding:14px 20px; display:flex; align-items:center; gap:8px; }
   .breadcrumb-link    { font-family:system-ui; font-size:12px; color:#4a4a5a; background:none; border:none; cursor:pointer; padding:0; }
-  .breadcrumb-link:hover { color:#d4af37; }
+  .breadcrumb-link:hover { color:#FBBF24; }
   .breadcrumb-sep     { color:#2a2a3a; font-size:12px; }
   .breadcrumb-current { font-family:system-ui; font-size:12px; color:#888; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:180px; }
 
@@ -314,23 +314,23 @@ const CSS = `
   @media(min-width:600px) { .product-wrap { grid-template-columns:1fr 1fr; } }
 
   .images-col { display:flex; flex-direction:column; gap:10px; }
-  .main-img-wrap { position:relative; border-radius:20px; overflow:hidden; background:#0d0d18; border:1px solid rgba(212,175,55,0.1); }
+  .main-img-wrap { position:relative; border-radius:20px; overflow:hidden; background:#111627; border:1px solid rgba(251,191,36,0.1); }
   .main-img { width:100%; height:280px; object-fit:cover; display:block; }
   .main-img-placeholder { height:280px; display:flex; align-items:center; justify-content:center; font-size:64px; opacity:0.2; }
-  .price-overlay { position:absolute; bottom:14px; right:14px; background:rgba(7,7,15,0.9); border:1px solid rgba(212,175,55,0.4); color:#d4af37; font-size:18px; font-weight:900; padding:6px 14px; border-radius:20px; font-family:Georgia; backdrop-filter:blur(8px); }
+  .price-overlay { position:absolute; bottom:14px; right:14px; background:rgba(7,7,15,0.9); border:1px solid rgba(251,191,36,0.4); color:#FBBF24; font-size:18px; font-weight:900; padding:6px 14px; border-radius:20px; font-family:Georgia; backdrop-filter:blur(8px); }
   .thumbs { display:flex; gap:8px; overflow-x:auto; }
   .thumb { width:60px; height:60px; border-radius:12px; overflow:hidden; border:2px solid transparent; cursor:pointer; background:none; padding:0; flex-shrink:0; transition:border-color 0.15s; }
-  .thumb--active { border-color:#d4af37; }
+  .thumb--active { border-color:#FBBF24; }
 
   .info-col { display:flex; flex-direction:column; gap:14px; }
-  .category-tag { display:inline-block; font-family:system-ui; font-size:10px; color:#d4af37; background:rgba(212,175,55,0.1); border:1px solid rgba(212,175,55,0.2); padding:3px 10px; border-radius:20px; letter-spacing:1px; text-transform:uppercase; width:fit-content; }
+  .category-tag { display:inline-block; font-family:system-ui; font-size:10px; color:#FBBF24; background:rgba(251,191,36,0.1); border:1px solid rgba(251,191,36,0.2); padding:3px 10px; border-radius:20px; letter-spacing:1px; text-transform:uppercase; width:fit-content; }
   .product-title { font-size:clamp(20px,4vw,28px); font-weight:900; color:#e8d5a3; line-height:1.2; letter-spacing:-0.01em; }
   .rating-row { display:flex; align-items:center; gap:8px; }
-  .stars { color:#d4af37; font-size:14px; letter-spacing:1px; }
+  .stars { color:#FBBF24; font-size:14px; letter-spacing:1px; }
   .rating-count { font-family:system-ui; font-size:12px; color:#4a4a5a; }
   .price-block { display:flex; align-items:baseline; gap:4px; }
-  .price-main { font-size:42px; font-weight:900; color:#d4af37; line-height:1; }
-  .price-unit { font-size:22px; font-weight:700; color:#b8882a; }
+  .price-main { font-size:42px; font-weight:900; color:#FBBF24; line-height:1; }
+  .price-unit { font-size:22px; font-weight:700; color:#F59E0B; }
   .product-desc { font-family:system-ui; font-size:13px; color:#6b6b7a; line-height:1.7; }
   .stock-badge { font-family:system-ui; font-size:12px; font-weight:600; padding:6px 14px; border-radius:20px; width:fit-content; }
   .stock-in  { background:rgba(16,185,129,0.1); color:#10b981; border:1px solid rgba(16,185,129,0.2); }
@@ -339,9 +339,9 @@ const CSS = `
   .seller-label { font-family:system-ui; font-size:12px; color:#4a4a5a; }
   .seller-name  { font-family:system-ui; font-size:12px; color:#888; font-weight:600; }
 
-  .cta-btn { padding:16px; border-radius:16px; border:none; background:linear-gradient(135deg,#d4af37,#b8882a); color:#07070f; font-size:16px; font-weight:800; font-family:system-ui; cursor:pointer; transition:opacity 0.15s,transform 0.15s; }
+  .cta-btn { padding:16px; border-radius:16px; border:none; background:linear-gradient(135deg,#FBBF24,#F59E0B); color:#050816; font-size:16px; font-weight:800; font-family:system-ui; cursor:pointer; transition:opacity 0.15s,transform 0.15s; }
   .cta-btn:hover:not(.cta-btn--off) { opacity:0.88; transform:scale(0.99); }
   .cta-btn--off { background:#1a1a28; color:#3a3a4a; cursor:not-allowed; }
 
-  .pi-note { font-family:system-ui; font-size:11px; color:#3a3a4a; text-align:center; padding:10px; background:rgba(212,175,55,0.04); border-radius:12px; border:1px solid rgba(212,175,55,0.08); }
+  .pi-note { font-family:system-ui; font-size:11px; color:#3a3a4a; text-align:center; padding:10px; background:rgba(251,191,36,0.04); border-radius:12px; border:1px solid rgba(251,191,36,0.08); }
 `;

@@ -137,14 +137,14 @@ export default function HomePage() {
   const retryPay   = () => { const p = activeProd; closeModal(); setTimeout(() => p && handleBuy(p), 100); };
 
   if (isLoading) return (
-    <div style={{ minHeight:'100vh', background:'#020205', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:14 }}>
-      <div style={{ width:36, height:36, borderRadius:'50%', border:'3px solid rgba(212,175,55,0.15)', borderTopColor:'#d4af37', animation:'spin 0.8s linear infinite' }} />
+    <div style={{ minHeight:'100vh', background:'#050816', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:14 }}>
+      <div style={{ width:36, height:36, borderRadius:'50%', border:'3px solid rgba(251,191,36,0.15)', borderTopColor:'#FBBF24', animation:'spin 0.8s linear infinite' }} />
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
   );
 
   if (!isAuthenticated) return (
-    <div style={{ minHeight:'100vh', background:'#020205', display:'flex', alignItems:'center', justifyContent:'center' }}>
+    <div style={{ minHeight:'100vh', background:'#050816', display:'flex', alignItems:'center', justifyContent:'center' }}>
       <style>{CSS}</style>
       <div style={{ textAlign:'center', animation:'fadeIn 0.5s ease' }}>
         <div style={{ fontSize:56, marginBottom:16 }}>🛍️</div>
@@ -164,7 +164,7 @@ export default function HomePage() {
   const categories = ['all', ...Array.from(new Set(products.map(p => p.category).filter(Boolean) as string[]))];
 
   return (
-    <div style={{ minHeight:'100vh', background:'#07070f', color:'#fff', fontFamily:'Georgia,serif' }}>
+    <div style={{ minHeight:'100vh', background:'#050816', color:'#fff', fontFamily:'Georgia,serif' }}>
       <style>{CSS}</style>
       <EcommerceDrawer isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} username={username ?? undefined} hubUrl={HUB_URL} />
       <CartDrawer
@@ -189,7 +189,7 @@ export default function HomePage() {
           <span className="hero-badge-icon">π</span>
           <div>
             <div style={{ fontSize:10, color:'#4a4a5a' }}>Pay with</div>
-            <div style={{ fontSize:14, fontWeight:800, color:'#d4af37' }}>Pi Network</div>
+            <div style={{ fontSize:14, fontWeight:800, color:'#FBBF24' }}>Pi Network</div>
           </div>
         </div>
       </section>
@@ -217,7 +217,7 @@ export default function HomePage() {
             <div style={{ fontSize:44, opacity:0.35, marginBottom:12 }}>⚠️</div>
             <p style={{ fontFamily:'system-ui', fontSize:14, color:'#5a3a3a', marginBottom:8 }}>Could not load products</p>
             <p style={{ fontFamily:'system-ui', fontSize:12, color:'#3a3a4a', marginBottom:20 }}>The shop is temporarily unavailable. Please try again.</p>
-            <button onClick={loadProducts} style={{ fontFamily:'system-ui', fontSize:12, color:'#d4af37', background:'none', border:'1px solid rgba(212,175,55,0.35)', borderRadius:10, padding:'8px 20px', cursor:'pointer' }}>↺ Retry</button>
+            <button onClick={loadProducts} style={{ fontFamily:'system-ui', fontSize:12, color:'#FBBF24', background:'none', border:'1px solid rgba(251,191,36,0.35)', borderRadius:10, padding:'8px 20px', cursor:'pointer' }}>↺ Retry</button>
           </div>
         ) : products.length === 0 ? (
           <div style={{ textAlign:'center', padding:'60px 0' }}><div style={{ fontSize:48, opacity:0.3, marginBottom:12 }}>📦</div><p style={{ fontFamily:'system-ui', fontSize:14, color:'#3a3a4a' }}>No products yet</p></div>
@@ -248,14 +248,14 @@ function ProductCard({ product, piReady, onBuy, onAddToCart, onCartOpen, feature
   return (
     <article className="card" style={{ animationDelay:`${delay}ms` }}>
       <div style={{ position:'relative' }}>
-        {imgSrc ? <img src={imgSrc} alt={label} style={{ width:'100%', height, objectFit:'cover', display:'block' }} /> : <div style={{ width:'100%', height, background:'linear-gradient(135deg,#0d0d18,#141428)', display:'flex', alignItems:'center', justifyContent:'center', fontSize: featured ? 34 : 26, opacity:0.3 }}>🛘</div>}
+        {imgSrc ? <img src={imgSrc} alt={label} style={{ width:'100%', height, objectFit:'cover', display:'block' }} /> : <div style={{ width:'100%', height, background:'linear-gradient(135deg,#111627,#141428)', display:'flex', alignItems:'center', justifyContent:'center', fontSize: featured ? 34 : 26, opacity:0.3 }}>🛘</div>}
         <div className="price-badge">{product.price}π</div>
         {product.category && <div className="cat-badge">{product.category}</div>}
       </div>
       <div style={{ padding: featured ? '12px' : '9px' }}>
         <h3 className="card-title" style={{ fontSize: featured ? 13 : 12 }}>{label}</h3>
         <p className="card-desc">{product.description}</p>
-        {product.rating ? (<div style={{ display:'flex', alignItems:'center', gap:4, marginBottom:8 }}><span style={{ color:'#d4af37', fontSize:10 }}>{'★'.repeat(Math.round(product.rating))}</span><span style={{ fontFamily:'system-ui', fontSize:9, color:'#4a4a5a' }}>({product.reviews_count ?? 0})</span></div>) : null}
+        {product.rating ? (<div style={{ display:'flex', alignItems:'center', gap:4, marginBottom:8 }}><span style={{ color:'#FBBF24', fontSize:10 }}>{'★'.repeat(Math.round(product.rating))}</span><span style={{ fontFamily:'system-ui', fontSize:9, color:'#4a4a5a' }}>({product.reviews_count ?? 0})</span></div>) : null}
         <div style={{ display:'flex', gap:6 }}>
           <button
             className={`add-btn ${added ? 'add-btn--done' : ''}`}
@@ -281,32 +281,32 @@ const CSS = `
   @keyframes fadeIn  { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:none} }
   @keyframes fadeUp  { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:none} }
   @keyframes spin    { to{transform:rotate(360deg)} }
-  .hero-banner { position:relative; overflow:hidden; padding:56px 20px 48px; text-align:center; background:linear-gradient(180deg,#0a0a18 0%,#07070f 100%); border-bottom:1px solid rgba(212,175,55,0.08); }
-  .hero-glow { position:absolute; top:-80px; left:50%; transform:translateX(-50%); width:500px; height:300px; background:radial-gradient(ellipse,rgba(212,175,55,0.12) 0%,transparent 70%); pointer-events:none; }
+  .hero-banner { position:relative; overflow:hidden; padding:56px 20px 48px; text-align:center; background:linear-gradient(180deg,#0a0a18 0%,#050816 100%); border-bottom:1px solid rgba(251,191,36,0.08); }
+  .hero-glow { position:absolute; top:-80px; left:50%; transform:translateX(-50%); width:500px; height:300px; background:radial-gradient(ellipse,rgba(251,191,36,0.12) 0%,transparent 70%); pointer-events:none; }
   .hero-content { position:relative; max-width:500px; margin:0 auto; }
   .hero-eyebrow { font-family:system-ui; font-size:10px; color:#4a4a5a; letter-spacing:3px; text-transform:uppercase; margin-bottom:12px; }
-  .hero-title { font-size:clamp(32px,7vw,52px); font-weight:900; letter-spacing:-0.03em; background:linear-gradient(135deg,#d4af37,#e8d5a3,#b8882a); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; margin-bottom:12px; }
+  .hero-title { font-size:clamp(32px,7vw,52px); font-weight:900; letter-spacing:-0.03em; background:linear-gradient(135deg,#FBBF24,#e8d5a3,#F59E0B); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; margin-bottom:12px; }
   .hero-sub { font-family:system-ui; font-size:14px; color:#4a4a5a; margin-bottom:28px; }
-  .hero-cta { padding:13px 32px; border-radius:14px; border:none; background:linear-gradient(135deg,#d4af37,#b8882a); color:#07070f; font-size:14px; font-weight:800; font-family:system-ui; cursor:pointer; }
-  .hero-badge { position:absolute; top:20px; right:20px; display:flex; align-items:center; gap:8px; padding:8px 14px; background:rgba(212,175,55,0.08); border:1px solid rgba(212,175,55,0.2); border-radius:20px; }
-  .hero-badge-icon { font-size:20px; font-weight:900; color:#d4af37; font-family:Georgia; }
+  .hero-cta { padding:13px 32px; border-radius:14px; border:none; background:linear-gradient(135deg,#FBBF24,#F59E0B); color:#050816; font-size:14px; font-weight:800; font-family:system-ui; cursor:pointer; }
+  .hero-badge { position:absolute; top:20px; right:20px; display:flex; align-items:center; gap:8px; padding:8px 14px; background:rgba(251,191,36,0.08); border:1px solid rgba(251,191,36,0.2); border-radius:20px; }
+  .hero-badge-icon { font-size:20px; font-weight:900; color:#FBBF24; font-family:Georgia; }
   .section-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
   .section-title { font-size:18px; font-weight:800; color:#e8d5a3; }
   .section-count { font-family:system-ui; font-size:11px; color:#4a4a5a; }
   .featured-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px; }
   .products-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:10px; }
   .cat-btn { padding:7px 16px; border-radius:20px; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.04); color:#6b6b7a; font-family:system-ui; font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap; transition:all 0.15s; }
-  .cat-btn--active { background:rgba(212,175,55,0.12); border-color:rgba(212,175,55,0.35); color:#d4af37; }
-  .card { border-radius:14px; background:#0d0d18; border:1px solid rgba(212,175,55,0.1); overflow:hidden; animation:fadeUp 0.4s ease both; transition:transform 0.2s,border-color 0.2s,box-shadow 0.2s; }
-  .card:hover { transform:translateY(-3px); border-color:rgba(212,175,55,0.3); box-shadow:0 8px 24px rgba(212,175,55,0.07); }
-  .price-badge { position:absolute; top:7px; right:7px; background:rgba(7,7,15,0.88); border:1px solid rgba(212,175,55,0.4); color:#d4af37; font-size:11px; font-weight:900; padding:2px 7px; border-radius:20px; font-family:Georgia; backdrop-filter:blur(8px); }
+  .cat-btn--active { background:rgba(251,191,36,0.12); border-color:rgba(251,191,36,0.35); color:#FBBF24; }
+  .card { border-radius:14px; background:#111627; border:1px solid rgba(251,191,36,0.1); overflow:hidden; animation:fadeUp 0.4s ease both; transition:transform 0.2s,border-color 0.2s,box-shadow 0.2s; }
+  .card:hover { transform:translateY(-3px); border-color:rgba(251,191,36,0.3); box-shadow:0 8px 24px rgba(251,191,36,0.07); }
+  .price-badge { position:absolute; top:7px; right:7px; background:rgba(7,7,15,0.88); border:1px solid rgba(251,191,36,0.4); color:#FBBF24; font-size:11px; font-weight:900; padding:2px 7px; border-radius:20px; font-family:Georgia; backdrop-filter:blur(8px); }
   .cat-badge { position:absolute; top:7px; left:7px; background:rgba(7,7,15,0.75); color:#6b6b7a; font-family:system-ui; font-size:8px; padding:2px 6px; border-radius:20px; text-transform:uppercase; letter-spacing:1px; }
   .card-title { font-weight:700; color:#e8d5a3; }
   .card-desc { font-family:system-ui; font-size:10px; color:#4a4a5a; line-height:1.5; margin-bottom:8px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
-  .add-btn { padding:7px 6px; border-radius:10px; border:1px solid rgba(212,175,55,0.35); background:rgba(212,175,55,0.08); color:#d4af37; font-size:11px; font-weight:700; font-family:system-ui; cursor:pointer; transition:all 0.2s; }
-  .add-btn:hover { background:rgba(212,175,55,0.15); }
+  .add-btn { padding:7px 6px; border-radius:10px; border:1px solid rgba(251,191,36,0.35); background:rgba(251,191,36,0.08); color:#FBBF24; font-size:11px; font-weight:700; font-family:system-ui; cursor:pointer; transition:all 0.2s; }
+  .add-btn:hover { background:rgba(251,191,36,0.15); }
   .add-btn--done { background:rgba(16,185,129,0.12); border-color:rgba(16,185,129,0.4); color:#10b981; cursor:default; }
-  .buy-btn { width:100%; padding:7px 6px; border-radius:10px; border:none; background:linear-gradient(135deg,#d4af37,#b8882a); color:#07070f; font-size:11px; font-weight:800; font-family:system-ui; cursor:pointer; transition:opacity 0.15s; }
+  .buy-btn { width:100%; padding:7px 6px; border-radius:10px; border:none; background:linear-gradient(135deg,#FBBF24,#F59E0B); color:#050816; font-size:11px; font-weight:800; font-family:system-ui; cursor:pointer; transition:opacity 0.15s; }
   .buy-btn:hover { opacity:0.88; }
-  .spinner { width:32px; height:32px; border-radius:50%; border:3px solid rgba(212,175,55,0.15); border-top-color:#d4af37; animation:spin 0.8s linear infinite; }
+  .spinner { width:32px; height:32px; border-radius:50%; border:3px solid rgba(251,191,36,0.15); border-top-color:#FBBF24; animation:spin 0.8s linear infinite; }
 `;

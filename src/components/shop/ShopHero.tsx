@@ -4,17 +4,17 @@ export function ShopHero({ username }: { username?: string | null }) {
   return (
     <section style={{
       padding: '20px 16px 16px',
-      borderBottom: '1px solid rgba(212,175,55,0.06)',
+      borderBottom: '1px solid rgba(251,191,36,0.06)',
     }}>
       <div style={{ maxWidth: 800, margin: '0 auto' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
           {username && (
-            <span style={{ fontSize: 11, color: '#d4af37', fontWeight: 700 }}>@{username}</span>
+            <span style={{ fontSize: 11, color: '#FBBF24', fontWeight: 700 }}>@{username}</span>
           )}
           <span style={{
-            fontSize: 9, color: '#d4af37', letterSpacing: 0.5,
+            fontSize: 9, color: '#FBBF24', letterSpacing: 0.5,
             padding: '2px 8px', borderRadius: 10,
-            background: 'rgba(212,175,55,0.08)', border: '1px solid rgba(212,175,55,0.15)',
+            background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.15)',
           }}>π Mainnet</span>
         </div>
         <h1 style={{
