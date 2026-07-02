@@ -45,6 +45,9 @@ const redirectToHubPayment = (product: Product) => {
 };
 
 export default function HomePage() {
+  // Fire-and-forget backend warmup (Railway cold starts — see /api/warmup).
+  useEffect(() => { fetch('/api/warmup').catch(() => {}); }, []);
+
   const { isAuthenticated: piAuthed, isLoading: piLoading } = usePiAuth();
   const [tokenReady, setTokenReady] = useState(false);
   useEffect(() => {

@@ -55,6 +55,9 @@ const PRICE_BUCKETS = [
 ];
 
 export default function ShopPage() {
+  // Fire-and-forget backend warmup (Railway cold starts — see /api/warmup).
+  useEffect(() => { fetch('/api/warmup').catch(() => {}); }, []);
+
   const { isAuthenticated: piAuthed, isLoading: piLoading } = usePiAuth();
   const [tokenReady, setTokenReady] = useState(false);
   useEffect(() => {
