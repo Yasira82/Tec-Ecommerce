@@ -34,6 +34,7 @@ export async function POST(req: NextRequest) {
     const cookieOpts = {
       secure:   true,
       sameSite: 'none' as const,
+      partitioned: true,
       path:     '/',
       domain:   cookieDomain,
       maxAge:   60 * 60 * 24,
