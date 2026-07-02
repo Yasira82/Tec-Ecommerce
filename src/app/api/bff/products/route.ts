@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { gatewayGet } from '@/lib/bff/gateway-get';
 import { isE2eMode } from '@/lib/server/e2e-mode';
 
 const GATEWAY = process.env.API_GATEWAY_URL ?? process.env.NEXT_PUBLIC_API_GATEWAY_URL;
@@ -32,7 +33,7 @@ export async function GET(req: NextRequest) {
     params.set('limit',  limit);
     params.set('offset', String(offset));
 
-    const res = await fetch(
+    const res = await gatewayGet(
       `${GATEWAY}/api/commerce/products?${params}`,
       {
         headers: {

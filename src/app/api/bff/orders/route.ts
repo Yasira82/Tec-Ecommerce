@@ -63,12 +63,20 @@ export async function POST(req: NextRequest) {
     const rawBody = await req.json().catch(() => ({}));
     const parsed  = OrderSchema.safeParse(rawBody);
     if (!parsed.success) {
+      // A 400 here means a COMPLETED PAYMENT produced no order — log exactly
+      // why so the failure is diagnosable from runtime logs (C-96: no silent
+      // financial-flow failures), without exposing anything to the client.
+      console.warn('[bff/orders] VALIDATION_ERROR after payment', {
+        issues:   parsed.error.flatten().fieldErrors,
+        gotKeys:  Object.keys(rawBody as Record<string, unknown>),
+      });
       return NextResponse.json({ error: 'VALIDATION_ERROR', details: parsed.error.flatten() }, { status: 400 });
     }
 
     const { product_id, payment_id, memo, items: bodyItems } = parsed.data;
 
     if (!product_id && !bodyItems?.length) {
+      console.warn('[bff/orders] missing product_id/items after payment', { payment_id });
       return NextResponse.json(
         { error: 'payment_id and either product_id or items[] required' },
         { status: 400 },
