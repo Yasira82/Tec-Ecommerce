@@ -1,10 +1,21 @@
 'use client';
 
 import { useEffect } from 'react';
+import { isHubNavigation } from '@/lib-client/pi/hub-entry';
 
 export default function PiSdkLoader({ sandbox }: { sandbox: boolean }) {
   useEffect(() => {
     const appId = process.env.NEXT_PUBLIC_PI_APP_ID;
+
+    // ADR-007/C-12 §3: Hub-entered = Hub owns this Pi Browser session.
+    // Calling Pi.init() here poisons it and breaks the Hub PaymentModal
+    // (Mode 1). Same terminal state as the "already initialized" catch below.
+    if (isHubNavigation()) {
+      (window as any).__TEC_PI_FOREIGN_SESSION = true;
+      window.__TEC_PI_READY = true;
+      window.dispatchEvent(new Event('tec-pi-ready'));
+      return;
+    }
 
     const tryInit = (): boolean => {
       if (typeof window.Pi === 'undefined') return false;

@@ -9,6 +9,7 @@ import { EcommerceDrawer }                          from '@/components/shop/Ecom
 import { CartDrawer }                               from '@/components/shop/CartDrawer';
 import { useCart }                                  from '@/lib-client/cart/useCart';
 import { createPaymentRecord, createU2APayment }    from '@/lib/pi-payment';
+import { isHubNavigation }                          from '@/lib-client/pi/hub-entry';
 
 const HUB_URL = process.env.NEXT_PUBLIC_HUB_URL ?? 'https://hub.tecosystem.app';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://ecommerce.tecosystem.app';
@@ -28,12 +29,6 @@ const getStoredUser = () => {
     const raw = document.cookie.split('; ').find(r => r.startsWith('tec_user='))?.split('=')?.[1] ?? '';
     return raw ? JSON.parse(decodeURIComponent(raw)) : null;
   } catch { return null; }
-};
-
-/** ADR-007: Pi ownership drift after Hub navigation */
-const isHubNavigation = (): boolean => {
-  if (typeof document === 'undefined') return false;
-  return document.referrer.toLowerCase().includes('hub.tecosystem.app');
 };
 
 /** Mode 1: redirect to Hub PaymentModal (C-76) */
