@@ -6,6 +6,7 @@ import { TEC_COLORS }                        from '@yasser172/tec-ui';
 import { getStoredUser, getAccessToken }     from '@/lib-client/pi/pi-auth';
 import { useCart }                           from '@/lib-client/cart/useCart';
 import { CartDrawer }                        from '@/components/shop/CartDrawer';
+import { isHubNavigation }                   from '@/lib-client/pi/hub-entry';
 
 interface Product {
   id: string; title: string; price: number;
@@ -19,10 +20,6 @@ interface Merchant {
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://ecommerce.tecosystem.app';
 const HUB_URL = process.env.NEXT_PUBLIC_HUB_URL ?? 'https://hub.tecosystem.app';
-
-const isHubNavigation = () =>
-  typeof document !== 'undefined' &&
-  document.referrer.toLowerCase().includes('hub.tecosystem.app');
 
 const buyRedirect = (product: Product) => {
   window.location.href = `${HUB_URL}/hub?pay=1`

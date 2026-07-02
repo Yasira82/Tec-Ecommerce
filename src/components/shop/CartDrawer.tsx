@@ -3,6 +3,7 @@
 import { useState, useRef }          from 'react';
 import { CartItem }                   from '@/lib-client/cart/useCart';
 import { createPaymentRecord, createU2APayment } from '@/lib/pi-payment';
+import { isHubNavigation } from '@/lib-client/pi/hub-entry';
 
 const HUB_URL = process.env.NEXT_PUBLIC_HUB_URL ?? 'https://hub.tecosystem.app';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://ecommerce.tecosystem.app';
@@ -11,11 +12,6 @@ const getCsrfToken = () =>
   typeof document === 'undefined'
     ? ''
     : document.cookie.split('; ').find(r => r.startsWith('tec_csrf='))?.split('=')?.[1] ?? '';
-
-const isHubNavigation = (): boolean => {
-  if (typeof document === 'undefined') return false;
-  return document.referrer.toLowerCase().includes('hub.tecosystem.app');
-};
 
 const redirectToHubPayment = (total: number, count: number) => {
   const memo = `TEC Cart — ${count} item${count !== 1 ? 's' : ''}`;

@@ -11,6 +11,7 @@ import { PaymentModal, PayStatus } from '@yasser172/tec-ui/payment';
 import { EcommerceDrawer } from '@/components/shop/EcommerceDrawer';
 import { CartDrawer }      from '@/components/shop/CartDrawer';
 import { useCart }         from '@/lib-client/cart/useCart';
+import { isHubNavigation } from '@/lib-client/pi/hub-entry';
 
 interface Product {
   id: string; title: string; name?: string;
@@ -30,11 +31,6 @@ const getStoredUser = () => {
     const raw = document.cookie.split('; ').find(r => r.startsWith('tec_user='))?.split('=')?.[1] ?? '';
     return raw ? JSON.parse(decodeURIComponent(raw)) : null;
   } catch { return null; }
-};
-
-const isHubNavigation = (): boolean => {
-  if (typeof document === 'undefined') return false;
-  return document.referrer.toLowerCase().includes('hub.tecosystem.app');
 };
 
 const redirectToHubPayment = (product: Product) => {
@@ -166,7 +162,7 @@ export default function ShopPage() {
 
   const handleBuy = useCallback(async (product: Product) => {
     if (inFlight.current) return;
-    if (isHubNavigation() || !window.Pi || !piReady) { redirectToHubPayment(product); return; }
+    if (isHubNavigation() || (window as any).__TEC_PI_FOREIGN_SESSION || !window.Pi || !piReady) { redirectToHubPayment(product); return; }
     inFlight.current = true;
     setActiveProd(product);
     setPayStatus('creating');
