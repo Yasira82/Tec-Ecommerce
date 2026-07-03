@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { gatewayGet } from '@/lib/bff/gateway-get';
 import { isE2eMode } from '@/lib/server/e2e-mode';
 
-const GATEWAY = process.env.API_GATEWAY_URL ?? process.env.NEXT_PUBLIC_API_GATEWAY_URL;
+// NEW-A: server-only. NEXT_PUBLIC_* would ship the internal gateway URL in the
+// client bundle — the gateway is never addressed from the browser (BFF only).
+const GATEWAY = process.env.API_GATEWAY_URL;
 
 const getToken = (req: NextRequest) =>
   req.cookies.get('tec_access_token')?.value ?? '';
