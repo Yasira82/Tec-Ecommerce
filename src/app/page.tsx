@@ -9,6 +9,7 @@ import { PaymentModal, PayStatus } from '@yasser172/tec-ui/payment';
 import { EcommerceDrawer }        from '@/components/shop/EcommerceDrawer';
 import { CartDrawer }             from '@/components/shop/CartDrawer';
 import { useCart }                from '@/lib-client/cart/useCart';
+import { useMe }                  from '@/lib-client/hooks/useMe';
 import { createPaymentRecord, createU2APayment } from '@/lib/pi-payment';
 import { isHubNavigation } from '@/lib-client/pi/hub-entry';
 
@@ -45,13 +46,14 @@ export default function HomePage() {
   useEffect(() => { fetch('/api/warmup').catch(() => {}); }, []);
 
   const { isAuthenticated: piAuthed, isLoading: piLoading } = usePiAuth();
+  const me = useMe(); // server-resolved Pi username (Pi Browser hides tec_user from client JS — C-123 §3)
   const [tokenReady, setTokenReady] = useState(false);
   useEffect(() => {
     const tok = getToken();
     if (tok && tok.trim()) setTokenReady(true);
   }, []);
-  const isLoading       = piLoading && !tokenReady;
-  const isAuthenticated = piAuthed  || tokenReady;
+  const isLoading       = piLoading && !tokenReady && me.loading;
+  const isAuthenticated = piAuthed  || tokenReady || me.authenticated;
 
   const router = useRouter();
 
@@ -78,11 +80,14 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
+    // Prefer the server-resolved Pi username (/api/auth/me) — Pi Browser hides the
+    // tec_user cookie from client JS, so getStoredUser() is null there.
+    if (me.username) { setUsername(me.username); return; }
     if (isAuthenticated) {
       const user = getStoredUser();
       if (user?.piUsername) setUsername(user.piUsername);
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, me.username]);
 
   const loadProducts = useCallback(() => {
     setFetchError(false);

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Script            from 'next/script';
 import PiSdkLoader       from '@/components/PiSdkLoader';
+import { LocaleProvider } from '@/lib/i18n';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -17,7 +18,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <PiSdkLoader sandbox={sandbox} />
-        {children}
+        <LocaleProvider>
+          {children}
+        </LocaleProvider>
       </body>
     </html>
   );

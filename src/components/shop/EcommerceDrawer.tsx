@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslation } from '@/lib/i18n';
 
 const APP_VERSION = '1.0.0';
 const BUILD       = '2026.05';
@@ -38,6 +39,8 @@ function Section({ label }: { label: string }) {
 }
 
 export function EcommerceDrawer({ isOpen, onClose, username, hubUrl }: Props) {
+  const { t, locale, setLocale } = useTranslation();
+  const d = t.ecommerce.drawer;
   const [darkMode,     setDarkMode]     = useState(true);
   const [hidePrices,   setHidePrices]   = useState(false);
   const [isOnline,     setIsOnline]     = useState(true);
@@ -89,8 +92,8 @@ export function EcommerceDrawer({ isOpen, onClose, username, hubUrl }: Props) {
             <div style={{ display:'flex', alignItems:'center', gap:10 }}>
               <div style={{ width:36, height:36, borderRadius:10, background:'linear-gradient(135deg,#FBBF24,#F59E0B)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:18, color:'#050816' }}>🛍</div>
               <div>
-                <div style={{ fontSize:14, fontWeight:800, color:'#FBBF24' }}>Ecommerce</div>
-                <div style={{ fontSize:9, color:'#4a4a5a', letterSpacing:2 }}>TEC ECOSYSTEM</div>
+                <div style={{ fontSize:14, fontWeight:800, color:'#FBBF24' }}>{d.brand}</div>
+                <div style={{ fontSize:9, color:'#4a4a5a', letterSpacing:2 }}>{d.ecosystem}</div>
               </div>
             </div>
             <button onClick={onClose} style={{ width:30, height:30, borderRadius:'50%', background:'#ffffff08', border:'none', color:'#6b6b7a', fontSize:18, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>×</button>
@@ -105,7 +108,7 @@ export function EcommerceDrawer({ isOpen, onClose, username, hubUrl }: Props) {
                 <div style={{ fontSize:13, fontWeight:600, color:'#fff' }}>@{username}</div>
                 <div style={{ display:'flex', alignItems:'center', gap:5, marginTop:2 }}>
                   <span style={{ width:6, height:6, borderRadius:'50%', background: isOnline ? '#10b981' : '#ef4444', display:'inline-block' }} />
-                  <span style={{ fontSize:9, color: isOnline ? '#10b981' : '#ef4444' }}>{isOnline ? 'Online' : 'Offline'}</span>
+                  <span style={{ fontSize:9, color: isOnline ? '#10b981' : '#ef4444' }}>{isOnline ? d.online : d.offline}</span>
                 </div>
               </div>
             </div>
@@ -115,32 +118,52 @@ export function EcommerceDrawer({ isOpen, onClose, username, hubUrl }: Props) {
         {/* Content */}
         <div style={{ flex:1 }}>
 
-          <Section label="Preferences" />
-          <Row icon={darkMode ? '🌙' : '☀️'} label={darkMode ? 'Dark Mode' : 'Light Mode'}
+          <Section label={d.preferences} />
+          <Row icon="🌐" label={d.language}
+            right={
+              <div style={{ display:'flex', gap:6 }}>
+                {(['en','ar'] as const).map((lng) => {
+                  const active = locale === lng;
+                  return (
+                    <button key={lng} onClick={() => setLocale(lng)}
+                      style={{
+                        padding:'5px 11px', borderRadius:999, cursor:'pointer', fontSize:12, fontWeight:700,
+                        border:`1px solid ${active ? '#FBBF24' : '#ffffff14'}`,
+                        background: active ? 'rgba(251,191,36,0.14)' : 'transparent',
+                        color: active ? '#FBBF24' : '#6b6b7a',
+                      }}>
+                      {lng === 'en' ? '🇺🇸 EN' : '🇸🇦 AR'}
+                    </button>
+                  );
+                })}
+              </div>
+            }
+          />
+          <Row icon={darkMode ? '🌙' : '☀️'} label={darkMode ? d.darkMode : d.lightMode}
             right={<Toggle value={darkMode} onChange={setDarkMode} />}
           />
-          <Row icon="👁️" label="Hide Prices"
+          <Row icon="👁️" label={d.hidePrices}
             right={<Toggle value={hidePrices} onChange={setHidePrices} />}
           />
 
           {piRate && (
             <div style={{ margin:'0 20px 4px', padding:'8px 12px', background:'rgba(251,191,36,0.06)', border:'1px solid rgba(251,191,36,0.15)', borderRadius:10 }}>
-              <div style={{ fontSize:10, color:'#4a4a5a' }}>Pi rate</div>
+              <div style={{ fontSize:10, color:'#4a4a5a' }}>{d.piRate}</div>
               <div style={{ fontSize:13, fontWeight:700, color:'#FBBF24' }}>1π ≈ ${piRate.toFixed(4)}</div>
             </div>
           )}
 
-          <Section label="App" />
-          <Row icon="🔗" label="Share App"     onClick={handleShare} />
-          <Row icon="❓" label="Help & Support" onClick={() => { window.location.href = `${hubUrl}/hub`; }} />
-          <Row icon="🔒" label="Privacy Policy" onClick={() => { window.location.href = `${hubUrl}/privacy`; }} />
+          <Section label={d.app} />
+          <Row icon="🔗" label={d.shareApp} onClick={handleShare} />
+          <Row icon="❓" label={d.help}     onClick={() => { window.location.href = `${hubUrl}/hub`; }} />
+          <Row icon="🔒" label={d.privacy}  onClick={() => { window.location.href = `${hubUrl}/privacy`; }} />
 
-          <Section label="System" />
-          <Row icon={isOnline ? '📶' : '📵'} label="Connection"
-            right={<span style={{ fontSize:11, fontWeight:600, color: isOnline ? '#10b981' : '#ef4444' }}>{isOnline ? 'Online' : 'Offline'}</span>}
+          <Section label={d.system} />
+          <Row icon={isOnline ? '📶' : '📵'} label={d.connection}
+            right={<span style={{ fontSize:11, fontWeight:600, color: isOnline ? '#10b981' : '#ef4444' }}>{isOnline ? d.online : d.offline}</span>}
           />
-          <Row icon="🗑️" label="Clear Cache" onClick={handleClearCache}
-            right={cacheCleared ? <span style={{ fontSize:11, color:'#10b981', fontWeight:600 }}>✓ Done</span> : undefined}
+          <Row icon="🗑️" label={d.clearCache} onClick={handleClearCache}
+            right={cacheCleared ? <span style={{ fontSize:11, color:'#10b981', fontWeight:600 }}>{d.done}</span> : undefined}
           />
         </div>
 
@@ -148,7 +171,7 @@ export function EcommerceDrawer({ isOpen, onClose, username, hubUrl }: Props) {
         <div style={{ padding:'16px 20px', borderTop:'1px solid #ffffff0a' }}>
           <button onClick={() => { window.location.href = `${hubUrl}/hub`; }}
             style={{ width:'100%', padding:11, borderRadius:12, background:'#ffffff08', border:'1px solid #ffffff10', color:'#FBBF24', fontSize:13, fontWeight:600, cursor:'pointer', marginBottom:12 }}>
-            🔷 Back to Hub
+            🔷 {d.backToHub}
           </button>
           <div style={{ textAlign:'center' }}>
             <div style={{ fontSize:12, fontWeight:700, color:'#d0d0e0', marginBottom:2 }}>TEC Ecommerce</div>
