@@ -10,6 +10,7 @@ import { EcommerceDrawer }        from '@/components/shop/EcommerceDrawer';
 import { CartDrawer }             from '@/components/shop/CartDrawer';
 import { useCart }                from '@/lib-client/cart/useCart';
 import { useMe }                  from '@/lib-client/hooks/useMe';
+import { usePiPrice, formatUsd }  from '@/lib-client/hooks/usePiPrice';
 import { createPaymentRecord, createU2APayment } from '@/lib/pi-payment';
 import { isHubNavigation } from '@/lib-client/pi/hub-entry';
 
@@ -47,6 +48,7 @@ export default function HomePage() {
 
   const { isAuthenticated: piAuthed, isLoading: piLoading } = usePiAuth();
   const me = useMe(); // server-resolved Pi username (Pi Browser hides tec_user from client JS — C-123 §3)
+  const piUsd = usePiPrice(); // live market rate → "≈ $Y" reference next to π prices
   const [tokenReady, setTokenReady] = useState(false);
   useEffect(() => {
     const tok = getToken();
@@ -201,7 +203,7 @@ export default function HomePage() {
         <section style={{ maxWidth:800, margin:'0 auto', padding:'0 16px 32px' }}>
           <div className="section-header"><h2 className="section-title">⭐ Featured</h2><span className="section-count">{featured.length} items</span></div>
           <div className="featured-grid">
-            {featured.map((p, i) => <ProductCard key={p.id} product={p} piReady={piReady} onBuy={handleBuy} onAddToCart={addToCart} onCartOpen={() => setCartOpen(true)} featured delay={i * 80} />)}
+            {featured.map((p, i) => <ProductCard key={p.id} product={p} piReady={piReady} piUsd={piUsd} onBuy={handleBuy} onAddToCart={addToCart} onCartOpen={() => setCartOpen(true)} featured delay={i * 80} />)}
           </div>
         </section>
       )}
@@ -227,7 +229,7 @@ export default function HomePage() {
           <div style={{ textAlign:'center', padding:'60px 0' }}><div style={{ fontSize:48, opacity:0.3, marginBottom:12 }}>📦</div><p style={{ fontFamily:'system-ui', fontSize:14, color:'#3a3a4a' }}>No products yet</p></div>
         ) : (
           <div className="products-grid">
-            {(rest.length > 0 ? rest : products).map((p, i) => (<ProductCard key={p.id} product={p} piReady={piReady} onBuy={handleBuy} onAddToCart={addToCart} onCartOpen={() => setCartOpen(true)} delay={i * 60} />))}
+            {(rest.length > 0 ? rest : products).map((p, i) => (<ProductCard key={p.id} product={p} piReady={piReady} piUsd={piUsd} onBuy={handleBuy} onAddToCart={addToCart} onCartOpen={() => setCartOpen(true)} delay={i * 60} />))}
           </div>
         )}
       </section>
@@ -236,7 +238,8 @@ export default function HomePage() {
   );
 }
 
-function ProductCard({ product, piReady, onBuy, onAddToCart, onCartOpen, featured = false, delay = 0 }: { product: Product; piReady: boolean; onBuy: (p: Product) => void; onAddToCart: (p: Product) => void; onCartOpen?: () => void; featured?: boolean; delay?: number; }) {
+function ProductCard({ product, piReady, piUsd, onBuy, onAddToCart, onCartOpen, featured = false, delay = 0 }: { product: Product; piReady: boolean; piUsd: number | null; onBuy: (p: Product) => void; onAddToCart: (p: Product) => void; onCartOpen?: () => void; featured?: boolean; delay?: number; }) {
+  const usd = formatUsd(product.price, piUsd); // '' when no live rate → estimate hidden
   const [added, setAdded] = useState(false);
   const imgSrc = product.images?.[0] ?? product.image_url;
   const label  = product.title ?? product.name ?? 'Product';
@@ -258,6 +261,11 @@ function ProductCard({ product, piReady, onBuy, onAddToCart, onCartOpen, feature
       </div>
       <div style={{ padding: featured ? '12px' : '9px' }}>
         <h3 className="card-title" style={{ fontSize: featured ? 13 : 12 }}>{label}</h3>
+        {usd && (
+          <div style={{ fontFamily:'system-ui', fontSize:9.5, color:'#6b6b7a', margin:'-1px 0 5px' }}>
+            ≈ {usd} <span style={{ opacity:0.7 }}>· market</span>
+          </div>
+        )}
         <p className="card-desc">{product.description}</p>
         {product.rating ? (<div style={{ display:'flex', alignItems:'center', gap:4, marginBottom:8 }}><span style={{ color:'#FBBF24', fontSize:10 }}>{'★'.repeat(Math.round(product.rating))}</span><span style={{ fontFamily:'system-ui', fontSize:9, color:'#4a4a5a' }}>({product.reviews_count ?? 0})</span></div>) : null}
         <div style={{ display:'flex', gap:6 }}>
