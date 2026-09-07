@@ -18,7 +18,7 @@ interface Merchant {
   sales_count?: number; rating?: number;
 }
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://ecommerce.tecosystem.app';
+import { appOrigin } from '@/lib-client/app-origin';
 const HUB_URL = process.env.NEXT_PUBLIC_HUB_URL ?? 'https://hub.tecosystem.app';
 
 const buyRedirect = (product: Product) => {
@@ -26,7 +26,7 @@ const buyRedirect = (product: Product) => {
     + `&amount=${product.price}`
     + `&memo=${encodeURIComponent(`Buy ${product.title} — TEC Ecommerce`)}`
     + `&product_id=${encodeURIComponent(product.id)}`
-    + `&return_url=${encodeURIComponent(APP_URL)}`
+    + `&return_url=${encodeURIComponent(appOrigin())}`
     + `&source=ecommerce`;
 };
 

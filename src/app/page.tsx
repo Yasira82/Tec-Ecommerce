@@ -14,8 +14,8 @@ import { usePiPrice, formatUsd }  from '@/lib-client/hooks/usePiPrice';
 import { createPaymentRecord, createU2APayment } from '@/lib/pi-payment';
 import { isHubNavigation } from '@/lib-client/pi/hub-entry';
 
+import { appOrigin } from '@/lib-client/app-origin';
 const HUB_URL   = process.env.NEXT_PUBLIC_HUB_URL  ?? 'https://hub.tecosystem.app';
-const APP_URL   = process.env.NEXT_PUBLIC_APP_URL  ?? 'https://ecommerce.tecosystem.app';
 
 interface Product {
   id: string; title: string; name?: string;
@@ -37,7 +37,7 @@ const redirectToHubPayment = (product: Product) => {
   const params = new URLSearchParams({
     pay: '1', amount: product.price.toString(),
     memo: `${label} — TEC Ecommerce`, product_id: product.id,
-    return_url: APP_URL, source: 'ecommerce',
+    return_url: appOrigin(), source: 'ecommerce',
   });
   window.location.href = `${HUB_URL}/hub?${params.toString()}`;
 };
@@ -157,7 +157,7 @@ export default function HomePage() {
         <div style={{ fontSize:28, fontWeight:900, color: TEC_COLORS.gold, marginBottom:6 }}>TEC Store</div>
         <div style={{ fontSize:13, color: TEC_COLORS.subtext, marginBottom:8 }}>ECOMMERCE · TEC ECOSYSTEM</div>
         <div style={{ fontSize:12, color:'#2a2a3a', marginBottom:36 }}>Shop with Pi — One Identity, One Wallet</div>
-        <button onClick={() => ssoRedirect(HUB_URL, `${APP_URL}/`)}
+        <button onClick={() => ssoRedirect(HUB_URL, `${appOrigin()}/`)}
           style={{ padding:'14px 36px', background:`linear-gradient(135deg,${TEC_COLORS.gold},${TEC_COLORS.goldDark})`, border:'none', borderRadius:16, color:'#0a0800', fontSize:15, fontWeight:800, cursor:'pointer' }}>
           🔷 Login with Pi
         </button>

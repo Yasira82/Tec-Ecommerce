@@ -7,8 +7,8 @@ import { TEC_COLORS }                    from '@yasser172/tec-ui';
 import { ShopHeader }                    from '@/components/shop/ShopHeader';
 import { EcommerceDrawer }               from '@/components/shop/EcommerceDrawer';
 
+import { appOrigin } from '@/lib-client/app-origin';
 const HUB_URL = process.env.NEXT_PUBLIC_HUB_URL ?? 'https://hub.tecosystem.app';
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://ecommerce.tecosystem.app';
 
 interface OrderItem { productId: string; qty: number; price?: number; title?: string }
 interface Order {
@@ -256,7 +256,7 @@ export default function OrdersPage() {
         <div style={{ fontSize:52, marginBottom:14 }}>🧾</div>
         <div style={{ fontSize:22, fontWeight:900, color:TEC_COLORS.gold, marginBottom:6, fontFamily:'Georgia,serif' }}>My Orders</div>
         <div style={{ fontSize:12, color:'#4a4a5a', fontFamily:'system-ui', marginBottom:32 }}>Login to view your purchase history</div>
-        <button onClick={() => ssoRedirect(HUB_URL, `${APP_URL}/orders`)}
+        <button onClick={() => ssoRedirect(HUB_URL, `${appOrigin()}/orders`)}
           style={{ padding:'13px 36px', background:`linear-gradient(135deg,${TEC_COLORS.gold},${TEC_COLORS.goldDark})`, border:'none', borderRadius:16, color:'#0a0800', fontSize:14, fontWeight:800, cursor:'pointer', fontFamily:'system-ui' }}>
           🔷 Login with Pi
         </button>
