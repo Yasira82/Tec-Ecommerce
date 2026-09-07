@@ -3,9 +3,37 @@
 import { useEffect } from 'react';
 import { isHubNavigation } from '@/lib-client/pi/hub-entry';
 
-export default function PiSdkLoader({ sandbox }: { sandbox: boolean }) {
+/**
+ * `sandbox` is Pi's SANDBOX ENVIRONMENT, which is not the same thing as the
+ * Testnet. Three separate axes, and conflating them cost this platform days:
+ *
+ *   the HOST     picks which Pi APP the browser is talking to
+ *   that app's   API KEY picks which NETWORK Pi settles on
+ *   `sandbox`    points the SDK at Pi's Sandbox environment entirely
+ *
+ * So the paired Testnet app must run with `sandbox: false` like any other —
+ * turning it on silenced the Pi bridge and every payment hung on
+ * "Confirm in Pi…". It stays available on the Testnet host behind an explicit
+ * `?pi_sandbox=1`, for the rare case someone actually wants Pi's Sandbox.
+ *
+ * The Mainnet host is untouched: it keeps whatever the build was configured
+ * with (`false` in production).
+ */
+const resolveSandbox = (configured: boolean): boolean => {
+  if (typeof window === 'undefined') return configured;
+  const isTestnetHost = /\.vercel\.app$/i.test(window.location.hostname);
+  if (!isTestnetHost) return configured;
+  try {
+    return new URLSearchParams(window.location.search).get('pi_sandbox') === '1';
+  } catch {
+    return false;
+  }
+};
+
+export default function PiSdkLoader({ sandbox: configured }: { sandbox: boolean }) {
   useEffect(() => {
-    const appId = process.env.NEXT_PUBLIC_PI_APP_ID;
+    const appId   = process.env.NEXT_PUBLIC_PI_APP_ID;
+    const sandbox = resolveSandbox(configured);
 
     // ADR-007/C-12 §3: Hub-entered = Hub owns this Pi Browser session.
     // Calling Pi.init() here poisons it and breaks the Hub PaymentModal
@@ -42,7 +70,7 @@ export default function PiSdkLoader({ sandbox }: { sandbox: boolean }) {
 
     const poll = setInterval(() => { if (tryInit()) clearInterval(poll); }, 100);
     return () => { clearInterval(poll); window.removeEventListener('pageshow', onPageShow); };
-  }, [sandbox]);
+  }, [configured]);
 
   return null;
 }

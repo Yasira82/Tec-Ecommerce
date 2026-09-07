@@ -8,8 +8,8 @@ import { EcommerceDrawer } from '@/components/shop/EcommerceDrawer';
 import { CartDrawer }  from '@/components/shop/CartDrawer';
 import { useCart }     from '@/lib-client/cart/useCart';
 
+import { appOrigin } from '@/lib-client/app-origin';
 const HUB_URL = process.env.NEXT_PUBLIC_HUB_URL ?? 'https://hub.tecosystem.app';
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://ecommerce.tecosystem.app';
 
 interface Product {
   id: string; title: string; name?: string;
@@ -64,7 +64,7 @@ export default function MerchantPage() {
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
-      window.location.href = `${HUB_URL}/api/auth/sso?target=${encodeURIComponent(APP_URL + '/merchant')}`;
+      window.location.href = `${HUB_URL}/api/auth/sso?target=${encodeURIComponent(appOrigin() + '/merchant')}`;
     }
     if (isAuthenticated) {
       const user = getStoredUser();

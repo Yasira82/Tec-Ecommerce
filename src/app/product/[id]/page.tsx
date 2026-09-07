@@ -11,8 +11,8 @@ import { useCart }                                  from '@/lib-client/cart/useC
 import { createPaymentRecord, createU2APayment }    from '@/lib/pi-payment';
 import { isHubNavigation }                          from '@/lib-client/pi/hub-entry';
 
+import { appOrigin } from '@/lib-client/app-origin';
 const HUB_URL = process.env.NEXT_PUBLIC_HUB_URL ?? 'https://hub.tecosystem.app';
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://ecommerce.tecosystem.app';
 
 interface Product {
   id: string; title: string; name?: string;
@@ -39,7 +39,7 @@ const redirectToHubPayment = (product: Product) => {
     amount:     product.price.toString(),
     memo:       `${label} — TEC Ecommerce`,
     product_id: product.id,
-    return_url: `${APP_URL}/product/${product.id}`,
+    return_url: `${appOrigin()}/product/${product.id}`,
     source:     'ecommerce',
   });
   window.location.href = `${HUB_URL}/hub?${params.toString()}`;
@@ -79,7 +79,7 @@ export default function ProductPage() {
   // Auth
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
-      window.location.href = `${HUB_URL}/api/auth/sso?target=${encodeURIComponent(APP_URL + `/product/${id}`)}`;
+      window.location.href = `${HUB_URL}/api/auth/sso?target=${encodeURIComponent(appOrigin() + `/product/${id}`)}`;
     }
     if (isAuthenticated) {
       const user = getStoredUser();

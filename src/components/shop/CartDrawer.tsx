@@ -5,8 +5,8 @@ import { CartItem }                   from '@/lib-client/cart/useCart';
 import { createPaymentRecord, createU2APayment } from '@/lib/pi-payment';
 import { isHubNavigation } from '@/lib-client/pi/hub-entry';
 
+import { appOrigin } from '@/lib-client/app-origin';
 const HUB_URL = process.env.NEXT_PUBLIC_HUB_URL ?? 'https://hub.tecosystem.app';
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://ecommerce.tecosystem.app';
 
 const getCsrfToken = () =>
   typeof document === 'undefined'
@@ -18,7 +18,7 @@ const redirectToHubPayment = (total: number, count: number) => {
   const params = new URLSearchParams({
     pay: '1', amount: total.toString(),
     memo, product_id: 'cart_checkout',
-    return_url: APP_URL, source: 'ecommerce',
+    return_url: appOrigin(), source: 'ecommerce',
   });
   window.location.href = `${HUB_URL}/hub?${params.toString()}`;
 };

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { networkMetadata } from '@/lib/pi-network';
 
 const GW = process.env.API_GATEWAY_URL ?? '';
 
@@ -37,7 +38,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'VALIDATION_ERROR', details: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { amount, metadata } = parsed.data;
+  // Unlike the template's route, this one accepts free-form client metadata —
+  // so a `testnet` key sent by the caller must be REMOVED here, not merely
+  // overwritten further down. On the Mainnet host `networkMetadata()` returns
+  // an empty object, so an overwrite is no overwrite at all and the client's
+  // claim would survive: a buyer could tag a payment Test-Pi and have a
+  // consumer grant something real for it. Dropped before the spread, so a
+  // later edit that reorders the object cannot hand the network back.
+  const { amount, metadata: clientMetadata } = parsed.data;
+  const { testnet: _clientTestnet, ...metadata } = clientMetadata ?? {};
 
   const gwHeaders: Record<string, string> = {
     'Content-Type':    'application/json',
@@ -55,7 +64,12 @@ export async function POST(req: NextRequest) {
         amount:         Number(amount),
         currency:       'PI',
         payment_method: 'pi',
-        metadata:       { ...metadata, source: 'ecommerce' },
+        // `testnet` is derived from the REQUEST HOST, never sent by the
+        // client — a client-set network flag is a client-controlled claim
+        // about which Pi network to charge on. It is present only when true,
+        // so a Mainnet payment carries no such key at all and its payload is
+        // byte-identical to what it has always been.
+        metadata:       { ...metadata, source: 'ecommerce', ...networkMetadata(req.headers.get('host')) },
       }),
     });
 
