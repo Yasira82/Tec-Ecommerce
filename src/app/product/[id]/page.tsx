@@ -12,6 +12,8 @@ import { createPaymentRecord, createU2APayment }    from '@/lib/pi-payment';
 import { isHubNavigation }                          from '@/lib-client/pi/hub-entry';
 
 import { appOrigin } from '@/lib-client/app-origin';
+import { hubPaymentOrigin } from '@/lib/pi-network';
+
 const HUB_URL = process.env.NEXT_PUBLIC_HUB_URL ?? 'https://hub.tecosystem.app';
 
 interface Product {
@@ -42,7 +44,7 @@ const redirectToHubPayment = (product: Product) => {
     return_url: `${appOrigin()}/product/${product.id}`,
     source:     'ecommerce',
   });
-  window.location.href = `${HUB_URL}/hub?${params.toString()}`;
+  window.location.href = `${hubPaymentOrigin(HUB_URL)}/hub?${params.toString()}`;
 };
 
 export default function ProductPage() {
