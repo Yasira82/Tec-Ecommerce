@@ -12,6 +12,13 @@
 // exactly the lifetime of Pi Browser session ownership). Referrer stays as a
 // fallback for direct hub→app navigations that skip the landing (e.g. the
 // return_url hop after a Hub payment).
+import { isHubReferrer } from '@/lib/pi-network';
+
+// The referrer test covers BOTH Hub hosts. It used to name only the Mainnet
+// Hub, so a hop from the TESTNET Hub (tec-app-frontend.vercel.app) read as
+// standalone and the app called Pi.authenticate() inside a session the Hub
+// owns — which never answers, and surfaces only as a payment timeout with the
+// Pi wallet never opening. See pi-network.ts for the full note.
 export const HUB_ENTRY_KEY = '__tec_hub_entry';
 
 export const isHubNavigation = (): boolean => {
@@ -19,5 +26,5 @@ export const isHubNavigation = (): boolean => {
   try {
     if (window.sessionStorage.getItem(HUB_ENTRY_KEY) === '1') return true;
   } catch { /* storage unavailable — fall back to referrer */ }
-  return document.referrer.toLowerCase().includes('hub.tecosystem.app');
+  return isHubReferrer(document.referrer);
 };
