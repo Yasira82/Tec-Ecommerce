@@ -23,6 +23,8 @@ interface Product {
 type SortKey   = 'default' | 'price-asc' | 'price-desc' | 'rating';
 
 import { appOrigin } from '@/lib-client/app-origin';
+import { hubPaymentOrigin } from '@/lib/pi-network';
+
 const HUB_URL = process.env.NEXT_PUBLIC_HUB_URL ?? 'https://hub.tecosystem.app';
 
 const getCsrfToken  = () => typeof document === 'undefined' ? '' : document.cookie.split('; ').find(r => r.startsWith('tec_csrf='))?.split('=')?.[1] ?? '';
@@ -40,7 +42,7 @@ const redirectToHubPayment = (product: Product) => {
     memo: `${label} — TEC Ecommerce`, product_id: product.id,
     return_url: `${appOrigin()}/shop`, source: 'ecommerce',
   });
-  window.location.href = `${HUB_URL}/hub?${params.toString()}`;
+  window.location.href = `${hubPaymentOrigin(HUB_URL)}/hub?${params.toString()}`;
 };
 
 const PRICE_BUCKETS = [

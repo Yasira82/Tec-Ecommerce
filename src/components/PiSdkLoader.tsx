@@ -21,7 +21,7 @@ import { isHubNavigation } from '@/lib-client/pi/hub-entry';
  */
 const resolveSandbox = (configured: boolean): boolean => {
   if (typeof window === 'undefined') return configured;
-  const isTestnetHost = /\.vercel\.app$/i.test(window.location.hostname);
+  const isTestnetHost = /\.vercel\.app$/i.test(window.location.hostname) || /-test\.tecosystem\.app$/i.test(window.location.hostname) || /-test\.tecosystem\.app$/i.test(window.location.hostname);
   if (!isTestnetHost) return configured;
   try {
     return new URLSearchParams(window.location.search).get('pi_sandbox') === '1';

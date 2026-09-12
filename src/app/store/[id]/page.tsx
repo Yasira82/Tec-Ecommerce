@@ -19,10 +19,12 @@ interface Merchant {
 }
 
 import { appOrigin } from '@/lib-client/app-origin';
+import { hubPaymentOrigin } from '@/lib/pi-network';
+
 const HUB_URL = process.env.NEXT_PUBLIC_HUB_URL ?? 'https://hub.tecosystem.app';
 
 const buyRedirect = (product: Product) => {
-  window.location.href = `${HUB_URL}/hub?pay=1`
+  window.location.href = `${hubPaymentOrigin(HUB_URL)}/hub?pay=1`
     + `&amount=${product.price}`
     + `&memo=${encodeURIComponent(`Buy ${product.title} — TEC Ecommerce`)}`
     + `&product_id=${encodeURIComponent(product.id)}`
