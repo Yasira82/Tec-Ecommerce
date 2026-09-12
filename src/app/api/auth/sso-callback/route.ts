@@ -12,6 +12,7 @@ import { HUB_HOSTS }                 from '@/lib/pi-network';
 const ALLOWED_AUDIENCES = [
   'https://ecommerce.tecosystem.app',
   'https://tec-ecommerce.vercel.app',
+  'https://ecommerce-test.tecosystem.app',
 ];
 const DEFAULT_REDIRECT = '/shop';
 
