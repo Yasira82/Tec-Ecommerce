@@ -1,8 +1,13 @@
 name: CI
 
 on:
+  # `claude/**` removed from the PUSH trigger. Every one of those branches has an
+  # open PR, so `pull_request` already covers it — carrying both meant each push
+  # to a working branch started TWO full pipelines for one commit, and only this
+  # repo did it. `concurrency` cannot help: the two runs have different
+  # `github.ref` values, so they are not superseded runs, they are duplicates.
   push:
-    branches: [main, 'claude/**']
+    branches: [main]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -30,57 +35,47 @@ permissions:
   contents: read
 
 jobs:
-  payment-policy:
-    name: Drift Detection — KB claims vs code
+  # ── ONE job, ONE install ──────────────────────────────────────────────────
+  #
+  # This was five jobs. They were correct and they were expensive, for two
+  # reasons that compound:
+  #
+  #   1. FOUR of them ran `npm install` — the same install, four times, on four
+  #      runners, for one commit.
+  #   2. GitHub bills each job ROUNDED UP TO THE MINUTE. The policy job is a
+  #      handful of greps that finish in seconds and cost a full minute anyway.
+  #      Five jobs means five roundings before any real work is counted.
+  #
+  # Splitting them bought parallelism — a faster red light. On a platform built
+  # by one person, wall-clock minutes are worth far less than the bill, and in
+  # September 2026 the Actions budget reached 98% of its cap with `Stop usage`
+  # armed, which would have frozen every open PR across 29 repos.
+  #
+  # Nothing is dropped. Every check that ran before still runs, in the order a
+  # failure is cheapest to find: the greps need no install and go first; a type
+  # error stops the run before the test suite and the build.
+  #
+  # e2e stays a separate workflow ON PURPOSE. It builds with different
+  # `NEXT_PUBLIC_*` values (localhost gateway + E2E_MODE), and those are inlined
+  # at BUILD time — so its build is a genuinely different artifact that this one
+  # cannot stand in for.
+  verify:
+    name: Verify
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Drift Detection — KB claims vs code
-        # Each check maps to a C-doc; a violation = doc↔runtime drift.
-        # ADR-009 (payment contract) · C-12 §11 (CSRF) · C-76/ADR-007 (dual-mode guard).
-        run: |
-          violations=0
-
-          # ── ADR-009: unified payment contract ───────────────────────────
-          if grep -rniE 'x-service-secret|SERVICE_SECRET' src; then
-            echo "::error::ADR-009: use x-internal-key / INTERNAL_SECRET (not x-service-secret / SERVICE_SECRET)"
-            violations=1
-          fi
-          if grep -rnE 'amount:[[:space:]]*z\.string' src | grep -qi payment; then
-            echo "::error::ADR-009: payment amount must be a number — no z.string() for amount in payment routes"
-            violations=1
-          fi
-
-          # ── C-12 §11 / P2: CSRF enforced ONLY in middleware ─────────────
-          if grep -rnE 'csrfCookie !== csrfHeader|csrfCookie === csrfHeader|CSRF validation failed|CSRF token mismatch' src/app/api 2>/dev/null; then
-            echo "::error::CSRF must be enforced ONLY in middleware (P2 single source of truth). Remove route-level CSRF checks — they 403 legit Pi-Browser payments."
-            violations=1
-          fi
-
-          # ── C-76 / ADR-007: every Mode-2 buy handler must guard ─────────
-          # Any component/page triggering createU2APayment() must check
-          # isHubNavigation() first (pi-test diagnostic harness is exempt).
-          handlers=$(grep -rlE 'createU2APayment\(' src/app src/components --include=*.tsx 2>/dev/null | grep -v '/pi-test/' || true)
-          for f in $handlers; do
-            if ! grep -qE 'isHubNavigation' "$f"; then
-              echo "::error::ADR-007 (C-76): $f triggers a Mode-2 Pi payment without isHubNavigation() guard"
-              violations=1
-            fi
-          done
-
-          [ "$violations" -eq 0 ] && echo "Drift Detection OK — code matches KB claims" || exit 1
-
-  lint:
-    name: Lint
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+        run: "violations=0\n\n# ── ADR-009: unified payment contract ───────────────────────────\nif grep -rniE 'x-service-secret|SERVICE_SECRET' src; then\n  echo \"::error::ADR-009: use x-internal-key / INTERNAL_SECRET (not x-service-secret / SERVICE_SECRET)\"\n  violations=1\nfi\nif grep -rnE 'amount:[[:space:]]*z\\.string' src | grep -qi payment; then\n  echo \"::error::ADR-009: payment amount must be a number — no z.string() for amount in payment routes\"\n  violations=1\nfi\n\n# ── C-12 §11 / P2: CSRF enforced ONLY in middleware ─────────────\nif grep -rnE 'csrfCookie !== csrfHeader|csrfCookie === csrfHeader|CSRF validation failed|CSRF token mismatch' src/app/api 2>/dev/null; then\n  echo \"::error::CSRF must be enforced ONLY in middleware (P2 single source of truth). Remove route-level CSRF checks — they 403 legit Pi-Browser payments.\"\n  violations=1\nfi\n\n# ── C-76 / ADR-007: every Mode-2 buy handler must guard ─────────\n# Any component/page triggering createU2APayment() must check\n# isHubNavigation() first (pi-test diagnostic harness is exempt).\nhandlers=$(grep -rlE 'createU2APayment\\(' src/app src/components --include=*.tsx 2>/dev/null | grep -v '/pi-test/' || true)\nfor f in $handlers; do\n  if ! grep -qE 'isHubNavigation' \"$f\"; then\n    echo \"::error::ADR-007 (C-76): $f triggers a Mode-2 Pi payment without isHubNavigation() guard\"\n    violations=1\n  fi\ndone\n\n[ \"$violations\" -eq 0 ] && echo \"Drift Detection OK — code matches KB claims\" || exit 1\n"
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
+          cache: npm
       - name: Install
         run: npm install --legacy-peer-deps
+      - name: Update TEC packages
+        run: npm install @yasser172/tec-ui@latest @yasser172/tec-auth@latest --legacy-peer-deps
+      - name: Typecheck
+        run: npm run typecheck
       - name: Update TEC packages
         run: npm install @yasser172/tec-ui@latest @yasser172/tec-auth@latest --legacy-peer-deps
       - name: Security audit (advisory)
@@ -88,57 +83,16 @@ jobs:
         continue-on-error: true
       - name: Lint
         run: npm run lint
-
-  typecheck:
-    name: Typecheck
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-      - name: Install
-        run: npm install --legacy-peer-deps
-      - name: Update TEC packages
-        run: npm install @yasser172/tec-ui@latest @yasser172/tec-auth@latest --legacy-peer-deps
-      - name: Typecheck
-        run: npm run typecheck
-
-  test:
-    name: Test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-      - name: Install
-        run: npm install --legacy-peer-deps
       - name: Update TEC packages
         run: npm install @yasser172/tec-ui@latest @yasser172/tec-auth@latest --legacy-peer-deps
       - name: Test
         run: npm test
-
-  build:
-    name: Build
-    runs-on: ubuntu-latest
-    needs: [typecheck]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-      - name: Install
-        run: npm install --legacy-peer-deps
       - name: Update TEC packages
         run: npm install @yasser172/tec-ui@latest @yasser172/tec-auth@latest --legacy-peer-deps
       - name: Build
         run: npm run build
         env:
-          NEXT_PUBLIC_PI_SANDBOX:      'false'
-          NEXT_PUBLIC_PI_APP_ID:       ${{ secrets.NEXT_PUBLIC_PI_APP_ID || 'test-app-id' }}
-          API_GATEWAY_URL:             ${{ secrets.API_GATEWAY_URL || 'https://api-gateway-production-6a68.up.railway.app' }}
-          INTERNAL_SECRET:             ${{ secrets.INTERNAL_SECRET || 'ci-test-secret-minimum-32-chars!!' }}
+          NEXT_PUBLIC_PI_SANDBOX: 'false'
+          NEXT_PUBLIC_PI_APP_ID: ${{ secrets.NEXT_PUBLIC_PI_APP_ID || 'test-app-id' }}
+          API_GATEWAY_URL: ${{ secrets.API_GATEWAY_URL || 'https://api-gateway-production-6a68.up.railway.app' }}
+          INTERNAL_SECRET: ${{ secrets.INTERNAL_SECRET || 'ci-test-secret-minimum-32-chars!!' }}
