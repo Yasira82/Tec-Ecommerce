@@ -3,6 +3,7 @@ import Script            from 'next/script';
 import PiSdkLoader       from '@/components/PiSdkLoader';
 import { LocaleProvider } from '@/lib/i18n';
 import './globals.css';
+import { ArrivalReport } from '@/components/pioneer/ArrivalReport';
 
 export const metadata: Metadata = {
   title:       'TEC Ecommerce',
@@ -19,6 +20,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <PiSdkLoader sandbox={sandbox} />
         <LocaleProvider>
+          <ArrivalReport />
           {children}
         </LocaleProvider>
       </body>
