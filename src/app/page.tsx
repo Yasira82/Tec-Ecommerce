@@ -304,6 +304,9 @@ const CSS = `
   .hero-cta { padding:13px 32px; border-radius:14px; border:none; background:linear-gradient(135deg,#FBBF24,#F59E0B); color:#050816; font-size:14px; font-weight:800; font-family:system-ui; cursor:pointer; }
   .hero-badge { position:absolute; top:20px; right:20px; display:flex; align-items:center; gap:8px; padding:8px 14px; background:rgba(251,191,36,0.08); border:1px solid rgba(251,191,36,0.2); border-radius:20px; }
   .hero-badge-icon { font-size:20px; font-weight:900; color:#FBBF24; font-family:Georgia; }
+  /* C2 — on a phone the absolutely-placed badge sat on top of the eyebrow line
+     ("PI NETWORK · WEB3 SHOPPING"). Below 640px it joins the flow, under the CTA. */
+  @media (max-width:640px) { .hero-badge { position:static; display:inline-flex; margin-top:22px; } }
   .section-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
   .section-title { font-size:18px; font-weight:800; color:#e8d5a3; }
   .section-count { font-family:system-ui; font-size:11px; color:#4a4a5a; }
