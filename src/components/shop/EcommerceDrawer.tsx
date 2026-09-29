@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslation } from '@/lib/i18n';
+import { useMe } from '@/lib-client/hooks/useMe';
 
 const APP_VERSION = '1.0.0';
 const BUILD       = '2026.05';
@@ -38,8 +39,14 @@ function Section({ label }: { label: string }) {
   return <div style={{ padding:'14px 20px 6px', fontSize:9, color:'#4a4a5a', letterSpacing:2, textTransform:'uppercase', fontWeight:700 }}>{label}</div>;
 }
 
-export function EcommerceDrawer({ isOpen, onClose, username, hubUrl }: Props) {
+export function EcommerceDrawer({ isOpen, onClose, username: passed, hubUrl }: Props) {
   const { t, locale, setLocale } = useTranslation();
+  // Every page but Home passed a username read from the tec_user cookie in client
+  // JS — which Pi Browser hides (C-123 §3) — so the drawer showed no account at all
+  // on Shop, Orders, Product and Merchant (owner, phone, 2026-09-29). The server
+  // can always read the cookie; ask it here, once, for every page.
+  const me = useMe();
+  const username = passed || me.username || undefined;
   const d = t.ecommerce.drawer;
   const [darkMode,     setDarkMode]     = useState(true);
   const [hidePrices,   setHidePrices]   = useState(false);
