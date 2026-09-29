@@ -4,6 +4,7 @@ import PiSdkLoader       from '@/components/PiSdkLoader';
 import { LocaleProvider } from '@/lib/i18n';
 import './globals.css';
 import { ArrivalReport } from '@/components/pioneer/ArrivalReport';
+import { PiVisitSignIn } from '@/components/pi/PiVisitSignIn';
 import { QuestReturn } from '@/components/pioneer/QuestReturn';
 
 export const metadata: Metadata = {
@@ -21,6 +22,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <PiSdkLoader sandbox={sandbox} />
         <LocaleProvider>
+          <PiVisitSignIn />
           <ArrivalReport />
           <QuestReturn />
           {children}
