@@ -8,7 +8,7 @@ import { PaymentModal, PayStatus }                  from '@yasser172/tec-ui/paym
 import { EcommerceDrawer }                          from '@/components/shop/EcommerceDrawer';
 import { CartDrawer }                               from '@/components/shop/CartDrawer';
 import { useCart }                                  from '@/lib-client/cart/useCart';
-import { createPaymentRecord, createU2APayment }    from '@/lib/pi-payment';
+import { createPaymentRecord, createU2APayment, takePaymentRecordRefusal }    from '@/lib/pi-payment';
 import { isHubNavigation }                          from '@/lib-client/pi/hub-entry';
 
 import { appOrigin } from '@/lib-client/app-origin';
@@ -120,7 +120,7 @@ export default function ProductPage() {
       const label      = product.title ?? product.name ?? 'Product';
       const memo       = `${label} — TEC Ecommerce`;
       const internalId = await createPaymentRecord(product.price, product.id, memo);
-      if (!internalId) { setPayStatus('error'); setPayMessage('Failed to initialize.'); inFlight.current = false; return; }
+      if (!internalId) { setPayStatus('error'); setPayMessage(takePaymentRecordRefusal() ?? 'Failed to initialize.'); inFlight.current = false; return; }
       setPayStatus('paying');
       const result = await createU2APayment(product.price, memo, { source: 'ecommerce', product_id: product.id }, internalId);
       if (result.message === 'foreign_session') { redirectToHubPayment(product); inFlight.current = false; return; }

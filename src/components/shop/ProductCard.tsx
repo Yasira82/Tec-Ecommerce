@@ -8,6 +8,7 @@ interface Product {
   description: string; price: number;
   images?: string[]; image_url?: string;
   seller_id?: string; merchant_name?: string;
+  stock?: number;
 }
 
 interface Props {
@@ -30,6 +31,10 @@ export function ProductCard({ product, piReady, onBuy, onAddToCart, onCartOpen, 
   const rawName  = product.merchant_name?.trim();
   const isUuid   = !!rawName && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawName);
   const sellerName = (rawName && !isUuid) ? rawName : 'TEC Store';
+
+  // Commerce owns stock; never offer Buy or Cart on a sold-out product — the
+  // order would be refused after the payment (purchase-guard refuses it first).
+  const soldOut = typeof product.stock === 'number' && product.stock <= 0;
 
   const handleAdd = () => {
     onAddToCart?.(product);
@@ -72,7 +77,18 @@ export function ProductCard({ product, piReady, onBuy, onAddToCart, onCartOpen, 
         <p style={{ fontFamily:'system-ui', fontSize:10, color:'#4a4a5a', lineHeight:1.5, marginBottom:8, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>
           {product.description}
         </p>
-        {onAddToCart ? (
+        {soldOut ? (
+          <button
+            disabled
+            style={{
+              width:'100%', padding:'7px 4px', borderRadius:10, border:'1px solid rgba(239,68,68,0.3)',
+              background:'rgba(239,68,68,0.08)', color:'#ef4444',
+              fontSize:11, fontWeight:800, fontFamily:'system-ui', cursor:'not-allowed',
+            }}
+          >
+            Out of stock
+          </button>
+        ) : onAddToCart ? (
           <div style={{ display:'flex', gap:5 }}>
             <button
               onClick={handleAdd}

@@ -11,7 +11,7 @@ import { CartDrawer }             from '@/components/shop/CartDrawer';
 import { useCart }                from '@/lib-client/cart/useCart';
 import { useMe }                  from '@/lib-client/hooks/useMe';
 import { usePiPrice, formatUsd }  from '@/lib-client/hooks/usePiPrice';
-import { createPaymentRecord, createU2APayment } from '@/lib/pi-payment';
+import { createPaymentRecord, createU2APayment, takePaymentRecordRefusal } from '@/lib/pi-payment';
 import { isHubNavigation } from '@/lib-client/pi/hub-entry';
 
 import { appOrigin } from '@/lib-client/app-origin';
@@ -24,6 +24,7 @@ interface Product {
   description: string; price: number;
   images?: string[]; image_url?: string;
   category?: string; rating?: number; reviews_count?: number;
+  stock?: number;
 }
 const getToken     = () => typeof document === 'undefined' ? null : document.cookie.split('; ').find(r => r.startsWith('tec_access_token='))?.split('=')?.[1] ?? null;
 const getCsrfToken = () => typeof document === 'undefined' ? '' : document.cookie.split('; ').find(r => r.startsWith('tec_csrf='))?.split('=')?.[1] ?? '';
@@ -124,7 +125,7 @@ export default function HomePage() {
       const label      = product.title ?? product.name ?? 'Product';
       const memo       = `${label} — TEC Ecommerce`;
       const internalId = await createPaymentRecord(product.price, product.id, memo);
-      if (!internalId) { setPayStatus('error'); setPayMessage('Failed to initialize.'); inFlight.current = false; return; }
+      if (!internalId) { setPayStatus('error'); setPayMessage(takePaymentRecordRefusal() ?? 'Failed to initialize.'); inFlight.current = false; return; }
       setPayStatus('paying');
       const result = await createU2APayment(product.price, memo, { source: 'ecommerce', product_id: product.id }, internalId);
       if (result.message === 'foreign_session') { redirectToHubPayment(product); return; }
@@ -246,6 +247,9 @@ function ProductCard({ product, piReady, piUsd, onBuy, onAddToCart, onCartOpen, 
   const imgSrc = product.images?.[0] ?? product.image_url;
   const label  = product.title ?? product.name ?? 'Product';
   const height = featured ? 140 : 100;
+  // Commerce owns stock; a card that offers Buy on a sold-out product invites a
+  // payment the order will refuse. The server refuses it too (purchase-guard).
+  const soldOut = typeof product.stock === 'number' && product.stock <= 0;
 
   const handleAdd = () => {
     onAddToCart(product);
@@ -270,6 +274,11 @@ function ProductCard({ product, piReady, piUsd, onBuy, onAddToCart, onCartOpen, 
         )}
         <p className="card-desc">{product.description}</p>
         {product.rating ? (<div style={{ display:'flex', alignItems:'center', gap:4, marginBottom:8 }}><span style={{ color:'#FBBF24', fontSize:10 }}>{'★'.repeat(Math.round(product.rating))}</span><span style={{ fontFamily:'system-ui', fontSize:9, color:'#4a4a5a' }}>({product.reviews_count ?? 0})</span></div>) : null}
+        {soldOut ? (
+          <button className="buy-btn" disabled style={{ width:'100%', opacity:0.45, cursor:'not-allowed' }}>
+            Out of stock
+          </button>
+        ) : (
         <div style={{ display:'flex', gap:6 }}>
           <button
             className={`add-btn ${added ? 'add-btn--done' : ''}`}
@@ -286,6 +295,7 @@ function ProductCard({ product, piReady, piUsd, onBuy, onAddToCart, onCartOpen, 
             ⚡ Buy
           </button>
         </div>
+        )}
       </div>
     </article>
   );
