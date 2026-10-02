@@ -2,7 +2,7 @@
 
 import { useState, useRef }          from 'react';
 import { CartItem }                   from '@/lib-client/cart/useCart';
-import { createPaymentRecord, createU2APayment } from '@/lib/pi-payment';
+import { createPaymentRecord, createU2APayment, takePaymentRecordRefusal } from '@/lib/pi-payment';
 import { isHubNavigation } from '@/lib-client/pi/hub-entry';
 
 import { appOrigin } from '@/lib-client/app-origin';
@@ -55,8 +55,9 @@ export function CartDrawer({ isOpen, onClose, items, onUpdateQty, onRemove, onCl
     setErrMsg('');
     try {
       const memo       = `TEC Cart — ${itemCount} item${itemCount !== 1 ? 's' : ''}`;
-      const internalId = await createPaymentRecord(total, 'cart_checkout', memo);
-      if (!internalId) { setStatus('error'); setErrMsg('Failed to initialize payment.'); inFlight.current = false; return; }
+      const internalId = await createPaymentRecord(total, 'cart_checkout', memo,
+        items.map(i => ({ productId: i.product.id, qty: i.qty })));
+      if (!internalId) { setStatus('error'); setErrMsg(takePaymentRecordRefusal() ?? 'Failed to initialize payment.'); inFlight.current = false; return; }
       setStatus('paying');
       const cartItems = items.map(i => ({ productId: i.product.id, qty: i.qty }));
       const result    = await createU2APayment(total, memo, { source: 'cart', items: cartItems }, internalId);

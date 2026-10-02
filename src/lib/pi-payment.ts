@@ -14,9 +14,21 @@ export interface PaymentResult {
   message?:   string;
 }
 
+/**
+ * Why the last `createPaymentRecord` returned null, when the server said why —
+ * "out of stock", "no longer available", "price changed" (lib/purchase-guard.ts).
+ * Read once; null when there was no refusal to report.
+ */
+let lastRefusal: string | null = null;
+export const takePaymentRecordRefusal = (): string | null => {
+  const r = lastRefusal; lastRefusal = null; return r;
+};
+
 export const createPaymentRecord = async (
   amount: number, productId: string, memo: string,
+  items?: { productId: string; qty: number }[],
 ): Promise<string | null> => {
+  lastRefusal = null;
   try {
     const token = getToken();
     if (!token) return null;
@@ -30,10 +42,18 @@ export const createPaymentRecord = async (
       body: JSON.stringify({
         amount,
         memo,
-        metadata: { source: 'ecommerce', product_id: productId },
+        // The server checks every line against commerce-service before any π
+        // moves, so a cart names its items here — not only at order time.
+        metadata: { source: 'ecommerce', product_id: productId, ...(items && { items }) },
       }),
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      const body = await res.json().catch(() => null) as { message?: unknown } | null;
+      if (res.status === 409 || res.status === 503) {
+        lastRefusal = typeof body?.message === 'string' ? body.message : null;
+      }
+      return null;
+    }
     const data = await res.json();
     return data?.data?.payment?.id ?? data?.data?.id ?? data?.id ?? null;
   } catch { return null; }

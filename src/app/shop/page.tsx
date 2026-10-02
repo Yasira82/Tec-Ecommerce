@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { usePiAuth, ssoRedirect }                            from '@yasser172/tec-auth';
 import { TEC_COLORS }                                        from '@yasser172/tec-ui';
-import { createPaymentRecord, createU2APayment }             from '@/lib/pi-payment';
+import { createPaymentRecord, createU2APayment, takePaymentRecordRefusal }             from '@/lib/pi-payment';
 import { ShopHeader }      from '@/components/shop/ShopHeader';
 import { ShopHero }        from '@/components/shop/ShopHero';
 import { ProductGrid }     from '@/components/shop/ProductGrid';
@@ -173,7 +173,7 @@ export default function ShopPage() {
       const label      = product.title ?? product.name ?? 'Product';
       const memo       = `${label} — TEC Ecommerce`;
       const internalId = await createPaymentRecord(product.price, product.id, memo);
-      if (!internalId) { setPayStatus('error'); setPayMessage('Failed to initialize payment.'); inFlight.current = false; return; }
+      if (!internalId) { setPayStatus('error'); setPayMessage(takePaymentRecordRefusal() ?? 'Failed to initialize payment.'); inFlight.current = false; return; }
       setPayStatus('paying');
       const result = await createU2APayment(product.price, memo, { source: 'ecommerce', product_id: product.id }, internalId);
       if (result.success) {

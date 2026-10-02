@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { networkMetadata } from '@/lib/pi-network';
+import { checkPurchase, linesFrom } from '@/lib/purchase-guard';
 
 const GW = process.env.API_GATEWAY_URL ?? '';
 
@@ -54,6 +55,21 @@ export async function POST(req: NextRequest) {
     'Idempotency-Key': crypto.randomUUID(),
   };
   if (process.env.INTERNAL_SECRET) gwHeaders['x-internal-key'] = process.env.INTERNAL_SECRET;
+
+  // No payment for something that cannot be delivered (lib/purchase-guard.ts).
+  // Every Ecommerce payment is for products — a body that names none is refused.
+  const lines = linesFrom(metadata);
+  if (!lines) {
+    return NextResponse.json({ error: 'VALIDATION_ERROR', message: 'No product in this payment.' }, { status: 400 });
+  }
+  const check = await checkPurchase(lines, Number(amount), GW, {
+    Authorization: `Bearer ${token}`,
+    ...(process.env.INTERNAL_SECRET && { 'x-internal-key': process.env.INTERNAL_SECRET }),
+  });
+  if (!check.ok) {
+    console.warn('[bff/payment/create] refused before payment:', check.error, JSON.stringify(lines));
+    return NextResponse.json({ error: check.error, message: check.message }, { status: check.status });
+  }
 
   try {
     const res = await fetch(`${GW}/api/payment/create`, {
