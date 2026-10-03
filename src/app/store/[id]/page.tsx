@@ -163,7 +163,7 @@ export default function StorePage() {
             </div>
             <div>
               <div style={{ fontSize:18, fontWeight:800, color:'#fff' }}>{merchant.display_name}</div>
-              <div style={{ fontSize:13, color:TEC_COLORS.gold }}>@{merchant.username}</div>
+              {merchant.username && <div style={{ fontSize:13, color:TEC_COLORS.gold }}>@{merchant.username}</div>}
               {merchant.joined_at && (
                 <div style={{ fontSize:11, color:'#4a4a5a', marginTop:2 }}>
                   Member since {formatDate(merchant.joined_at)}
@@ -173,9 +173,9 @@ export default function StorePage() {
           </div>
           <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:8 }}>
             {[
-              { label:'Products', value:merchant.products_count },
-              { label:'Sales',    value:merchant.sales_count },
-              { label:'Rating',   value:`${(merchant.rating ?? 0).toFixed(1)} ★` },
+              { label:'Products', value:merchant.products_count ?? products.length },
+              { label:'Sales',    value:merchant.sales_count ?? '—' },
+              { label:'Rating',   value:merchant.rating ? `${Number(merchant.rating).toFixed(1)} ★` : '—' },
             ].map(s => (
               <div key={s.label} style={{ background:'#ffffff06', borderRadius:12, padding:10, textAlign:'center', border:'1px solid #ffffff08' }}>
                 <div style={{ fontSize:16, fontWeight:800, color:TEC_COLORS.gold }}>{s.value}</div>

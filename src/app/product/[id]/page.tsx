@@ -138,7 +138,7 @@ export default function ProductPage() {
         void recordPaidOrder(internalId, { product_id: product.id });
         setPayStatus('success');
       } else {
-        if (result.status === 'cancelled') void releaseHeldOrder(internalId);
+        void releaseHeldOrder(internalId);
         setPayStatus(result.status === 'cancelled' ? 'cancelled' : 'error');
         setPayMessage(result.message ?? '');
       }

@@ -1,3 +1,5 @@
+import { rememberHubHold } from '@/lib-client/orders/hub-hold';
+
 const getCsrfToken = (): string =>
   typeof document === 'undefined' ? '' :
   document.cookie.match(/(?:^|;\s*)tec_csrf=([^;]*)/)?.[1] ?? '';
@@ -33,7 +35,9 @@ export const takePaymentRecordRefusal = (): string | null => {
 const heldOrders = new Map<string, string>();
 export const heldOrderFor = (paymentId: string): string | undefined => heldOrders.get(paymentId);
 
-/** The buyer cancelled in Pi: put the reserved units back on sale now. */
+/** The payment did not complete here (Cancel, error, timeout): put the reserved
+ *  units back on sale now. Conditional in commerce — a hold the payment's event
+ *  already marked PAID stays paid, and a payment that lands later reopens it. */
 export const releaseHeldOrder = async (paymentId: string): Promise<void> => {
   const orderId = heldOrders.get(paymentId);
   if (!orderId) return;
@@ -91,7 +95,10 @@ export const holdForHub = async (
       return { refusal: typeof body?.message === 'string' ? body.message : 'This product is not available right now.' };
     }
     const id = body?.data?.order_id;
-    return { orderId: res.ok && typeof id === 'string' ? id : null };
+    const orderId = res.ok && typeof id === 'string' ? id : null;
+    // Released on the way back if the buyer cancels at the Hub (HubHoldReturn).
+    if (orderId) rememberHubHold(orderId);
+    return { orderId };
   } catch {
     return { orderId: null };
   }

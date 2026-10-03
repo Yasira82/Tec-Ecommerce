@@ -6,6 +6,7 @@ import './globals.css';
 import { ArrivalReport } from '@/components/pioneer/ArrivalReport';
 import { PiVisitSignIn } from '@/components/pi/PiVisitSignIn';
 import { QuestReturn } from '@/components/pioneer/QuestReturn';
+import { HubHoldReturn } from '@/components/shop/HubHoldReturn';
 
 export const metadata: Metadata = {
   title:       'TEC Ecommerce',
@@ -25,6 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <PiVisitSignIn />
           <ArrivalReport />
           <QuestReturn />
+          <HubHoldReturn />
           {children}
         </LocaleProvider>
       </body>

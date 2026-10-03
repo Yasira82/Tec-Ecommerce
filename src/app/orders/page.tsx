@@ -8,14 +8,9 @@ import { ShopHeader }                    from '@/components/shop/ShopHeader';
 import { EcommerceDrawer }               from '@/components/shop/EcommerceDrawer';
 
 import { appOrigin } from '@/lib-client/app-origin';
+import { ordersToShow, PAID_STATUSES, type OrderView as Order } from '@/lib-client/orders/normalize';
 const HUB_URL = process.env.NEXT_PUBLIC_HUB_URL ?? 'https://hub.tecosystem.app';
 
-interface OrderItem { productId: string; qty: number; price?: number; title?: string }
-interface Order {
-  id: string; status: string; total?: number;
-  items?: OrderItem[]; created_at: string;
-  payment_id?: string; memo?: string;
-}
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; icon: string }> = {
   pending:   { label: 'Pending',   color: '#f0c040', bg: 'rgba(240,192,64,0.1)',  icon: '⏳' },
@@ -53,7 +48,7 @@ const formatFull = (iso: string) => {
   } catch { return iso; }
 };
 
-const orderTotal = (o: Order) => o.total ?? o.items?.reduce((s, i) => s + (i.price ?? 0) * i.qty, 0) ?? 0;
+const orderTotal = (o: Order) => o.total;
 
 function OrderSkeleton() {
   return (
@@ -219,13 +214,13 @@ export default function OrdersPage() {
         if (!r.ok) { setFetchError(true); return { orders: [] }; }
         return r.json();
       })
-      .then(d => { const list = d?.data?.orders ?? d?.orders ?? []; setOrders(Array.isArray(list) ? list : []); })
+      .then(d => setOrders(ordersToShow(d?.data?.orders ?? d?.orders ?? [])))
       .catch(() => { setFetchError(true); setOrders([]); })
       .finally(() => setFetching(false));
   }, [isAuthenticated, retryCount]);
 
   const tabs       = useMemo(() => ['all', ...Array.from(new Set(orders.map(o => o.status)))], [orders]);
-  const totalSpent = useMemo(() => orders.reduce((s, o) => s + orderTotal(o), 0), [orders]);
+  const totalSpent = useMemo(() => orders.filter(o => PAID_STATUSES.has(o.status)).reduce((s, o) => s + orderTotal(o), 0), [orders]);
   const filtered   = useMemo(() => {
     let list = activeTab === 'all' ? orders : orders.filter(o => o.status === activeTab);
     const q = search.trim().toLowerCase();
