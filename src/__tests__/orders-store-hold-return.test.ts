@@ -54,7 +54,7 @@ describe('back from the Hub: the hold is settled', () => {
   it('a Cancel at the Hub (no status) releases the hold', async () => {
     const { rememberHubHold, settleHubHoldOnReturn } = await import('@/lib-client/orders/hub-hold');
     rememberHubHold(ORDER);
-    const f = vi.fn(async () => ({ ok: true }) as Response);
+    const f = vi.fn(async (_url: RequestInfo | URL, _init?: RequestInit) => ({ ok: true }) as Response);
     expect(await settleHubHoldOnReturn('', f)).toBe('released');
     expect(String(f.mock.calls[0][0])).toBe(`/api/bff/orders/${ORDER}/cancel`);
     expect(sessionStorage.getItem('tec_hub_hold')).toBeNull();
@@ -63,9 +63,9 @@ describe('back from the Hub: the hold is settled', () => {
   it('a success confirms the hold with the Hub\'s payment id', async () => {
     const { rememberHubHold, settleHubHoldOnReturn } = await import('@/lib-client/orders/hub-hold');
     rememberHubHold(ORDER);
-    const f = vi.fn(async () => ({ ok: true }) as Response);
+    const f = vi.fn(async (_url: RequestInfo | URL, _init?: RequestInit) => ({ ok: true }) as Response);
     expect(await settleHubHoldOnReturn('?payment_status=success&payment_id=pay-9&txid=t', f)).toBe('confirmed');
-    expect(JSON.parse(String((f.mock.calls[0] as unknown as [string, RequestInit])[1].body)))
+    expect(JSON.parse(String(f.mock.calls[0][1]?.body)))
       .toEqual({ order_id: ORDER, payment_id: 'pay-9' });
   });
 
