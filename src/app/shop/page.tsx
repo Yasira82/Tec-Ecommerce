@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { usePiAuth, ssoRedirect }                            from '@yasser172/tec-auth';
 import { TEC_COLORS }                                        from '@yasser172/tec-ui';
-import { createPaymentRecord, createU2APayment, takePaymentRecordRefusal }             from '@/lib/pi-payment';
+import { createPaymentRecord, createU2APayment, takePaymentRecordRefusal, holdForHub, recordPaidOrder, releaseHeldOrder }             from '@/lib/pi-payment';
 import { ShopHeader }      from '@/components/shop/ShopHeader';
 import { ShopHero }        from '@/components/shop/ShopHero';
 import { ProductGrid }     from '@/components/shop/ProductGrid';
@@ -27,7 +27,6 @@ import { hubPaymentOrigin } from '@/lib/pi-network';
 
 const HUB_URL = process.env.NEXT_PUBLIC_HUB_URL ?? 'https://hub.tecosystem.app';
 
-const getCsrfToken  = () => typeof document === 'undefined' ? '' : document.cookie.split('; ').find(r => r.startsWith('tec_csrf='))?.split('=')?.[1] ?? '';
 const getStoredUser = () => {
   try {
     const raw = document.cookie.split('; ').find(r => r.startsWith('tec_user='))?.split('=')?.[1] ?? '';
@@ -35,14 +34,21 @@ const getStoredUser = () => {
   } catch { return null; }
 };
 
-const redirectToHubPayment = (product: Product) => {
+/** Mode 1. The units are held first (holdForHub) — the order_id rides to the Hub,
+ *  into the payment's metadata, and the payment's event marks that order PAID.
+ *  Answers why it could not go (sold out, …), or null once on its way. */
+const redirectToHubPayment = async (product: Product): Promise<string | null> => {
   const label = product.title ?? product.name ?? 'Product';
+  const held  = await holdForHub(product.price, { product_id: product.id });
+  if ('refusal' in held) return held.refusal;
   const params = new URLSearchParams({
     pay: '1', amount: product.price.toString(),
     memo: `${label} — TEC Ecommerce`, product_id: product.id,
     return_url: `${appOrigin()}/shop`, source: 'ecommerce',
+    ...(held.orderId ? { order_id: held.orderId } : {}),
   });
   window.location.href = `${hubPaymentOrigin(HUB_URL)}/hub?${params.toString()}`;
+  return null;
 };
 
 const PRICE_BUCKETS = [
@@ -164,7 +170,7 @@ export default function ShopPage() {
 
   const handleBuy = useCallback(async (product: Product) => {
     if (inFlight.current) return;
-    if (isHubNavigation() || (window as any).__TEC_PI_FOREIGN_SESSION || !window.Pi || !piReady) { redirectToHubPayment(product); return; }
+    if (isHubNavigation() || (window as any).__TEC_PI_FOREIGN_SESSION || !window.Pi || !piReady) { inFlight.current = true; const why = await redirectToHubPayment(product); inFlight.current = false; if (why) { setActiveProd(product); setPayStatus('error'); setPayMessage(why); } return; }
     inFlight.current = true;
     setActiveProd(product);
     setPayStatus('creating');
@@ -177,9 +183,10 @@ export default function ShopPage() {
       setPayStatus('paying');
       const result = await createU2APayment(product.price, memo, { source: 'ecommerce', product_id: product.id }, internalId);
       if (result.success) {
-        fetch('/api/bff/orders', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json', 'x-csrf-token': getCsrfToken() }, body: JSON.stringify({ product_id: product.id, payment_id: internalId }) }).catch(() => {});
+        void recordPaidOrder(internalId, { product_id: product.id });
         setPayStatus('success');
       } else {
+        if (result.status === 'cancelled') void releaseHeldOrder(internalId);
         setPayStatus(result.status === 'cancelled' ? 'cancelled' : 'error');
         setPayMessage(result.message ?? '');
       }

@@ -11,7 +11,7 @@ import { CartDrawer }             from '@/components/shop/CartDrawer';
 import { useCart }                from '@/lib-client/cart/useCart';
 import { useMe }                  from '@/lib-client/hooks/useMe';
 import { usePiPrice, formatUsd }  from '@/lib-client/hooks/usePiPrice';
-import { createPaymentRecord, createU2APayment, takePaymentRecordRefusal } from '@/lib/pi-payment';
+import { createPaymentRecord, createU2APayment, takePaymentRecordRefusal, holdForHub, recordPaidOrder, releaseHeldOrder } from '@/lib/pi-payment';
 import { isHubNavigation } from '@/lib-client/pi/hub-entry';
 
 import { appOrigin } from '@/lib-client/app-origin';
@@ -27,7 +27,6 @@ interface Product {
   stock?: number;
 }
 const getToken     = () => typeof document === 'undefined' ? null : document.cookie.split('; ').find(r => r.startsWith('tec_access_token='))?.split('=')?.[1] ?? null;
-const getCsrfToken = () => typeof document === 'undefined' ? '' : document.cookie.split('; ').find(r => r.startsWith('tec_csrf='))?.split('=')?.[1] ?? '';
 const getStoredUser = () => {
   try {
     const raw = document.cookie.split('; ').find(r => r.startsWith('tec_user='))?.split('=')?.[1] ?? '';
@@ -35,14 +34,21 @@ const getStoredUser = () => {
   } catch { return null; }
 };
 
-const redirectToHubPayment = (product: Product) => {
+/** Mode 1. The units are held first (holdForHub) — the order_id rides to the Hub,
+ *  into the payment's metadata, and the payment's event marks that order PAID.
+ *  Answers why it could not go (sold out, …), or null once on its way. */
+const redirectToHubPayment = async (product: Product): Promise<string | null> => {
   const label = product.title ?? product.name ?? 'Product';
+  const held  = await holdForHub(product.price, { product_id: product.id });
+  if ('refusal' in held) return held.refusal;
   const params = new URLSearchParams({
     pay: '1', amount: product.price.toString(),
     memo: `${label} — TEC Ecommerce`, product_id: product.id,
     return_url: appOrigin(), source: 'ecommerce',
+    ...(held.orderId ? { order_id: held.orderId } : {}),
   });
   window.location.href = `${hubPaymentOrigin(HUB_URL)}/hub?${params.toString()}`;
+  return null;
 };
 
 export default function HomePage() {
@@ -116,7 +122,7 @@ export default function HomePage() {
 
   const handleBuy = useCallback(async (product: Product) => {
     if (inFlight.current) return;
-    if (isHubNavigation() || (window as any).__TEC_PI_FOREIGN_SESSION || !window.Pi || !piReady) { redirectToHubPayment(product); return; }
+    if (isHubNavigation() || (window as any).__TEC_PI_FOREIGN_SESSION || !window.Pi || !piReady) { inFlight.current = true; const why = await redirectToHubPayment(product); inFlight.current = false; if (why) { setActiveProd(product); setPayStatus('error'); setPayMessage(why); } return; }
     inFlight.current = true;
     setActiveProd(product);
     setPayStatus('creating');
@@ -128,11 +134,17 @@ export default function HomePage() {
       if (!internalId) { setPayStatus('error'); setPayMessage(takePaymentRecordRefusal() ?? 'Failed to initialize.'); inFlight.current = false; return; }
       setPayStatus('paying');
       const result = await createU2APayment(product.price, memo, { source: 'ecommerce', product_id: product.id }, internalId);
-      if (result.message === 'foreign_session') { redirectToHubPayment(product); return; }
+      if (result.message === 'foreign_session') {
+        await releaseHeldOrder(internalId);
+        const why = await redirectToHubPayment(product);
+        if (why) { setPayStatus('error'); setPayMessage(why); }
+        return;
+      }
       if (result.success) {
-        fetch('/api/bff/orders', { method:'POST', credentials:'include', headers:{'Content-Type':'application/json','x-csrf-token':getCsrfToken()}, body: JSON.stringify({ product_id: product.id, payment_id: internalId }) }).catch(() => {});
+        void recordPaidOrder(internalId, { product_id: product.id });
         setPayStatus('success');
       } else {
+        if (result.status === 'cancelled') void releaseHeldOrder(internalId);
         setPayStatus(result.status === 'cancelled' ? 'cancelled' : 'error');
         setPayMessage(result.message ?? '');
       }

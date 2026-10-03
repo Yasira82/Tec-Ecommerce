@@ -122,7 +122,7 @@ describe('the client and the server read the same fact separately', () => {
     // host networkMetadata() returns {}, so an overwrite is no overwrite at
     // all — a client that could set this could pay with Test-Pi and have a
     // consumer grant it something real.
-    expect(route).toMatch(/const \{ testnet: _clientTestnet, \.\.\.metadata \}/);
+    expect(route).toMatch(/const \{ testnet: _clientTestnet,[^}]*\.\.\.metadata \}/);
   });
 });
 

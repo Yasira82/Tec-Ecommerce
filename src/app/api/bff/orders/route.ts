@@ -8,6 +8,9 @@ const OrderSchema = z.object({
   product_id: z.string().optional(),
   payment_id: z.string().min(1),
   memo:       z.string().optional(),
+  // The hold the payment was made for (set by /api/bff/payment/create). With it
+  // the order already exists: this call CONFIRMS it, it does not create one.
+  order_id:   z.string().uuid().optional(),
 });
 
 const getToken = (req: NextRequest) =>
@@ -73,7 +76,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'VALIDATION_ERROR', details: parsed.error.flatten() }, { status: 400 });
     }
 
-    const { product_id, payment_id, memo, items: bodyItems } = parsed.data;
+    const { product_id, payment_id, memo, items: bodyItems, order_id } = parsed.data;
+
+    if (order_id) return confirmHeld(req, order_id, payment_id, userId);
 
     if (!product_id && !bodyItems?.length) {
       console.warn('[bff/orders] missing product_id/items after payment', { payment_id });
@@ -110,4 +115,38 @@ export async function POST(req: NextRequest) {
   } catch {
     return NextResponse.json({ error: 'Failed to create order' }, { status: 500 });
   }
+}
+
+/**
+ * The buyer paid for a held order → ask commerce to mark it PAID. Commerce asks
+ * payment-service first (completed · this buyer · this order · the full amount),
+ * so nothing here is taken on the client's word. "Not confirmed yet" (503) is
+ * not a failure: the payment's own event settles the order — answered 202.
+ */
+async function confirmHeld(req: NextRequest, orderId: string, paymentId: string, userId: string) {
+  const pending = () =>
+    NextResponse.json({ success: true, data: { pending: true, order_id: orderId } }, { status: 202 });
+  let res: Response;
+  try {
+    res = await fetch(`${GATEWAY}/api/commerce/orders/${encodeURIComponent(orderId)}/confirm`, {
+      method:  'POST',
+      headers: {
+        Authorization:   `Bearer ${getToken(req)}`,
+        'Content-Type':  'application/json',
+        'x-request-id':  crypto.randomUUID(),
+        ...(process.env.INTERNAL_SECRET && { 'x-internal-key': process.env.INTERNAL_SECRET }),
+        'x-user-id':     userId,
+      },
+      body: JSON.stringify({ payment_id: paymentId }),
+    });
+  } catch {
+    return pending();
+  }
+  const data = await res.json().catch(() => ({}));
+  if (res.status === 503) return pending();
+  if (!res.ok) {
+    // A paid order that could not be confirmed — say why in the logs (C-96).
+    console.error('[bff/orders] confirm failed after payment', { orderId, paymentId, status: res.status, body: JSON.stringify(data) });
+  }
+  return NextResponse.json(data, { status: res.status });
 }

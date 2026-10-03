@@ -24,6 +24,79 @@ export const takePaymentRecordRefusal = (): string | null => {
   const r = lastRefusal; lastRefusal = null; return r;
 };
 
+/**
+ * The order each payment record reserved (payment-id → order-id). The server
+ * holds the units BEFORE Pi opens (lib/order-hold.ts) and names the hold in the
+ * answer; the buy screen then confirms THAT order after paying, or releases it
+ * when the buyer cancels — instead of creating an order after the money moved.
+ */
+const heldOrders = new Map<string, string>();
+export const heldOrderFor = (paymentId: string): string | undefined => heldOrders.get(paymentId);
+
+/** The buyer cancelled in Pi: put the reserved units back on sale now. */
+export const releaseHeldOrder = async (paymentId: string): Promise<void> => {
+  const orderId = heldOrders.get(paymentId);
+  if (!orderId) return;
+  heldOrders.delete(paymentId);
+  try {
+    await fetch(`/api/bff/orders/${encodeURIComponent(orderId)}/cancel`, {
+      method: 'PATCH', credentials: 'include',
+      headers: { 'Content-Type': 'application/json', 'x-csrf-token': getCsrfToken() },
+    });
+  } catch { /* commerce releases an unpaid hold on its own after the TTL */ }
+};
+
+/**
+ * After a completed Pi payment: settle the order it paid for. With a hold, that
+ * is a CONFIRM of the reserved order; without one (older server), the order is
+ * created as before. The payment's own event settles a held order even if this
+ * call never arrives.
+ */
+export const recordPaidOrder = async (
+  paymentId: string,
+  order: { product_id?: string; items?: { productId: string; qty: number }[]; memo?: string },
+): Promise<void> => {
+  const order_id = heldOrders.get(paymentId);
+  try {
+    await fetch('/api/bff/orders', {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json', 'x-csrf-token': getCsrfToken() },
+      body: JSON.stringify({ ...order, payment_id: paymentId, ...(order_id && { order_id }) }),
+    });
+  } catch { /* the payment's event settles a held order */ }
+  heldOrders.delete(paymentId);
+};
+
+/**
+ * Mode 1 (paying at the Hub): reserve first, so the Hub is never asked to take
+ * π for a unit someone else already has. Answers the order to carry to the Hub
+ * (null when the server has no holds yet, or the buyer has no session here — the
+ * Hub flow then runs as before), or the reason it was refused.
+ */
+export const holdForHub = async (
+  amount: number,
+  order: { product_id?: string; items?: { productId: string; qty: number }[] },
+): Promise<{ orderId: string | null } | { refusal: string }> => {
+  try {
+    const res = await fetch('/api/bff/orders/hold', {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json', 'x-csrf-token': getCsrfToken() },
+      body: JSON.stringify({ amount, ...order }),
+    });
+    const body = await res.json().catch(() => null) as { message?: unknown; data?: { order_id?: unknown } } | null;
+    // Out of stock / gone / price changed (409), or stock could not be confirmed
+    // (503): no π is asked for. A missing session here (401) is not a refusal —
+    // the Hub has its own, and the flow runs as it always has.
+    if (res.status === 409 || res.status === 503) {
+      return { refusal: typeof body?.message === 'string' ? body.message : 'This product is not available right now.' };
+    }
+    const id = body?.data?.order_id;
+    return { orderId: res.ok && typeof id === 'string' ? id : null };
+  } catch {
+    return { orderId: null };
+  }
+};
+
 export const createPaymentRecord = async (
   amount: number, productId: string, memo: string,
   items?: { productId: string; qty: number }[],
@@ -55,7 +128,9 @@ export const createPaymentRecord = async (
       return null;
     }
     const data = await res.json();
-    return data?.data?.payment?.id ?? data?.data?.id ?? data?.id ?? null;
+    const id: string | null = data?.data?.payment?.id ?? data?.data?.id ?? data?.id ?? null;
+    if (id && typeof data?.order_id === 'string') heldOrders.set(id, data.order_id);
+    return id;
   } catch { return null; }
 };
 

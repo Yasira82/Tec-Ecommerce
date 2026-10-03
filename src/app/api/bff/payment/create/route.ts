@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { networkMetadata } from '@/lib/pi-network';
 import { checkPurchase, linesFrom } from '@/lib/purchase-guard';
+import { placeHold, releaseHold } from '@/lib/order-hold';
 
 const GW = process.env.API_GATEWAY_URL ?? '';
 
@@ -47,7 +48,8 @@ export async function POST(req: NextRequest) {
   // consumer grant something real for it. Dropped before the spread, so a
   // later edit that reorders the object cannot hand the network back.
   const { amount, metadata: clientMetadata } = parsed.data;
-  const { testnet: _clientTestnet, ...metadata } = clientMetadata ?? {};
+  // order_id likewise: only this route's own hold may name the order paid for.
+  const { testnet: _clientTestnet, order_id: _clientOrderId, ...metadata } = clientMetadata ?? {};
 
   const gwHeaders: Record<string, string> = {
     'Content-Type':    'application/json',
@@ -62,14 +64,30 @@ export async function POST(req: NextRequest) {
   if (!lines) {
     return NextResponse.json({ error: 'VALIDATION_ERROR', message: 'No product in this payment.' }, { status: 400 });
   }
-  const check = await checkPurchase(lines, Number(amount), GW, {
+  const commerceHeaders: Record<string, string> = {
     Authorization: `Bearer ${token}`,
     ...(process.env.INTERNAL_SECRET && { 'x-internal-key': process.env.INTERNAL_SECRET }),
-  });
+  };
+  const check = await checkPurchase(lines, Number(amount), GW, commerceHeaders);
   if (!check.ok) {
     console.warn('[bff/payment/create] refused before payment:', check.error, JSON.stringify(lines));
     return NextResponse.json({ error: check.error, message: check.message }, { status: check.status });
   }
+
+  // The check above can be true for two buyers at once; the hold cannot — it
+  // TAKES the units (lib/order-hold.ts). The payment carries its order_id, so
+  // the order is settled from the payment itself, not from a later client call.
+  const hold = await placeHold(lines, GW, commerceHeaders);
+  if (hold.ok === false) {
+    console.warn('[bff/payment/create] hold refused before payment:', hold.error, JSON.stringify(lines));
+    return NextResponse.json({ error: hold.error, message: hold.message }, { status: hold.status });
+  }
+  if (hold.ok === 'unsupported') console.warn('[bff/payment/create] commerce has no holds yet — paying without one');
+  const orderId = hold.ok === true ? hold.orderId : undefined;
+  // A payment that never started must not keep the units for the whole TTL.
+  const giveBack = (why: string) => {
+    if (orderId) void releaseHold(orderId, GW, commerceHeaders, why);
+  };
 
   try {
     const res = await fetch(`${GW}/api/payment/create`, {
@@ -85,18 +103,28 @@ export async function POST(req: NextRequest) {
         // about which Pi network to charge on. It is present only when true,
         // so a Mainnet payment carries no such key at all and its payload is
         // byte-identical to what it has always been.
-        metadata:       { ...metadata, source: 'ecommerce', ...networkMetadata(req.headers.get('host')) },
+        // order_id comes only from the hold above (the client's was dropped).
+        metadata:       {
+          ...metadata, source: 'ecommerce',
+          ...(orderId ? { order_id: orderId } : {}),
+          ...networkMetadata(req.headers.get('host')),
+        },
       }),
     });
 
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       console.error('[bff/payment/create] gateway error:', res.status, JSON.stringify(data));
+      giveBack('Payment could not be created');
       return NextResponse.json(data, { status: res.status });
     }
-    return NextResponse.json(data, { status: res.status });
+    return NextResponse.json(
+      orderId && data && typeof data === 'object' ? { ...data, order_id: orderId } : data,
+      { status: res.status },
+    );
   } catch (err) {
     console.error('[bff/payment/create] network error:', (err as Error).message);
+    giveBack('Payment could not be created');
     return NextResponse.json({ error: 'Service unavailable' }, { status: 503 });
   }
 }

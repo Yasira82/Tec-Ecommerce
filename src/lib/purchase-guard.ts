@@ -12,8 +12,10 @@
 // Anything it cannot confirm is a refusal (P6) — a payment we cannot fulfil is
 // worse than a sale we did not make.
 //
-// It is a pre-check, not a reservation: two buyers can still race for the last
-// unit, and commerce-service's own check at order time stays the final word.
+// It is a pre-check, not a reservation: two buyers can both pass it for the
+// last unit. The reservation is the HOLD placed right after it (order-hold.ts),
+// which commerce-service takes atomically — one of the two is refused there,
+// still before any π moves.
 
 export interface PurchaseLine { productId: string; qty: number; }
 
