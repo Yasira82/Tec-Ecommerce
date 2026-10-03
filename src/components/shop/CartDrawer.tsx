@@ -2,7 +2,7 @@
 
 import { useState, useRef }          from 'react';
 import { CartItem }                   from '@/lib-client/cart/useCart';
-import { createPaymentRecord, createU2APayment, takePaymentRecordRefusal } from '@/lib/pi-payment';
+import { createPaymentRecord, createU2APayment, takePaymentRecordRefusal, holdForHub, recordPaidOrder, releaseHeldOrder } from '@/lib/pi-payment';
 import { isHubNavigation } from '@/lib-client/pi/hub-entry';
 
 import { appOrigin } from '@/lib-client/app-origin';
@@ -10,19 +10,23 @@ import { hubPaymentOrigin } from '@/lib/pi-network';
 
 const HUB_URL = process.env.NEXT_PUBLIC_HUB_URL ?? 'https://hub.tecosystem.app';
 
-const getCsrfToken = () =>
-  typeof document === 'undefined'
-    ? ''
-    : document.cookie.split('; ').find(r => r.startsWith('tec_csrf='))?.split('=')?.[1] ?? '';
-
-const redirectToHubPayment = (total: number, count: number) => {
+/** Mode 1. The cart's units are held first — the Hub cannot see this cart, so
+ *  the order_id it carries into the payment is how the order gets settled.
+ *  Answers why it could not go (sold out, …), or null once on its way. */
+const redirectToHubPayment = async (
+  total: number, count: number, items: { productId: string; qty: number }[],
+): Promise<string | null> => {
+  const held = await holdForHub(total, { product_id: 'cart_checkout', items });
+  if ('refusal' in held) return held.refusal;
   const memo = `TEC Cart — ${count} item${count !== 1 ? 's' : ''}`;
   const params = new URLSearchParams({
     pay: '1', amount: total.toString(),
     memo, product_id: 'cart_checkout',
     return_url: appOrigin(), source: 'ecommerce',
+    ...(held.orderId ? { order_id: held.orderId } : {}),
   });
   window.location.href = `${hubPaymentOrigin(HUB_URL)}/hub?${params.toString()}`;
+  return null;
 };
 
 type CheckoutStatus = 'idle' | 'creating' | 'paying' | 'success' | 'error' | 'cancelled';
@@ -46,8 +50,12 @@ export function CartDrawer({ isOpen, onClose, items, onUpdateQty, onRemove, onCl
 
   const handleCheckout = async () => {
     if (inFlight.current || items.length === 0) return;
+    const cartLines = items.map(i => ({ productId: i.product.id, qty: i.qty }));
     if (isHubNavigation() || (window as any).__TEC_PI_FOREIGN_SESSION || !(window as any).Pi || !piReady) {
-      redirectToHubPayment(total, itemCount);
+      inFlight.current = true;
+      const why = await redirectToHubPayment(total, itemCount, cartLines);
+      inFlight.current = false;
+      if (why) { setStatus('error'); setErrMsg(why); }
       return;
     }
     inFlight.current = true;
@@ -61,13 +69,19 @@ export function CartDrawer({ isOpen, onClose, items, onUpdateQty, onRemove, onCl
       setStatus('paying');
       const cartItems = items.map(i => ({ productId: i.product.id, qty: i.qty }));
       const result    = await createU2APayment(total, memo, { source: 'cart', items: cartItems }, internalId);
-      if (result.message === 'foreign_session') { redirectToHubPayment(total, itemCount); inFlight.current = false; return; }
+      if (result.message === 'foreign_session') {
+        await releaseHeldOrder(internalId);
+        const why = await redirectToHubPayment(total, itemCount, cartItems);
+        if (why) { setStatus('error'); setErrMsg(why); }
+        inFlight.current = false; return;
+      }
       if (result.success) {
-        await fetch('/api/bff/orders', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json', 'x-csrf-token': getCsrfToken() }, body: JSON.stringify({ items: cartItems, payment_id: internalId, memo }) }).catch(() => {});
+        await recordPaidOrder(internalId, { items: cartItems, memo });
         setStatus('success');
         onClear();
         setTimeout(() => { setStatus('idle'); onClose(); }, 1800);
       } else {
+        if (result.status === 'cancelled') void releaseHeldOrder(internalId);
         setStatus(result.status === 'cancelled' ? 'cancelled' : 'error');
         setErrMsg(result.message ?? '');
       }

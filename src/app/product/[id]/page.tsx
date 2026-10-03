@@ -8,7 +8,7 @@ import { PaymentModal, PayStatus }                  from '@yasser172/tec-ui/paym
 import { EcommerceDrawer }                          from '@/components/shop/EcommerceDrawer';
 import { CartDrawer }                               from '@/components/shop/CartDrawer';
 import { useCart }                                  from '@/lib-client/cart/useCart';
-import { createPaymentRecord, createU2APayment, takePaymentRecordRefusal }    from '@/lib/pi-payment';
+import { createPaymentRecord, createU2APayment, takePaymentRecordRefusal, holdForHub, recordPaidOrder, releaseHeldOrder }    from '@/lib/pi-payment';
 import { isHubNavigation }                          from '@/lib-client/pi/hub-entry';
 
 import { appOrigin } from '@/lib-client/app-origin';
@@ -25,7 +25,6 @@ interface Product {
   stock?: number; metadata?: Record<string, unknown>;
 }
 const getToken     = () => typeof document === 'undefined' ? null : document.cookie.split('; ').find(r => r.startsWith('tec_access_token='))?.split('=')?.[1] ?? null;
-const getCsrfToken = () => typeof document === 'undefined' ? '' : document.cookie.split('; ').find(r => r.startsWith('tec_csrf='))?.split('=')?.[1] ?? '';
 const getStoredUser = () => {
   try {
     const raw = document.cookie.split('; ').find(r => r.startsWith('tec_user='))?.split('=')?.[1] ?? '';
@@ -33,9 +32,14 @@ const getStoredUser = () => {
   } catch { return null; }
 };
 
-/** Mode 1: redirect to Hub PaymentModal (C-76) */
-const redirectToHubPayment = (product: Product) => {
+/** Mode 1: redirect to Hub PaymentModal (C-76). The units are held first
+ *  (holdForHub) — the order_id rides to the Hub, into the payment's metadata,
+ *  and the payment's event marks that order PAID. Answers why it could not go
+ *  (sold out, …), or null once on its way. */
+const redirectToHubPayment = async (product: Product): Promise<string | null> => {
   const label = product.title ?? product.name ?? 'Product';
+  const held  = await holdForHub(product.price, { product_id: product.id });
+  if ('refusal' in held) return held.refusal;
   const params = new URLSearchParams({
     pay:        '1',
     amount:     product.price.toString(),
@@ -43,8 +47,10 @@ const redirectToHubPayment = (product: Product) => {
     product_id: product.id,
     return_url: `${appOrigin()}/product/${product.id}`,
     source:     'ecommerce',
+    ...(held.orderId ? { order_id: held.orderId } : {}),
   });
   window.location.href = `${hubPaymentOrigin(HUB_URL)}/hub?${params.toString()}`;
+  return null;
 };
 
 export default function ProductPage() {
@@ -110,8 +116,7 @@ export default function ProductPage() {
   const handleBuy = useCallback(async () => {
     if (!product || inFlight.current) return;
 
-    if (isHubNavigation() || (window as any).__TEC_PI_FOREIGN_SESSION) { redirectToHubPayment(product); return; }
-    if (!window.Pi || !piReady) { redirectToHubPayment(product); return; }
+    if (isHubNavigation() || (window as any).__TEC_PI_FOREIGN_SESSION || !window.Pi || !piReady) { inFlight.current = true; const why = await redirectToHubPayment(product); inFlight.current = false; if (why) { setPayStatus('error'); setPayMessage(why); } return; }
 
     inFlight.current = true;
     setPayStatus('creating');
@@ -123,11 +128,17 @@ export default function ProductPage() {
       if (!internalId) { setPayStatus('error'); setPayMessage(takePaymentRecordRefusal() ?? 'Failed to initialize.'); inFlight.current = false; return; }
       setPayStatus('paying');
       const result = await createU2APayment(product.price, memo, { source: 'ecommerce', product_id: product.id }, internalId);
-      if (result.message === 'foreign_session') { redirectToHubPayment(product); inFlight.current = false; return; }
+      if (result.message === 'foreign_session') {
+        await releaseHeldOrder(internalId);
+        const why = await redirectToHubPayment(product);
+        if (why) { setPayStatus('error'); setPayMessage(why); }
+        inFlight.current = false; return;
+      }
       if (result.success) {
-        fetch('/api/bff/orders', { method:'POST', credentials:'include', headers:{'Content-Type':'application/json','x-csrf-token':getCsrfToken()}, body: JSON.stringify({ product_id: product.id, payment_id: internalId }) }).catch(() => {});
+        void recordPaidOrder(internalId, { product_id: product.id });
         setPayStatus('success');
       } else {
+        if (result.status === 'cancelled') void releaseHeldOrder(internalId);
         setPayStatus(result.status === 'cancelled' ? 'cancelled' : 'error');
         setPayMessage(result.message ?? '');
       }
