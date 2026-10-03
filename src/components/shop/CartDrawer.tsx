@@ -81,7 +81,7 @@ export function CartDrawer({ isOpen, onClose, items, onUpdateQty, onRemove, onCl
         onClear();
         setTimeout(() => { setStatus('idle'); onClose(); }, 1800);
       } else {
-        if (result.status === 'cancelled') void releaseHeldOrder(internalId);
+        void releaseHeldOrder(internalId);
         setStatus(result.status === 'cancelled' ? 'cancelled' : 'error');
         setErrMsg(result.message ?? '');
       }
