@@ -24,6 +24,24 @@ type PiWindow = {
 let inflight: Promise<boolean> | null = null;
 let signedIn = false;
 
+// F3 (tec-template-base #47): Pi counts a Pioneer who signed in with Pi IN this
+// app, so the arrival report waits for this moment rather than a page load.
+const listeners = new Set<() => void>();
+
+/** Record that Pi signed this visitor in here (this file's handshake, or the app's login). */
+export function markPiSignedIn(): void {
+  if (signedIn) return;
+  signedIn = true;
+  for (const fn of [...listeners]) { try { fn(); } catch { /* ignore */ } }
+}
+
+/** Call `fn` once this app has signed in with Pi — now, if it already has. Returns the unsubscribe. */
+export function onPiSignedIn(fn: () => void): () => void {
+  if (signedIn) { fn(); return () => undefined; }
+  listeners.add(fn);
+  return () => { listeners.delete(fn); };
+}
+
 /** Resolves true once Pi has signed this visitor in here; never throws, never runs twice at once. */
 export function piVisitSignIn(): Promise<boolean> {
   if (typeof window === 'undefined') return Promise.resolve(false);
@@ -36,7 +54,7 @@ export function piVisitSignIn(): Promise<boolean> {
 
   inflight = Promise.resolve()
     .then(() => authenticate.call(w.Pi, ['username', 'payments'], () => { /* see header */ }))
-    .then(() => { signedIn = true; return true; })
+    .then(() => { markPiSignedIn(); return true; })
     .catch(() => false)
     .finally(() => { inflight = null; });
   return inflight;
@@ -46,4 +64,5 @@ export function piVisitSignIn(): Promise<boolean> {
 export function __resetPiVisitSignIn(): void {
   inflight = null;
   signedIn = false;
+  listeners.clear();
 }
