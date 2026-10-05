@@ -44,6 +44,7 @@
 
 import { useEffect } from 'react';
 import { onPiSignedIn } from '@/lib/pi/visit-sign-in';
+import { writeTrace, ARRIVAL_TRACE } from '@/lib/pioneer/arrival-trace';
 
 const ONCE_KEY  = 'tec_arrival_reported_at';
 const REPORT_EVERY_MS = 10 * 60 * 1000;
@@ -87,11 +88,19 @@ function report(): void {
       // on purpose, so bookkeeping never fails a page. Reading only the
       // status, the reporter took every refusal as success and never asked
       // again for the rest of the visit.
+      const body = res.ok
+        ? await res.json().catch(() => null) as { recorded?: unknown; reason?: unknown } | null
+        : null;
+      // What the server said, for /pi-test (lib/pioneer/arrival-trace.ts).
+      writeTrace(ARRIVAL_TRACE, {
+        status:   res.status,
+        recorded: body?.recorded === true,
+        ...(typeof body?.reason === 'string' ? { reason: body.reason } : {}),
+      });
       if (!res.ok) return;
-      const body = await res.json().catch(() => null) as { recorded?: unknown } | null;
       if (body?.recorded === true) {
         try { sessionStorage.setItem(ONCE_KEY, String(Date.now())); } catch { /* ignore */ }
       }
     })
-    .catch(() => { /* ignore */ });
+    .catch((e: unknown) => { writeTrace(ARRIVAL_TRACE, { error: String(e).slice(0, 200) }); });
 }
