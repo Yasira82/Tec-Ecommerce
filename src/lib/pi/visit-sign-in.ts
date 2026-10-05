@@ -16,6 +16,8 @@
 // error. The incomplete-payment callback is a no-op on purpose: the payment path
 // authenticates again at the tap, with its own resolver, and handles it there.
 
+import { writeTrace, SIGNIN_TRACE } from '@/lib/pioneer/arrival-trace';
+
 type PiWindow = {
   __TEC_PI_FOREIGN_SESSION?: boolean;
   Pi?: { authenticate?: (scopes: string[], onIncomplete: (p: unknown) => void) => Promise<unknown> };
@@ -46,16 +48,25 @@ export function onPiSignedIn(fn: () => void): () => void {
 export function piVisitSignIn(): Promise<boolean> {
   if (typeof window === 'undefined') return Promise.resolve(false);
   const w = window as unknown as PiWindow;
-  if (w.__TEC_PI_FOREIGN_SESSION === true) return Promise.resolve(false);
+  if (w.__TEC_PI_FOREIGN_SESSION === true) {
+    writeTrace(SIGNIN_TRACE, { result: 'foreign-session' });
+    return Promise.resolve(false);
+  }
   if (signedIn) return Promise.resolve(true);
   if (inflight) return inflight;
   const authenticate = w.Pi?.authenticate;
-  if (typeof authenticate !== 'function') return Promise.resolve(false);
+  if (typeof authenticate !== 'function') {
+    writeTrace(SIGNIN_TRACE, { result: 'no-sdk' });
+    return Promise.resolve(false);
+  }
 
   inflight = Promise.resolve()
     .then(() => authenticate.call(w.Pi, ['username', 'payments'], () => { /* see header */ }))
-    .then(() => { markPiSignedIn(); return true; })
-    .catch(() => false)
+    .then(() => { writeTrace(SIGNIN_TRACE, { result: 'ok' }); markPiSignedIn(); return true; })
+    .catch((e: unknown) => {
+      writeTrace(SIGNIN_TRACE, { result: 'error', error: String((e as Error)?.message ?? e).slice(0, 200) });
+      return false;
+    })
     .finally(() => { inflight = null; });
   return inflight;
 }
