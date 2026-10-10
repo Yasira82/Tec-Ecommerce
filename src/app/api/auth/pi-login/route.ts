@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { cookieDomainFor } from '@/lib/cookie-domain';
 
 const GW = process.env.API_GATEWAY_URL;
 
@@ -26,10 +27,14 @@ export async function POST(req: NextRequest) {
     const csrf     = crypto.randomUUID();
     const userJson = encodeURIComponent(JSON.stringify(user));
 
-    const cookieDomain =
-      process.env.COOKIE_DOMAIN ??
-      process.env.NEXT_PUBLIC_SSO_DOMAIN ??
-      undefined;
+    // Host-only wherever the configured domain does not cover this host (cookie-domain.ts).
+    // On the Testnet host `tec-ecommerce.vercel.app` a `.tecosystem.app` cookie is dropped
+    // silently: sign-in succeeded and the next request still said "Sign in first"
+    // (owner, 2026-10-10 — every Pi account but the one already signed in).
+    const cookieDomain = cookieDomainFor(
+      req.nextUrl.hostname,
+      process.env.COOKIE_DOMAIN ?? process.env.NEXT_PUBLIC_SSO_DOMAIN ?? undefined,
+    );
 
     const cookieOpts = {
       secure:   true,
