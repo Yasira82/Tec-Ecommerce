@@ -25,7 +25,9 @@ export async function POST(req: NextRequest) {
     }
 
     const csrf     = crypto.randomUUID();
-    const userJson = encodeURIComponent(JSON.stringify(user));
+    // Raw JSON: `cookies.set` encodes the value itself. Encoding it here too put
+    // `%257B…` in the browser, and getStoredUser() (one decode) read nobody.
+    const userJson = JSON.stringify(user);
 
     // Host-only wherever the configured domain does not cover this host (cookie-domain.ts).
     // On the Testnet host `tec-ecommerce.vercel.app` a `.tecosystem.app` cookie is dropped
