@@ -11,6 +11,9 @@ import { TEC_COLORS } from '@yasser172/tec-ui';
  * has nowhere to send (audits/A2U_FIRST_PAYOUT_ROUND_2026-09-13.md §2).
  *
  * ADR-007: in a Hub-owned session Pi.authenticate never answers — say so instead.
+ *
+ * A visitor with no TEC session is signed in with the same Pi sign-in (`/api/auth/pi-login`)
+ * and the claim is sent once more — one tap for everyone.
  */
 
 type PiWindow = {
@@ -38,11 +41,23 @@ export default function TestnetPayoutPage() {
       if (typeof w.Pi?.authenticate !== 'function') throw new Error('Open this page in Pi Browser.');
       const auth = await w.Pi.authenticate(['username', 'payments', 'wallet_address'], () => { /* no payment to resume here */ });
       if (!auth?.accessToken) throw new Error('Pi did not sign you in.');
-      const res = await fetch('/api/bff/testnet-payout', {
+      const send = () => fetch('/api/bff/testnet-payout', {
         method: 'POST', credentials: 'include',
         headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrf() },
         body: JSON.stringify({ pi_access_token: auth.accessToken }),
       });
+      let res = await send();
+      // No TEC session yet (a Pi account that never signed in here — owner, 2026-10-10:
+      // every second account got 401). The same Pi sign-in opens one, then try once more.
+      if (res.status === 401) {
+        const login = await fetch('/api/auth/pi-login', {
+          method: 'POST', credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ accessToken: auth.accessToken, scopes: ['username', 'payments', 'wallet_address'] }),
+        });
+        if (!login.ok) throw new Error('Could not sign you in to TEC — try again.');
+        res = await send();
+      }
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error?.message ?? `Failed (${res.status})`);
       setMsg({ ok: true, text: data?.data?.already ? 'You have already received your test payout. Thank you!' : 'Sent — 0.01 Test-Pi is on its way to your Testnet wallet. Thank you!' });
