@@ -42,4 +42,9 @@ describe('the page', () => {
     expect(src).toContain("['username', 'payments', 'wallet_address']");
     expect(src).toContain('__TEC_PI_FOREIGN_SESSION');
   });
+
+  it('no TEC session → signs in with the same Pi sign-in, then claims once more', () => {
+    const src = readFileSync(join(process.cwd(), 'src/app/testnet-payout/page.tsx'), 'utf8');
+    expect(src).toMatch(/if \(res\.status === 401\) \{[\s\S]*\/api\/auth\/pi-login[\s\S]*res = await send\(\);/);
+  });
 });
