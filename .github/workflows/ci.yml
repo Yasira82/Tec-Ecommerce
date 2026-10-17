@@ -66,6 +66,12 @@ jobs:
       - uses: actions/checkout@v4
       - name: Drift Detection — KB claims vs code
         run: "violations=0\n\n# ── ADR-009: unified payment contract ───────────────────────────\nif grep -rniE 'x-service-secret|SERVICE_SECRET' src; then\n  echo \"::error::ADR-009: use x-internal-key / INTERNAL_SECRET (not x-service-secret / SERVICE_SECRET)\"\n  violations=1\nfi\nif grep -rnE 'amount:[[:space:]]*z\\.string' src | grep -qi payment; then\n  echo \"::error::ADR-009: payment amount must be a number — no z.string() for amount in payment routes\"\n  violations=1\nfi\n\n# ── C-12 §11 / P2: CSRF enforced ONLY in middleware ─────────────\nif grep -rnE 'csrfCookie !== csrfHeader|csrfCookie === csrfHeader|CSRF validation failed|CSRF token mismatch' src/app/api 2>/dev/null; then\n  echo \"::error::CSRF must be enforced ONLY in middleware (P2 single source of truth). Remove route-level CSRF checks — they 403 legit Pi-Browser payments.\"\n  violations=1\nfi\n\n# ── C-76 / ADR-007: every Mode-2 buy handler must guard ─────────\n# Any component/page triggering createU2APayment() must check\n# isHubNavigation() first (pi-test diagnostic harness is exempt).\nhandlers=$(grep -rlE 'createU2APayment\\(' src/app src/components --include=*.tsx 2>/dev/null | grep -v '/pi-test/' || true)\nfor f in $handlers; do\n  if ! grep -qE 'isHubNavigation' \"$f\"; then\n    echo \"::error::ADR-007 (C-76): $f triggers a Mode-2 Pi payment without isHubNavigation() guard\"\n    violations=1\n  fi\ndone\n\n[ \"$violations\" -eq 0 ] && echo \"Drift Detection OK — code matches KB claims\" || exit 1\n"
+      # App Excellence Standard (KB audits/APP_EXPANSION_ARCHITECTURE_2026-10-11.md §2).
+      # Plain Node, no install: prints the score and fails only when a check this app
+      # has already passed (`.app-scorecard.json`) stops passing — a ratchet.
+      - name: App Excellence scorecard
+        run: node scripts/app-scorecard.mjs
+
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
@@ -96,3 +102,8 @@ jobs:
           NEXT_PUBLIC_PI_APP_ID: ${{ secrets.NEXT_PUBLIC_PI_APP_ID || 'test-app-id' }}
           API_GATEWAY_URL: ${{ secrets.API_GATEWAY_URL || 'https://api-gateway-production-6a68.up.railway.app' }}
           INTERNAL_SECRET: ${{ secrets.INTERNAL_SECRET || 'ci-test-secret-minimum-32-chars!!' }}
+
+      # Records /app's first-load JS against the 250 KB budget. Informational until E15
+      # is in the floor — the first reading is the baseline.
+      - name: App Excellence — performance budget
+        run: node scripts/app-scorecard.mjs --after-build
