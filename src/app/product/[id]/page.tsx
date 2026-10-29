@@ -13,6 +13,7 @@ import { isHubNavigation }                          from '@/lib-client/pi/hub-en
 
 import { appOrigin } from '@/lib-client/app-origin';
 import { hubPaymentOrigin } from '@/lib/pi-network';
+import { ZoneBadge, type SellerVerified } from '@/components/zone/ZoneBadge';
 
 const HUB_URL = process.env.NEXT_PUBLIC_HUB_URL ?? 'https://hub.tecosystem.app';
 
@@ -22,6 +23,7 @@ interface Product {
   images?: string[]; image_url?: string;
   category?: string; rating?: number;
   reviews_count?: number; merchant_name?: string;
+  seller_verified?: SellerVerified | null;
   stock?: number; metadata?: Record<string, unknown>;
 }
 const getToken     = () => typeof document === 'undefined' ? null : document.cookie.split('; ').find(r => r.startsWith('tec_access_token='))?.split('=')?.[1] ?? null;
@@ -248,7 +250,13 @@ export default function ProductPage() {
             </div>
           )}
 
-          {product.merchant_name && (
+          {product.seller_verified ? (
+            <div className="seller-row">
+              <span className="seller-label">Sold by</span>
+              <span className="seller-name">{product.seller_verified.name}</span>
+              <ZoneBadge verified={product.seller_verified} size="md" />
+            </div>
+          ) : product.merchant_name && (
             <div className="seller-row">
               <span className="seller-label">Sold by</span>
               <span className="seller-name">@{product.merchant_name}</span>

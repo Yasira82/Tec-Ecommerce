@@ -14,12 +14,14 @@ interface Product {
 }
 interface Merchant {
   display_name?: string; username?: string;
+  verified?: SellerVerified | null;
   joined_at?: string; products_count?: number;
   sales_count?: number; rating?: number;
 }
 
 import { appOrigin } from '@/lib-client/app-origin';
 import { hubPaymentOrigin } from '@/lib/pi-network';
+import { ZoneBadge, type SellerVerified } from '@/components/zone/ZoneBadge';
 
 const HUB_URL = process.env.NEXT_PUBLIC_HUB_URL ?? 'https://hub.tecosystem.app';
 
@@ -163,6 +165,7 @@ export default function StorePage() {
             </div>
             <div>
               <div style={{ fontSize:18, fontWeight:800, color:'#fff' }}>{merchant.display_name}</div>
+              {merchant.verified && <div style={{ marginTop: 6 }}><ZoneBadge verified={merchant.verified} size="md" /></div>}
               {merchant.username && <div style={{ fontSize:13, color:TEC_COLORS.gold }}>@{merchant.username}</div>}
               {merchant.joined_at && (
                 <div style={{ fontSize:11, color:'#4a4a5a', marginTop:2 }}>
