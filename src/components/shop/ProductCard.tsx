@@ -2,12 +2,14 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { ZoneBadge, type SellerVerified } from '@/components/zone/ZoneBadge';
 
 interface Product {
   id: string; title: string; name?: string;
   description: string; price: number;
   images?: string[]; image_url?: string;
   seller_id?: string; merchant_name?: string;
+  seller_verified?: SellerVerified | null;
   stock?: number;
 }
 
@@ -30,7 +32,8 @@ export function ProductCard({ product, piReady, onBuy, onAddToCart, onCartOpen, 
   // Never surface a raw UUID as the store name — fall back to a clean label.
   const rawName  = product.merchant_name?.trim();
   const isUuid   = !!rawName && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawName);
-  const sellerName = (rawName && !isUuid) ? rawName : 'TEC Store';
+  // A Zone-verified seller is shown by the business name Zone checked.
+  const sellerName = product.seller_verified?.name ?? ((rawName && !isUuid) ? rawName : 'TEC Store');
 
   // Commerce owns stock; never offer Buy or Cart on a sold-out product — the
   // order would be refused after the payment (purchase-guard refuses it first).
@@ -74,6 +77,7 @@ export function ProductCard({ product, piReady, onBuy, onAddToCart, onCartOpen, 
             🏪 <span style={{ textDecoration:'underline', textDecorationColor:'rgba(251,191,36,0.3)' }}>{sellerName}</span>
           </button>
         )}
+        {product.seller_verified && <div style={{ marginBottom: 6 }}><ZoneBadge verified={product.seller_verified} /></div>}
         <p style={{ fontFamily:'system-ui', fontSize:10, color:'#4a4a5a', lineHeight:1.5, marginBottom:8, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>
           {product.description}
         </p>

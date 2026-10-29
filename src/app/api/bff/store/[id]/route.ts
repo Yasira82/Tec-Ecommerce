@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { verifiedMerchants, zoneVerifyUrl } from '@/lib/server/zone-merchants';
 
 const GATEWAY = process.env.API_GATEWAY_URL ?? '';
 
@@ -48,8 +49,16 @@ export async function GET(
       };
     });
 
+    // A store whose owner holds a verified merchant in Zone carries that business's
+    // name and a link to its evidence. Zone decides; the store page only shows it.
+    const zone = products.length ? (await verifiedMerchants([id]))[id] : undefined;
     return NextResponse.json({
-      merchant: products.length ? { id, display_name: 'TEC Store', products_count: products.length } : null,
+      merchant: products.length ? {
+        id,
+        display_name: zone?.name ?? 'TEC Store',
+        products_count: products.length,
+        verified: zone ? { name: zone.name, url: zoneVerifyUrl(zone.handle) } : null,
+      } : null,
       products,
     });
   } catch {

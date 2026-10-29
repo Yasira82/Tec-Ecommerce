@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { gatewayGet } from '@/lib/bff/gateway-get';
 import { isE2eMode } from '@/lib/server/e2e-mode';
+import { verifiedMerchants, zoneVerifyUrl } from '@/lib/server/zone-merchants';
 
 // NEW-A: server-only. NEXT_PUBLIC_* would ship the internal gateway URL in the
 // client bundle — the gateway is never addressed from the browser (BFF only).
@@ -67,7 +68,14 @@ export async function GET(req: NextRequest) {
       };
     });
 
-    return NextResponse.json({ success: true, data: { products } });
+    // Zone's verdict on each seller, presented — never decided — here (C-120).
+    const zone = await verifiedMerchants(products.map((p) => p.seller_id));
+    const withZone = products.map((p) => {
+      const m = zone[p.seller_id];
+      return { ...p, seller_verified: m ? { name: m.name, url: zoneVerifyUrl(m.handle) } : null };
+    });
+
+    return NextResponse.json({ success: true, data: { products: withZone } });
   } catch (err) {
     console.error('[bff/products] unexpected error:', err);
     return NextResponse.json({ error: 'Failed to fetch products' }, { status: 500 });
