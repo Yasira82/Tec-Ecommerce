@@ -25,6 +25,9 @@ type PiWindow = {
 
 let inflight: Promise<boolean> | null = null;
 let signedIn = false;
+let piUser: string | null = null;
+/** The Pi username from the last handshake here, or null. Memory only. */
+export const piUsername = (): string | null => piUser;
 
 // F3 (tec-template-base #47): Pi counts a Pioneer who signed in with Pi IN this
 // app, so the arrival report waits for this moment rather than a page load.
@@ -62,7 +65,11 @@ export function piVisitSignIn(): Promise<boolean> {
 
   inflight = Promise.resolve()
     .then(() => authenticate.call(w.Pi, ['username', 'payments'], () => { /* see header */ }))
-    .then(() => { writeTrace(SIGNIN_TRACE, { result: 'ok' }); markPiSignedIn(); return true; })
+    .then((result: unknown) => {
+      const u = (result as { user?: { username?: unknown } } | null)?.user?.username;
+      if (typeof u === 'string' && u) piUser = u;
+      writeTrace(SIGNIN_TRACE, { result: 'ok' }); markPiSignedIn(); return true;
+    })
     .catch((e: unknown) => {
       writeTrace(SIGNIN_TRACE, { result: 'error', error: String((e as Error)?.message ?? e).slice(0, 200) });
       return false;
