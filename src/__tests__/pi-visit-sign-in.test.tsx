@@ -60,13 +60,19 @@ describe('visit sign-in', () => {
   it('the component runs it when the SDK reports ready', async () => {
     render(createElement(PiVisitSignIn));
     expect(authenticate).not.toHaveBeenCalled();
+    // The component first asks /api/auth/me who this is (count once per person),
+    // so the handshake follows a fetch: wait for it rather than for one tick.
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 401, json: async () => ({}) }));
     await act(async () => { window.dispatchEvent(new Event('tec-pi-ready')); });
-    expect(authenticate).toHaveBeenCalledTimes(1);
+    await vi.waitFor(() => expect(authenticate).toHaveBeenCalledTimes(1));
+    vi.unstubAllGlobals();
   });
 
   it('the component runs it at once when the SDK was already ready', async () => {
     w.__TEC_PI_READY = true;
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 401, json: async () => ({}) }));
     await act(async () => { render(createElement(PiVisitSignIn)); });
-    expect(authenticate).toHaveBeenCalledTimes(1);
+    await vi.waitFor(() => expect(authenticate).toHaveBeenCalledTimes(1));
+    vi.unstubAllGlobals();
   });
 });
