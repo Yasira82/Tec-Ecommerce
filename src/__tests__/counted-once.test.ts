@@ -7,7 +7,7 @@ const authenticate = vi.fn();
 const me = (body: unknown, status = 200) =>
   vi.fn().mockResolvedValue({ ok: status === 200, status, json: async () => body });
 
-describe('visit sign-in: once per person, not per visit', () => {
+describe('visit sign-in: once per person per day, not per visit', () => {
   beforeEach(() => {
     vi.resetModules();
     window.localStorage.clear();
@@ -69,5 +69,19 @@ describe('visit sign-in: once per person, not per visit', () => {
     await expect((await import('@/components/pi/PiVisitSignIn')).visitSignInOnce()).resolves.toBe('counted-before');
     expect(arrived).toHaveBeenCalledTimes(1);
     expect(authenticate).toHaveBeenCalledTimes(1);
+  });
+
+  it('the next day, the first visit signs in again — Pi keeps seeing that the app is used', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(2026, 10, 11, 20, 0));
+    vi.stubGlobal('fetch', me({ authenticated: true, user: { username: 'yas55eR82' } }));
+    await (await import('@/components/pi/PiVisitSignIn')).visitSignInOnce();
+    vi.resetModules();
+    await expect((await import('@/components/pi/PiVisitSignIn')).visitSignInOnce()).resolves.toBe('counted-before');
+    vi.setSystemTime(new Date(2026, 10, 12, 9, 0));     // the next morning
+    vi.resetModules();
+    await expect((await import('@/components/pi/PiVisitSignIn')).visitSignInOnce()).resolves.toBe('signed-in');
+    expect(authenticate).toHaveBeenCalledTimes(2);
+    vi.useRealTimers();
   });
 });

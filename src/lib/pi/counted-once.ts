@@ -1,45 +1,53 @@
-// Count a visitor once — not on every visit.
+// Count a visitor once a day — not on every visit, and not only once ever.
 //
-// The visit sign-in (visit-sign-in.ts) exists so Pi sees a Pioneer sign in with
-// Pi IN this app: that is what counts toward the app's `.pi` domain (5 unique
-// KYC'd Pioneers). Pi counts PEOPLE, so a second, third, tenth visit by the same
-// person adds nothing to that count.
+// The visit sign-in exists so Pi sees a Pioneer sign in with Pi IN this app:
+// that is what Pi's domain claim reads ("at least 5 unique KYC'd approved
+// Pioneers engage with the app"), and the domain is then "periodically
+// reviewed for compliance and utility" and renewed after a year only if the app
+// still meets the thresholds (Pi's claim screen, 11 Nov 2026). So Pi has to keep
+// seeing the people who use the app — a person counted once and never again
+// reads, months later, as an app nobody uses.
 //
-// What every repeat handshake did add (owner, 10 Nov 2026): after a few apps
-// opened from the Hub in one Pi Browser session, each signing in with its own
-// App ID, Pi's wallet stopped opening for ANY app until Pi Browser was closed
-// and reopened. Payments had been reliable until the campaign made every visit
-// sign in. Owner's rule: "each user is counted as one visit, not every time".
+// What every repeat handshake also did (owner, 10 Nov 2026): after a few apps
+// signed in from the Hub in one Pi Browser session, each with its own App ID,
+// Pi's wallet stopped opening for ANY app until Pi Browser was restarted.
 //
-// So: once Pi has signed a username in here, this device remembers it and later
-// visits by that username skip the visit handshake. A visitor we cannot name
-// yet (no TEC session) still signs in — that is also how they log in
-// (self-sign-in.ts). A payment always authenticates at the tap; nothing here
-// touches that path.
+// So: once Pi has signed a username in here TODAY, this device remembers it and
+// later visits that day skip the visit handshake (the arrival is still
+// announced). The next day, the first visit signs in again. A visitor we cannot
+// name yet (no TEC session) always signs in — that is also how they log in. A
+// payment always authenticates at the tap; nothing here touches that path.
 
-const KEY = '__tec_pi_counted';
+const KEY = '__tec_pi_counted_day';
 
-const read = (): string[] => {
-  try {
-    const v = JSON.parse(window.localStorage.getItem(KEY) ?? '[]');
-    return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [];
-  } catch { return []; }
+/** The visitor's local calendar day, YYYY-MM-DD. */
+export const today = (now: Date = new Date()): string => {
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${now.getFullYear()}-${p(now.getMonth() + 1)}-${p(now.getDate())}`;
 };
 
-/** Has Pi already signed this username in on this device, in this app? */
-export function wasCounted(username: string | null | undefined): boolean {
+const read = (): Record<string, string> => {
+  try {
+    const v = JSON.parse(window.localStorage.getItem(KEY) ?? '{}');
+    return v && typeof v === 'object' && !Array.isArray(v) ? v as Record<string, string> : {};
+  } catch { return {}; }
+};
+
+/** Has Pi already signed this username in here today, on this device? */
+export function wasCounted(username: string | null | undefined, now: Date = new Date()): boolean {
   if (!username) return false;
-  return read().includes(username.toLowerCase());
+  return read()[username.toLowerCase()] === today(now);
 }
 
-/** Remember that Pi signed this username in here. Never throws. */
-export function rememberCounted(username: string | null | undefined): void {
+/** Remember that Pi signed this username in here today. Never throws. */
+export function rememberCounted(username: string | null | undefined, now: Date = new Date()): void {
   if (!username) return;
-  const u = username.toLowerCase();
   try {
-    const list = read();
-    if (list.includes(u)) return;
-    window.localStorage.setItem(KEY, JSON.stringify([...list, u].slice(-20)));
+    const map = read();
+    map[username.toLowerCase()] = today(now);
+    // A shared phone keeps the last few people, not an ever-growing list.
+    const kept = Object.entries(map).sort((a, b) => (a[1] < b[1] ? 1 : -1)).slice(0, 20);
+    window.localStorage.setItem(KEY, JSON.stringify(Object.fromEntries(kept)));
   } catch { /* storage unavailable: the next visit signs in again, as before */ }
 }
 
