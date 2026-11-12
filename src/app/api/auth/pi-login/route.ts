@@ -53,7 +53,12 @@ export async function POST(req: NextRequest) {
     response.cookies.set('tec_user',         userJson,  { ...cookieOpts, httpOnly: false });
     response.cookies.set('tec_csrf',         csrf,      { ...cookieOpts, httpOnly: false });
     if (refresh) {
-      response.cookies.set('tec_refresh_token', refresh, { ...cookieOpts, httpOnly: true });
+      // HOST-ONLY (no Domain), like every app's and the Hub's: a single-use refresh token on the
+      // shared domain would reach every sibling app, and whichever spent it first would end
+      // this app's session (C-123 §2, TEC-AUDIT-0029).
+      const { domain: _shared, ...hostOnly } = cookieOpts;
+      void _shared;
+      response.cookies.set('tec_refresh_token', refresh, { ...hostOnly, httpOnly: true });
     }
 
     return response;
