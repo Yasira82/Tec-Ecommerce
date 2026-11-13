@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 const GW = process.env.API_GATEWAY_URL ?? '';
 
 const tryRefresh = async (refreshToken: string): Promise<string | null> => {
   try {
-    const res = await fetch(`${GW}/api/auth/refresh`, {
+    const res = await gatewayFetch(`${GW}/api/auth/refresh`, {
       method:  'POST',
       headers: { Cookie: `tec_refresh_token=${refreshToken}` },
     });
@@ -15,7 +16,7 @@ const tryRefresh = async (refreshToken: string): Promise<string | null> => {
 };
 
 const resolve = (token: string, pi_payment_id: string) =>
-  fetch(
+  gatewayFetch(
     `${GW}/api/payment/resolve-incomplete?pi_payment_id=${encodeURIComponent(pi_payment_id)}`,
     {
       method:  'POST',

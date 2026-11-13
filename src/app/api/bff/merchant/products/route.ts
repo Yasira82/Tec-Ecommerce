@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 const GATEWAY = process.env.API_GATEWAY_URL ?? '';
 
@@ -22,7 +23,7 @@ export async function GET(req: NextRequest) {
   try {
     const params = new URLSearchParams({ limit: '100', seller_id: sellerId });
 
-    const res = await fetch(
+    const res = await gatewayFetch(
       `${GATEWAY}/api/commerce/products?${params}`,
       {
         headers: {

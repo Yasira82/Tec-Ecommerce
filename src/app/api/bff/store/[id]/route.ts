@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifiedMerchants, zoneVerifyUrl } from '@/lib/server/zone-merchants';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 const GATEWAY = process.env.API_GATEWAY_URL ?? '';
 
@@ -25,7 +26,7 @@ export async function GET(
   if (!UUID.test(id)) return NextResponse.json({ merchant: null, products: [] });
 
   try {
-    const res = await fetch(`${GATEWAY}/api/commerce/products?seller=${encodeURIComponent(id)}&limit=100`, {
+    const res = await gatewayFetch(`${GATEWAY}/api/commerce/products?seller=${encodeURIComponent(id)}&limit=100`, {
       headers: {
         Authorization:   `Bearer ${getToken(req)}`,
         'x-request-id':  crypto.randomUUID(),

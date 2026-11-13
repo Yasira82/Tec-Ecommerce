@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 const GW = process.env.API_GATEWAY_URL;
 
@@ -16,7 +17,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const res = await fetch(
+    const res = await gatewayFetch(
       `${GW}/api/payment/resolve-incomplete?pi_payment_id=${encodeURIComponent(pid)}`,
       {
         method: 'POST',

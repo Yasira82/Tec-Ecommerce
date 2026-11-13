@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 const GATEWAY = process.env.API_GATEWAY_URL ?? '';
 
@@ -31,7 +32,7 @@ export async function GET(req: NextRequest) {
     const userId = getUserId(req);
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const res = await fetch(
+    const res = await gatewayFetch(
       `${GATEWAY}/api/commerce/orders?limit=20&sort=desc`,
       {
         headers: {
@@ -90,7 +91,7 @@ export async function POST(req: NextRequest) {
 
     const items = bodyItems ?? [{ productId: product_id!, qty: 1 }];
 
-    const res = await fetch(
+    const res = await gatewayFetch(
       `${GATEWAY}/api/commerce/orders`,
       {
         method:  'POST',
@@ -128,7 +129,7 @@ async function confirmHeld(req: NextRequest, orderId: string, paymentId: string,
     NextResponse.json({ success: true, data: { pending: true, order_id: orderId } }, { status: 202 });
   let res: Response;
   try {
-    res = await fetch(`${GATEWAY}/api/commerce/orders/${encodeURIComponent(orderId)}/confirm`, {
+    res = await gatewayFetch(`${GATEWAY}/api/commerce/orders/${encodeURIComponent(orderId)}/confirm`, {
       method:  'POST',
       headers: {
         Authorization:   `Bearer ${getToken(req)}`,

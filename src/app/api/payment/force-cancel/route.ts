@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 const GW = process.env.API_GATEWAY_URL;
 
@@ -13,7 +14,7 @@ export async function POST(req: NextRequest) {
 
   // Try cancel
   try {
-    const res = await fetch(`${GW}/api/payment/cancel`, {
+    const res = await gatewayFetch(`${GW}/api/payment/cancel`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -27,7 +28,7 @@ export async function POST(req: NextRequest) {
 
   // Try complete with empty txid
   try {
-    const res = await fetch(`${GW}/api/payment/complete`, {
+    const res = await gatewayFetch(`${GW}/api/payment/complete`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

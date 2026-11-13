@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 const GW = process.env.API_GATEWAY_URL ?? '';
 
@@ -31,7 +32,7 @@ export async function POST(req: NextRequest) {
   if (process.env.INTERNAL_SECRET) gwHeaders['x-internal-key'] = process.env.INTERNAL_SECRET;
 
   try {
-    const res = await fetch(`${GW}/api/payment/approve`, {
+    const res = await gatewayFetch(`${GW}/api/payment/approve`, {
       method:  'POST',
       headers: gwHeaders,
       body: JSON.stringify(parsed.data),

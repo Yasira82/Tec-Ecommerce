@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { networkMetadata } from '@/lib/pi-network';
 import { checkPurchase, linesFrom } from '@/lib/purchase-guard';
 import { placeHold, releaseHold } from '@/lib/order-hold';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 const GW = process.env.API_GATEWAY_URL ?? '';
 
@@ -90,7 +91,7 @@ export async function POST(req: NextRequest) {
   };
 
   try {
-    const res = await fetch(`${GW}/api/payment/create`, {
+    const res = await gatewayFetch(`${GW}/api/payment/create`, {
       method:  'POST',
       headers: gwHeaders,
       body: JSON.stringify({

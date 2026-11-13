@@ -1,3 +1,4 @@
+import { gatewayFetch } from '@/lib/gateway-fetch';
 // Server-only: which sellers are verified merchants in Zone (C-120). Zone owns the
 // verdict; Ecommerce only PRESENTS it — beside a seller, never as its own claim.
 //
@@ -18,7 +19,7 @@ export async function verifiedMerchants(sellerIds: unknown[]): Promise<Record<st
   const ids = [...new Set(sellerIds.filter((x): x is string => typeof x === 'string' && UUID.test(x)))].slice(0, 50);
   if (!gw || ids.length === 0) return {};
   try {
-    const res = await fetch(`${gw}/api/identity/zone/merchants?ids=${ids.join(',')}`, {
+    const res = await gatewayFetch(`${gw}/api/identity/zone/merchants?ids=${ids.join(',')}`, {
       headers: {
         'x-request-id': crypto.randomUUID(),
         ...(process.env.INTERNAL_SECRET && { 'x-internal-key': process.env.INTERNAL_SECRET }),

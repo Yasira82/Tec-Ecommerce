@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { jwtVerify, errors } from 'jose';
 import { createHandler } from '@/lib/bff/createHandler';
 import { APP_SOURCE }    from '@/lib/app-source';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 // This app predates the shared structured logger, so the one line this route
 // needs is written here in the same shape (one JSON object per line).
@@ -67,7 +68,7 @@ export const POST = createHandler({
     }
 
     try {
-      const res = await fetch(`${GATEWAY}/api/identity/pioneer/arrived`, {
+      const res = await gatewayFetch(`${GATEWAY}/api/identity/pioneer/arrived`, {
         method: 'POST',
         headers: {
           Authorization:    `Bearer ${req.cookies.get('tec_access_token')?.value ?? ''}`,
