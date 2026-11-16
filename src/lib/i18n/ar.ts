@@ -1,12 +1,14 @@
 export const ar = {
   common: {
     appName:  'TEC',
-    tagline:  'تحالف النخبة',
+    tagline:  'TEC Ecosystem',
     login:    'تسجيل الدخول بـ Pi',
     logout:   'خروج',
     loading:  'جاري التحميل...',
     comingSoon: 'قريباً',
     live:     'نشط',
+    linkCopied: "تم نسخ الرابط",
+    linkCopyFailed: "تعذّر نسخ الرابط",
   },
   dashboard: {
     greeting:   'مرحباً،',

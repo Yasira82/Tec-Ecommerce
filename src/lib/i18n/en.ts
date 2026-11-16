@@ -1,12 +1,14 @@
 export const en = {
   common: {
     appName:  'TEC',
-    tagline:  'The Elite Consortium',
+    tagline:  'TEC Ecosystem',
     login:    'Sign in with Pi',
     logout:   'Logout',
     loading:  'Loading...',
     comingSoon: 'Coming Soon',
     live:     'Live',
+    linkCopied: "Link copied",
+    linkCopyFailed: "Couldn't copy the link",
   },
   dashboard: {
     greeting:   'Welcome,',
