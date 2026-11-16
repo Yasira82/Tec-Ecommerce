@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslation } from '@/lib/i18n';
+import { copyLink } from '@/lib/copy-link';
 import { useMe } from '@/lib-client/hooks/useMe';
 
 const APP_VERSION = '1.0.0';
@@ -75,7 +76,7 @@ export function EcommerceDrawer({ isOpen, onClose, username: passed, hubUrl }: P
     if (navigator.share) {
       navigator.share({ title: 'TEC Ecommerce', text: 'Shop on Pi Network', url });
     } else {
-      navigator.clipboard.writeText(url).then(() => alert('Link copied!'));
+      void copyLink(url, t.common);
     }
   };
 

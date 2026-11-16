@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { CONTACT_EMAIL } from '@/lib/contact';
 
 const APP     = 'TEC Ecommerce';
 const DOMAIN  = 'ecommerce.tecosystem.app';
@@ -23,7 +24,7 @@ export default function TermsPage() {
       <p style={meta}>{APP} · {DOMAIN} · Last updated: {UPDATED}</p>
 
       <h2 style={h2}>1. Acceptance of Terms</h2>
-      <p>By accessing or using {APP} (the &quot;Service&quot;), operated by The Elite Consortium (&quot;TEC&quot;, &quot;we&quot;, &quot;us&quot;), you agree to be bound by these Terms of Service. If you do not agree, do not use the Service.</p>
+      <p>By accessing or using {APP} (the &quot;Service&quot;), operated by TEC (&quot;we&quot;, &quot;us&quot;), you agree to be bound by these Terms of Service. If you do not agree, do not use the Service.</p>
 
       <h2 style={h2}>2. Eligibility</h2>
       <p>You must have a valid Pi Network account and meet Pi Network&apos;s minimum age requirement to use the Service. You are responsible for maintaining the security of your account.</p>
@@ -60,7 +61,7 @@ export default function TermsPage() {
       <p>We may update these Terms from time to time. Continued use after changes constitutes acceptance. Material changes will be reflected by the &quot;Last updated&quot; date above.</p>
 
       <h2 style={h2}>12. Contact</h2>
-      <p>Questions about these Terms: <a href="mailto:support@tec.pi" style={link}>support@tec.pi</a>.</p>
+      <p>Questions about these Terms: <a href={`mailto:${CONTACT_EMAIL}`} style={link}>{CONTACT_EMAIL}</a>.</p>
 
       <p style={{ marginTop: 40 }}>
         <Link href="/privacy" style={link}>Privacy Policy</Link>{'  ·  '}

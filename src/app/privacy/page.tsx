@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { CONTACT_EMAIL } from '@/lib/contact';
 
 const APP     = 'TEC Ecommerce';
 const DOMAIN  = 'ecommerce.tecosystem.app';
@@ -23,7 +24,7 @@ export default function PrivacyPage() {
       <p style={meta}>{APP} · {DOMAIN} · Last updated: {UPDATED}</p>
 
       <h2 style={h2}>1. Overview</h2>
-      <p>The Elite Consortium (&quot;TEC&quot;, &quot;we&quot;, &quot;our&quot;, or &quot;us&quot;) operates {APP}, a Pi-native marketplace built on the Pi Network blockchain. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use {APP}. By accessing or using {APP}, you agree to this Privacy Policy.</p>
+      <p>TEC (&quot;we&quot;, &quot;our&quot;, or &quot;us&quot;) operates {APP}, a Pi-native marketplace built on the Pi Network blockchain. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use {APP}. By accessing or using {APP}, you agree to this Privacy Policy.</p>
 
       <h2 style={h2}>2. Information We Collect</h2>
       <p><strong>Pi Network identity.</strong> When you authenticate via Pi Network we receive your Pi User ID (UID), Pi username, and access tokens. We never receive or store your Pi password or private keys.</p>
@@ -59,7 +60,7 @@ export default function PrivacyPage() {
         <li>Erasure — request deletion of your personal data</li>
         <li>Portability — request transfer of your data</li>
       </ul>
-      <p>To exercise any of these rights, contact us at <a href="mailto:privacy@tec.pi" style={link}>privacy@tec.pi</a>.</p>
+      <p>To exercise any of these rights, contact us at <a href={`mailto:${CONTACT_EMAIL}`} style={link}>{CONTACT_EMAIL}</a>.</p>
 
       <h2 style={h2}>9. Children</h2>
       <p>{APP} is not directed to children under the age required to hold a Pi Network account, and we do not knowingly collect their data.</p>
@@ -68,7 +69,7 @@ export default function PrivacyPage() {
       <p>We may update this Privacy Policy from time to time. Material changes will be reflected by the &quot;Last updated&quot; date above.</p>
 
       <h2 style={h2}>11. Contact</h2>
-      <p>For privacy-related inquiries, contact The Elite Consortium at <a href="mailto:privacy@tec.pi" style={link}>privacy@tec.pi</a>. We aim to respond within 5 business days.</p>
+      <p>For privacy-related inquiries, contact TEC at <a href={`mailto:${CONTACT_EMAIL}`} style={link}>{CONTACT_EMAIL}</a>. We aim to respond within 5 business days.</p>
 
       <p style={{ marginTop: 40 }}>
         <Link href="/terms" style={link}>Terms of Service</Link>{'  ·  '}
